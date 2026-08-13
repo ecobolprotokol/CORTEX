@@ -1,4 +1,4 @@
-# CORTEX — 11 Current Repository Architecture & Structure
+# CORTEX — 11 Repository Architecture & Structure
 
 ---
 
@@ -7,9 +7,9 @@
 | Property | Value |
 |---|---|
 | **Document ID** | CORTEX-DOC-11 |
-| **Title** | Current Repository Architecture & Structure |
+| **Title** | Repository Architecture & Structure |
 | **Version** | 1.1.0 |
-| **Status** | Current Repository Architecture |
+| **Status** | Final Architectural Baseline |
 | **Classification** | Repository Contract |
 | **Scope** | Repository tree, directory/file responsibilities, source organization, naming conventions, dependency boundaries, structural invariants |
 | **Parent Document** | CORTEX-DOC-02 Software Design Specification |
@@ -465,7 +465,7 @@ DOC-01 (Technical Specification) ← ROOT
 │   │   └── DOC-04 (Algorithm Specification)
 │   │       ├── DOC-05 (API & CLI Specification)
 │   │       └── DOC-07 (Testing & Validation Specification)
-│   └── DOC-11 (Current Repository Architecture) ← THIS DOCUMENT
+│   └── DOC-11 (Repository Architecture) ← THIS DOCUMENT
 ├── DOC-06 (Build & Release Specification)
 ├── DOC-08 (Deployment & Operations Specification)
 ├── DOC-09 (Security & Privacy Specification)

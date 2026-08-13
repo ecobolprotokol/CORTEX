@@ -3752,7 +3752,7 @@ pub fn combine_predictions(
 >
 > **CORTEX software architecture: 71 modules, 5 layers, 12 trait interfaces, 1 binary, 1 process, 1 state file.**
 >
-> **Current Repository:** The current repository structure is documented in **CORTEX-DOC-11 Current Repository Architecture & Structure** (§2-§14). The target repository architecture is defined in **CORTEX-FINAL-BASELINE.md**.
+> The repository structure is documented in **CORTEX-DOC-11 Repository Architecture & Structure** (§2-§14).
 
 ---
 

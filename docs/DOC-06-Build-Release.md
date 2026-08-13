@@ -468,7 +468,7 @@ PATCH: Backward-compatible bug fixes.
 >
 > **CORTEX build contract: 8 pipeline stages, 9 build invariants, semantic versioning, reproducible builds.**
 >
-> **Current State:** Build artifact locations, release profile details, CI/CD directory layout, and repository naming conventions are documented in **CORTEX-DOC-11 Repository Architecture & Structure** (§8-§9, §10).
+> Build artifact locations, release profile details, CI/CD directory layout, and repository naming conventions are documented in **CORTEX-DOC-11 Repository Architecture & Structure** (§8-§9, §10).
 
 ---
 
