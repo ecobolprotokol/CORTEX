@@ -60,7 +60,7 @@ This specification does NOT cover:
 
 | # | Principle | Design Implication |
 |---|---|---|
-| DP-001 | Single-package composition | All modules compile into one `cortex` package; no plugin loading |
+| DP-001 | Single-binary composition | All modules compile into one `cortex` binary; no plugin loading |
 | DP-002 | Single-process execution | All subsystems run within one OS process; no IPC |
 | DP-003 | Ownership-based state | Each subsystem owns its state; mutation through defined interfaces |
 | DP-004 | Trait-based abstraction | Subsystem boundaries defined by Rust traits; implementations swappable |
@@ -76,18 +76,18 @@ This specification does NOT cover:
 | DP-014 | Inspectability | Internal state is queryable through controlled interfaces |
 | DP-015 | Separation of concerns | Knowledge/language, reasoning/generation, planning/policy are distinct |
 
-### 1.2 Python-Specific Design Principles
+### 1.2 Rust-Specific Design Principles
 
 | # | Principle | Application |
 |---|---|---|
-| RP-001 | Dataclass-based state | Each subsystem uses dataclasses for structured state; frozen where immutability required |
-| RP-002 | Protocol-based abstraction | Subsystem interfaces defined as Protocols; concrete implementations behind type hints |
-| RP-003 | Enum for state machines | Runtime states, cell states, verification statuses as Python Enums |
-| RP-004 | Exception for error propagation | All fallible operations raise `CortexError` subclasses |
-| RP-005 | Type safety for IDs | Distinct ID dataclasses per entity (CellId, EpisodeId, etc.) prevent cross-contamination |
-| RP-006 | Immutability by default | Frozen dataclasses preferred; mutation through explicit methods |
-| RP-007 | Type hints everywhere | All public functions have complete type annotations |
-| RP-008 | No global state | All state held in subsystem instances; no module-level mutable state |
+| RP-001 | Ownership for state safety | Each subsystem struct owns its data; no shared mutable state without synchronization |
+| RP-002 | Traits for abstraction | Subsystem interfaces defined as traits; concrete implementations behind trait objects or generics |
+| RP-003 | Enums for state machines | Runtime states, cell states, verification statuses as Rust enums |
+| RP-004 | Result for error propagation | All fallible operations return `Result<T, CortexError>` |
+| RP-005 | Type safety for IDs | Distinct ID types per entity (CellId, EpisodeId, etc.) prevent cross-contamination |
+| RP-006 | Immutability by default | Shared references preferred; mutation through explicit `&mut` |
+| RP-007 | Zero-cost abstractions | Trait dispatch and generics preferred over dynamic dispatch where performance-critical |
+| RP-008 | Memory safety without GC | Rust ownership model eliminates use-after-free, data races |
 
 ---
 
@@ -248,49 +248,136 @@ Worker Threads (bounded pool)
 ### 4.1 Module Hierarchy
 
 ```
-src/cortex/
-├── __init__.py           # Package initialization, version export
+cortex/
+├── main.rs                 # Entry point, CLI dispatch
+├── cortex.rs               # Global orchestration, CortexRuntime
+├── config.rs               # Configuration parsing & validation
+├── error.rs                # Error taxonomy & handling
+├── runtime.rs              # Runtime lifecycle & state machine
 │
-├── core/                 # Core types, IDs, scalars, common definitions
-├── cognitive/            # Cognitive pipeline orchestration
-├── world/                # World Model
-├── memory/               # Memory System
-├── reasoning/            # Reasoning Engine
-├── planning/             # Planning Engine
-├── verification/         # Verification Engine
-├── learning/             # Continual Learning System
-├── self_model/           # Self Model
-├── policy/               # Policy / Risk Gate
-├── internet/             # Internet Interface
-├── persistence/          # Persistence Engine
-├── api/                  # Embedded API
-├── cli/                  # CLI Layer
-├── observability/        # Observability
+├── language/               # Language Core (CLX)
+│   ├── mod.rs              # LanguageCore trait + orchestration
+│   ├── tokenizer.rs        # Symbol & token encoding
+│   ├── vocabulary.rs       # Dynamic vocabulary management
+│   ├── syntax.rs           # Syntax representation
+│   ├── semantics.rs        # Semantic representation
+│   ├── language_model.rs   # Language prediction
+│   ├── decoder.rs          # Language realization
+│   └── context.rs          # Context model
 │
-└── types/                # Core Type System
+├── neural/                 # Neural Core (CNS)
+│   ├── mod.rs              # NeuralCore trait + orchestration
+│   ├── cell.rs             # Cell computation
+│   ├── column.rs           # Column computation
+│   ├── field.rs            # Neural field management
+│   ├── temporal.rs         # Temporal representation
+│   └── plasticity.rs       # Plasticity rules
+│
+├── memory/                 # Memory System
+│   ├── mod.rs              # MemorySystem trait + orchestration
+│   ├── working.rs          # Working memory
+│   ├── episodic.rs         # Episodic memory
+│   ├── semantic.rs         # Semantic memory
+│   ├── procedural.rs       # Procedural memory
+│   ├── associative.rs      # Associative memory
+│   ├── retrieval.rs        # Memory retrieval engine
+│   └── consolidation.rs    # Memory consolidation
+│
+├── world/                  # World Model
+│   ├── mod.rs              # WorldModelInterface trait
+│   ├── entity.rs           # Entity management
+│   ├── transition.rs       # Transition model
+│   ├── causal.rs           # Causal hypotheses
+│   └── simulation.rs       # World simulation
+│
+├── reasoning/              # Reasoning Engine
+│   ├── mod.rs              # ReasoningEngine trait
+│   ├── hypothesis.rs       # Hypothesis generation & evaluation
+│   ├── evidence.rs         # Evidence evaluation
+│   └── contradiction.rs    # Contradiction detection
+│
+├── planning/               # Planning Engine
+│   ├── mod.rs              # PlanningEngine trait
+│   ├── plan.rs             # Plan representation & ranking
+│   └── risk.rs             # Risk evaluation
+│
+├── verification/           # Verification Engine
+│   ├── mod.rs              # VerificationEngine trait
+│   └── confidence.rs       # Confidence model
+│
+├── learning/               # Continual Learning System
+│   ├── mod.rs              # LearningSystem trait
+│   ├── signal.rs           # Learning signal generation
+│   ├── attribution.rs      # Error attribution
+│   ├── replay.rs           # Experience replay
+│   └── stability.rs        # Learning stability guards
+│
+├── self_model/             # Self Model
+│   ├── mod.rs              # SelfModelInterface trait
+│   └── capability.rs       # Capability estimation
+│
+├── policy/                 # Policy / Risk Gate
+│   ├── mod.rs              # PolicyEngine trait
+│   ├── risk.rs             # Risk estimation
+│   └── gate.rs             # Gate pipeline
+│
+├── internet/               # Internet Interface
+│   ├── mod.rs              # InternetInterface trait
+│   ├── fetch.rs            # Network operations
+│   └── parse.rs            # Content extraction
+│
+├── persistence/            # Persistence Engine
+│   ├── mod.rs              # PersistenceEngine trait
+│   ├── format.rs           # .cx format handling
+│   ├── checkpoint.rs       # Checkpoint lifecycle
+│   └── migration.rs        # State migration
+│
+├── api/                    # Embedded API
+│   ├── mod.rs              # API server orchestration
+│   ├── routes.rs           # Route definitions
+│   ├── auth.rs             # Authentication
+│   └── handlers.rs         # Request handlers
+│
+├── cli/                    # CLI Layer
+│   ├── mod.rs              # CLI dispatch
+│   └── commands.rs         # Command implementations
+│
+├── observability/          # Observability
+│   ├── mod.rs              # Metrics & diagnostics
+│   └── diagnostics.rs      # Diagnostic state
+│
+└── types/                  # Core Type System
+    ├── mod.rs              # Type re-exports
+    ├── ids.rs              # All ID types
+    ├── scalars.rs          # Scalar type
+    ├── state.rs            # CortexState, sub-states
+    ├── observation.rs      # Observation, Experience
+    ├── evidence.rs         # Evidence, Provenance
+    └── common.rs           # Shared types
 ```
 
 ### 4.2 Module Count
 
-| Category | Package Count |
+| Category | Module Count |
 |---|---|
-| Core types | 1 |
-| Cognitive pipeline | 1 |
-| World Model | 1 |
-| Memory System | 1 |
-| Reasoning | 1 |
-| Planning | 1 |
-| Verification | 1 |
-| Learning | 1 |
-| Self Model | 1 |
-| Policy | 1 |
-| Internet | 1 |
-| Persistence | 1 |
-| API | 1 |
-| CLI | 1 |
-| Observability | 1 |
-| Types | 1 |
-| **Total** | **22** |
+| Core orchestration | 4 |
+| Language Core | 8 |
+| Neural Core | 6 |
+| Memory System | 8 |
+| World Model | 5 |
+| Reasoning | 4 |
+| Planning | 3 |
+| Verification | 2 |
+| Learning | 5 |
+| Self Model | 2 |
+| Policy | 3 |
+| Internet | 3 |
+| Persistence | 4 |
+| API | 4 |
+| CLI | 2 |
+| Observability | 2 |
+| Types | 6 |
+| **Total** | **71** |
 
 ---
 

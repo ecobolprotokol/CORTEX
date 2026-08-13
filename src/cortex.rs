@@ -190,18 +190,18 @@ impl CortexRuntime {
         let recent_episodes = self.memory_episodic.recent(5);
         let context_strings: Vec<String> = recent_episodes
             .iter()
-            .map(|e| e.observation.clone())
+            .map(|e| e.observation.text.clone())
             .collect();
         self.state.memory.episodic.episodes.clear();
         for ep in &self.memory_episodic.episodes {
             self.state.memory.episodic.episodes.push(
                 crate::types::state::EpisodeRecord {
                     id: ep.id,
-                    observation: crate::types::observation::Observation::user_provided(&ep.observation),
+                    observation: ep.observation.clone(),
                     timestamp: ep.timestamp,
                     importance: ep.importance,
                     consolidated: ep.consolidated,
-                    retrieval_count: 0,
+                    retrieval_count: ep.retrieval_count,
                 },
             );
         }
@@ -278,7 +278,7 @@ impl CortexRuntime {
         } else {
             hypotheses.iter().map(|h| h.confidence).sum::<f32>() / hypotheses.len() as f32
         };
-        self.memory_episodic.store(input, importance);
+        self.memory_episodic.store(crate::types::observation::Observation::user_provided(input));
         self.state.metadata.episode_count += 1;
 
         // Stage 11: Apply learning
