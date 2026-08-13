@@ -30,6 +30,10 @@ pub struct TemporalEncoding {
     pub transition: Vec<Scalar>,
     pub recurrence: Scalar,
     pub dependency: Vec<Scalar>,
+    pub coherence: Scalar,
+    pub anomaly_score: Scalar,
+    pub short_term: Vec<Scalar>,
+    pub long_term: Vec<Scalar>,
 }
 
 pub struct NeuralCoreImpl {
@@ -53,12 +57,18 @@ impl NeuralCoreImpl {
                         state: CellState::Resting,
                         activation: 0.0,
                         prediction_vector: vec![0.0; config.dimension as usize],
+                        refractory_steps: 0,
+                        adaptation_level: 0.0,
+                        burst_counter: 0,
+                        eligibility_trace: 0.0,
                     });
                 }
                 columns.push(Column {
                     id: ColumnId((fi * config.columns + ci) as u64),
                     cells,
                     active_cells: Vec::new(),
+                    activation_threshold: 0.5,
+                    learned_pattern: Vec::new(),
                 });
             }
             fields.push(NeuralField {
@@ -114,6 +124,12 @@ impl NeuralCoreImpl {
 
 impl NeuralCore for NeuralCoreImpl {
     fn process(&mut self, input: &LanguageState, _context: &ContextState) -> Result<NeuralRepresentation> {
+        for field in &mut self.state.fields {
+            for column in &mut field.columns {
+                cell::tick_all(&mut column.cells);
+            }
+        }
+
         self.map_language_to_cells(input);
 
         let mut all_active_cells = Vec::new();
@@ -121,15 +137,22 @@ impl NeuralCore for NeuralCoreImpl {
         let mut field_activations = Vec::new();
 
         for field in &mut self.state.fields {
+            for column in &mut field.columns {
+                column::compete(column, self.config.sparsity_ratio);
+            }
+
+            column::apply_lateral_inhibition(&mut field.columns, 0.3);
+
             let mut field_active = 0;
             let mut field_total = 0;
             for column in &mut field.columns {
-                let active = column::compete(column, self.config.sparsity_ratio);
-                field_active += active.len();
+                field_active += column.active_cells.len();
                 field_total += column.cells.len();
-                all_active_cells.extend(active.iter().cloned());
+                all_active_cells.extend(column.active_cells.iter().cloned());
                 all_active_columns.push(column.id);
+                column::homeostatic_adjust(column, 0.1);
             }
+
             field.average_activation = if field_total > 0 {
                 field_active as Scalar / field_total as Scalar
             } else {

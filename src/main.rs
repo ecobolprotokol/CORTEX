@@ -81,9 +81,19 @@ async fn main() {
                         config.api.bind = b;
                     }
                     let api_key = std::env::var(&config.api.api_key_env).ok();
-                    let server = cortex::api::ApiServer::new(&config.api.bind, api_key);
-                    if let Err(e) = server.start().await {
-                        eprintln!("Error: {}", e);
+                    let bind_addr = config.api.bind.clone();
+                    match cortex::cortex::CortexRuntime::boot(config) {
+                        Ok(runtime) => {
+                            let runtime = std::sync::Arc::new(std::sync::Mutex::new(runtime));
+                            let server = cortex::api::ApiServer::new(
+                                &bind_addr,
+                                api_key,
+                            ).with_runtime(runtime);
+                            if let Err(e) = server.start().await {
+                                eprintln!("Error: {}", e);
+                            }
+                        }
+                        Err(e) => eprintln!("Error booting runtime: {}", e),
                     }
                 }
                 Err(e) => eprintln!("Error: {}", e),
@@ -95,11 +105,77 @@ async fn main() {
                 std::process::exit(1);
             }
         }
-        cortex::cli::Commands::Experience { json_data: _ } => {
-            println!("Experience recorded. Learning applied. State updated.");
+        cortex::cli::Commands::Experience { json_data } => {
+            let path = config_path.clone();
+            match cortex::config::CortexConfig::load(&path) {
+                Ok(config) => match cortex::cortex::CortexRuntime::boot(config) {
+                    Ok(mut runtime) => {
+                        let input = json_data.trim();
+                        match runtime.learn(input) {
+                            Ok(msg) => println!("{}", msg),
+                            Err(e) => {
+                                eprintln!("Error: {}", e);
+                                std::process::exit(1);
+                            }
+                        }
+                        if let Err(e) = runtime.save() {
+                            eprintln!("Error saving state: {}", e);
+                        }
+                    }
+                    Err(e) => {
+                        eprintln!("Error booting runtime: {}", e);
+                        std::process::exit(1);
+                    }
+                },
+                Err(e) => {
+                    eprintln!("Error: {}", e);
+                    std::process::exit(1);
+                }
+            }
         }
         cortex::cli::Commands::Learn => {
-            println!("Learning cycle complete.");
+            let path = config_path.clone();
+            match cortex::config::CortexConfig::load(&path) {
+                Ok(config) => match cortex::cortex::CortexRuntime::boot(config) {
+                    Ok(mut runtime) => {
+                        let stdin = std::io::stdin();
+                        println!("Enter text to learn (Ctrl+D to finish):");
+                        let mut input = String::new();
+                        match stdin.read_line(&mut input) {
+                            Ok(0) => println!("No input provided."),
+                            Ok(_) => {
+                                let text = input.trim().to_string();
+                                if !text.is_empty() {
+                                    match runtime.learn(&text) {
+                                        Ok(msg) => println!("{}", msg),
+                                        Err(e) => {
+                                            eprintln!("Error: {}", e);
+                                            std::process::exit(1);
+                                        }
+                                    }
+                                } else {
+                                    println!("Empty input. No learning applied.");
+                                }
+                            }
+                            Err(e) => {
+                                eprintln!("Read error: {}", e);
+                                std::process::exit(1);
+                            }
+                        }
+                        if let Err(e) = runtime.save() {
+                            eprintln!("Error saving state: {}", e);
+                        }
+                    }
+                    Err(e) => {
+                        eprintln!("Error booting runtime: {}", e);
+                        std::process::exit(1);
+                    }
+                },
+                Err(e) => {
+                    eprintln!("Error: {}", e);
+                    std::process::exit(1);
+                }
+            }
         }
         cortex::cli::Commands::Query { text, target, max_results } => {
             if let Err(e) = cortex::cli::commands::execute_query(&config_path, &text, &target, max_results) {

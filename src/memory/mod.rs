@@ -15,6 +15,7 @@ pub trait MemorySystem {
     fn store_episode(&mut self, episode: Episode) -> Result<()>;
     fn store_knowledge(&mut self, knowledge: Knowledge) -> Result<()>;
     fn state(&self) -> &MemoryState;
+    fn state_mut(&mut self) -> &mut MemoryState;
     fn working_memory(&self) -> &WorkingMemory;
     fn working_memory_mut(&mut self) -> &mut WorkingMemory;
 }
@@ -89,6 +90,10 @@ impl MemorySystem for MemorySystemImpl {
 
     fn state(&self) -> &MemoryState {
         &self.state
+    }
+
+    fn state_mut(&mut self) -> &mut MemoryState {
+        &mut self.state
     }
 
     fn working_memory(&self) -> &WorkingMemory {

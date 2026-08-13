@@ -1,4 +1,7 @@
+pub mod diagnostics;
+
 use crate::types::*;
+use std::collections::VecDeque;
 
 #[derive(Debug, Clone)]
 pub struct RuntimeStatus {
@@ -26,6 +29,71 @@ pub fn format_status(status: &RuntimeStatus) -> String {
         "Status: {}\nEpisodes: {}\nVocabulary: {}\nEntities: {}",
         status.status, status.episode_count, status.vocabulary_size, status.entity_count
     )
+}
+
+#[derive(Debug, Clone)]
+pub struct MetricsSnapshot {
+    pub timestamp: Timestamp,
+    pub episode_count: u64,
+    pub vocabulary_size: u32,
+    pub memory_usage_bytes: u64,
+    pub memory_capacity_bytes: u64,
+    pub prediction_error: f32,
+    pub learning_events: u64,
+    pub active_cells: usize,
+    pub entity_count: usize,
+    pub hypothesis_count: usize,
+}
+
+pub struct MetricsCollector {
+    snapshots: VecDeque<MetricsSnapshot>,
+    max_snapshots: usize,
+}
+
+impl MetricsCollector {
+    pub fn new(max_snapshots: usize) -> Self {
+        Self {
+            snapshots: VecDeque::new(),
+            max_snapshots,
+        }
+    }
+
+    pub fn record(&mut self, snapshot: MetricsSnapshot) {
+        if self.snapshots.len() >= self.max_snapshots {
+            self.snapshots.pop_front();
+        }
+        self.snapshots.push_back(snapshot);
+    }
+
+    pub fn latest(&self) -> Option<&MetricsSnapshot> {
+        self.snapshots.back()
+    }
+
+    pub fn history(&self) -> Vec<&MetricsSnapshot> {
+        self.snapshots.iter().collect()
+    }
+
+    pub fn count(&self) -> usize {
+        self.snapshots.len()
+    }
+
+    pub fn average_prediction_error(&self) -> f32 {
+        if self.snapshots.is_empty() {
+            return 0.0;
+        }
+        let sum: f32 = self.snapshots.iter().map(|s| s.prediction_error).sum();
+        sum / self.snapshots.len() as f32
+    }
+
+    pub fn memory_usage_trend(&self) -> Vec<f32> {
+        self.snapshots.iter().map(|s| {
+            if s.memory_capacity_bytes == 0 {
+                0.0
+            } else {
+                s.memory_usage_bytes as f32 / s.memory_capacity_bytes as f32
+            }
+        }).collect()
+    }
 }
 
 #[cfg(test)]
@@ -189,5 +257,29 @@ mod tests {
         assert_eq!(status.episode_count, 42);
         assert_eq!(status.vocabulary_size, 100);
         assert_eq!(status.status, "ready");
+    }
+
+    #[test]
+    fn test_metrics_collector() {
+        let mut collector = MetricsCollector::new(3);
+        for i in 0..5 {
+            collector.record(MetricsSnapshot {
+                timestamp: Timestamp::now(),
+                episode_count: i,
+                vocabulary_size: 100,
+                memory_usage_bytes: 1000,
+                memory_capacity_bytes: 10000,
+                prediction_error: i as f32 * 0.1,
+                learning_events: i * 10,
+                active_cells: 50,
+                entity_count: 5,
+                hypothesis_count: 3,
+            });
+        }
+        assert_eq!(collector.count(), 3);
+        assert!(collector.latest().is_some());
+        assert_eq!(collector.latest().unwrap().episode_count, 4);
+        let avg = collector.average_prediction_error();
+        assert!((avg - 0.3).abs() < 0.01);
     }
 }

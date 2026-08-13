@@ -105,6 +105,8 @@ pub struct Column {
     pub id: ColumnId,
     pub cells: Vec<Cell>,
     pub active_cells: Vec<CellId>,
+    pub activation_threshold: Scalar,
+    pub learned_pattern: Vec<Scalar>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -113,6 +115,10 @@ pub struct Cell {
     pub state: CellState,
     pub activation: Scalar,
     pub prediction_vector: Vec<Scalar>,
+    pub refractory_steps: u32,
+    pub adaptation_level: Scalar,
+    pub burst_counter: u32,
+    pub eligibility_trace: Scalar,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]

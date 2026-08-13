@@ -6,6 +6,7 @@ use crate::types::*;
 pub trait SelfModelInterface {
     fn estimate(&self) -> &SelfModel;
     fn update(&mut self, metrics: &ModelMetrics);
+    fn update_memory_health(&mut self, pressure: f32, fragmentation: f32, backlog: u32);
 }
 
 pub struct ModelMetrics {
@@ -55,8 +56,53 @@ impl SelfModelInterface for SelfModelImpl {
     }
 
     fn update(&mut self, metrics: &ModelMetrics) {
-        self.model.prediction_accuracy = (self.model.prediction_accuracy * 0.9 + (1.0 - metrics.prediction_error) * 0.1);
-        self.model.uncertainty_level = metrics.prediction_error;
+        self.model.prediction_accuracy =
+            self.model.prediction_accuracy * 0.9 + (1.0 - metrics.prediction_error).max(0.0) * 0.1;
+        self.model.uncertainty_level = metrics.prediction_error.clamp(0.0, 1.0);
+
+        self.model.capabilities.prediction_accuracy =
+            self.model.capabilities.prediction_accuracy * 0.95 + self.model.prediction_accuracy * 0.05;
+
+        self.model.memory_health.consolidation_backlog =
+            (metrics.episode_count as f32 * 0.01) as u32;
+
+        let pressure_level = if metrics.memory_pressure > 0.9 {
+            MemoryPressure::Critical
+        } else if metrics.memory_pressure > 0.7 {
+            MemoryPressure::High
+        } else if metrics.memory_pressure > 0.4 {
+            MemoryPressure::Moderate
+        } else {
+            MemoryPressure::Low
+        };
+        self.model.memory_health.pressure = pressure_level;
+
+        if metrics.memory_pressure > 0.8 {
+            self.model.capabilities.resource_availability =
+                (self.model.capabilities.resource_availability * 0.9 + 0.1 * (1.0 - metrics.memory_pressure)).max(0.0);
+            if !self.model.limitations.resource_constraints.contains(&"high_memory_pressure".to_string()) {
+                self.model.limitations.resource_constraints.push("high_memory_pressure".to_string());
+            }
+        } else {
+            self.model.limitations.resource_constraints.retain(|s| s != "high_memory_pressure");
+        }
+
+        self.model.last_updated = Timestamp::now();
+    }
+
+    fn update_memory_health(&mut self, pressure: f32, fragmentation: f32, backlog: u32) {
+        let pressure_level = if pressure > 0.9 {
+            MemoryPressure::Critical
+        } else if pressure > 0.7 {
+            MemoryPressure::High
+        } else if pressure > 0.4 {
+            MemoryPressure::Moderate
+        } else {
+            MemoryPressure::Low
+        };
+        self.model.memory_health.pressure = pressure_level;
+        self.model.memory_health.fragmentation = fragmentation.clamp(0.0, 1.0);
+        self.model.memory_health.consolidation_backlog = backlog;
         self.model.last_updated = Timestamp::now();
     }
 }
