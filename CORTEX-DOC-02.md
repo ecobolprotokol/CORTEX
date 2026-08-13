@@ -8,7 +8,7 @@
 |---|---|
 | **Document ID** | CORTEX-DOC-02 |
 | **Title** | Software Design Specification |
-| **Version** | 1.0.0 |
+| **Version** | 1.1.0 |
 | **Status** | Final Architectural Baseline |
 | **Classification** | Architecture Contract |
 | **Scope** | Software architecture, module design, type system, runtime design |
@@ -21,6 +21,7 @@
 | Version | Date | Author | Description |
 |---|---|---|---|
 | 1.0.0 | 2026-08-13 | CORTEX Architecture | Initial final baseline |
+| 1.1.0 | 2026-08-13 | CORTEX Architecture | Replace SHA-256/HMAC with BLAKE3 for all hashing operations |
 
 ### Approval
 
@@ -432,8 +433,7 @@ bincode = "1"
 zstd = "0.13"
 
 # Cryptography (integrity)
-sha2 = "0.10"
-hmac = "0.12"
+blake3 = "1"
 
 # UUID
 uuid = { version = "1", features = ["v4"] }
@@ -729,7 +729,7 @@ cli/      → types/, error.rs, cortex.rs (runtime access)
 cortex binary
 ├── serde + bincode     (serialization)
 ├── zstd               (compression)
-├── sha2 + hmac        (integrity)
+├── blake3             (integrity)
 ├── uuid               (state identity)
 ├── tokio              (async I/O)
 ├── hyper              (HTTP server)
@@ -2423,7 +2423,7 @@ impl PersistenceEngineImpl {
 │  │ format_version: u32                                       │  │
 │  │ architecture_version: u32                                 │  │
 │  │ algorithm_version: u32                                    │  │
-│  │ config_hash: [u8; 32]    (SHA-256 of cortex.toml)        │  │
+│  │ config_hash: [u8; 32]    (BLAKE3-256 of cortex.toml)    │  │
 │  │ state_id: [u8; 16]       (UUID)                          │  │
 │  │ created_at: u64          (timestamp)                      │  │
 │  │ last_checkpoint: u64     (timestamp)                      │  │
@@ -3462,7 +3462,212 @@ These parameters are exposed in configuration or as implementation constants. Th
 
 ---
 
-## 44. Design Completeness
+## 44. Gap Resolution: Additional Design Specifications
+
+The following subsections close gaps identified during cross-document audit.
+
+### 44.1 API ↔ Cognitive-Loop Concurrency Design
+
+```rust
+// API requests are queued and processed sequentially in the cognitive loop.
+// The cognitive loop is single-threaded; no concurrent state mutations.
+
+pub struct CortexRuntime {
+    // Synchronous cognitive state (single-threaded access)
+    state: CortexState,
+    
+    // Channel for incoming API requests
+    request_rx: mpsc::Receiver<ApiRequest>,
+    
+    // Channel for API responses
+    response_tx: mpsc::Sender<ApiResponse>,
+}
+
+// Concurrency model:
+// 1. API server accepts connections on async runtime (tokio)
+// 2. Each request is serialized into an ApiRequest
+// 3. ApiRequest is sent via channel to cognitive loop
+// 4. Cognitive loop processes request synchronously
+// 5. Response is sent back via channel
+// 6. API server returns response to client
+//
+// This ensures:
+// - No concurrent state mutations
+// - Deterministic processing order
+// - Single-threaded cognitive safety
+// - API requests are serialized, not parallel
+```
+
+**API Request Processing Rules:**
+
+| Rule | Description |
+|---|---|
+| API-CON-001 | API requests are queued, not processed concurrently |
+| API-CON-002 | Cognitive loop processes one request at a time |
+| API-CON-003 | Background tasks (consolidation, checkpoint) receive cloned state snapshots |
+| API-CON-004 | Background task results are merged in the main cognitive loop |
+| API-CON-005 | API timeout (30s) is enforced at the HTTP layer, not the cognitive layer |
+| API-CON-006 | If cognitive loop is busy, API request waits in queue (bounded by max_connections) |
+
+### 44.2 Configuration Validation Algorithm Design
+
+```rust
+// Configuration validation pipeline (deterministic, complete)
+
+impl CortexConfig {
+    pub fn validate(&self) -> Result<ValidatedConfig, ConfigError> {
+        // 1. Schema validation: all required fields present, correct types
+        self.validate_schema()?;
+        
+        // 2. Range validation: all numeric parameters within bounds
+        self.validate_ranges()?;
+        
+        // 3. Dependency validation: cross-field constraints
+        self.validate_dependencies()?;
+        
+        // 4. Policy validation: security constraints
+        self.validate_policy()?;
+        
+        // 5. Compute derived values
+        let derived = self.compute_derived();
+        
+        Ok(ValidatedConfig {
+            config: self.clone(),
+            derived,
+        })
+    }
+    
+    fn validate_ranges(&self) -> Result<(), ConfigError> {
+        // model
+        if self.model.cells < 256 { return Err(ConfigError::RangeViolation("model.cells".into())); }
+        if self.model.columns < 16 { return Err(ConfigError::RangeViolation("model.columns".into())); }
+        if self.model.dimension < 64 { return Err(ConfigError::RangeViolation("model.dimension".into())); }
+        if self.model.sparsity_ratio <= 0.0 || self.model.sparsity_ratio > 1.0 {
+            return Err(ConfigError::RangeViolation("model.sparsity_ratio".into()));
+        }
+        // language
+        if self.language.vocabulary_capacity < 256 { return Err(ConfigError::RangeViolation("language.vocabulary_capacity".into())); }
+        if self.language.context_window < 64 { return Err(ConfigError::RangeViolation("language.context_window".into())); }
+        if self.language.generation_limit < 32 { return Err(ConfigError::RangeViolation("language.generation_limit".into())); }
+        // memory
+        if self.memory.working_mb < 16 { return Err(ConfigError::RangeViolation("memory.working_mb".into())); }
+        if self.memory.episodic_mb < 32 { return Err(ConfigError::RangeViolation("memory.episodic_mb".into())); }
+        if self.memory.semantic_mb < 32 { return Err(ConfigError::RangeViolation("memory.semantic_mb".into())); }
+        if self.memory.procedural_mb < 16 { return Err(ConfigError::RangeViolation("memory.procedural_mb".into())); }
+        if self.memory.associative_mb < 16 { return Err(ConfigError::RangeViolation("memory.associative_mb".into())); }
+        // learning
+        if self.learning.learning_rate <= 0.0 || self.learning.learning_rate > 1.0 {
+            return Err(ConfigError::RangeViolation("learning.learning_rate".into()));
+        }
+        if self.learning.plasticity < 0.0 || self.learning.plasticity > 1.0 {
+            return Err(ConfigError::RangeViolation("learning.plasticity".into()));
+        }
+        // verification
+        if self.verification.minimum_confidence < 0.0 || self.verification.minimum_confidence > 1.0 {
+            return Err(ConfigError::RangeViolation("verification.minimum_confidence".into()));
+        }
+        // reasoning
+        if self.reasoning.max_steps < 1 { return Err(ConfigError::RangeViolation("reasoning.max_steps".into())); }
+        // planning
+        if self.planning.max_depth < 1 { return Err(ConfigError::RangeViolation("planning.max_depth".into())); }
+        if self.planning.max_branches < 1 { return Err(ConfigError::RangeViolation("planning.max_branches".into())); }
+        // world
+        if self.world.prediction_horizon < 1 { return Err(ConfigError::RangeViolation("world.prediction_horizon".into())); }
+        // internet
+        if self.internet.timeout_seconds < 1 { return Err(ConfigError::RangeViolation("internet.timeout_seconds".into())); }
+        if self.internet.max_response_mb < 1 { return Err(ConfigError::RangeViolation("internet.max_response_mb".into())); }
+        // persistence
+        if self.persistence.checkpoint_interval < 1 { return Err(ConfigError::RangeViolation("persistence.checkpoint_interval".into())); }
+        Ok(())
+    }
+    
+    fn validate_dependencies(&self) -> Result<(), ConfigError> {
+        // cells must be divisible by columns
+        if self.model.cells % self.model.columns != 0 {
+            return Err(ConfigError::DependencyViolation("model.cells must be divisible by model.columns".into()));
+        }
+        // context_window must fit generation_limit
+        if self.language.context_window < self.language.generation_limit {
+            return Err(ConfigError::DependencyViolation("language.context_window must be >= language.generation_limit".into()));
+        }
+        Ok(())
+    }
+    
+    fn validate_policy(&self) -> Result<(), ConfigError> {
+        // Warn on dangerous policy settings
+        if self.policy.self_modification {
+            tracing::warn!("Self-modification Level 2 enabled");
+        }
+        if self.policy.policy_modification {
+            tracing::warn!("Self-modification Level 3 (policy modification) enabled");
+        }
+        Ok(())
+    }
+}
+```
+
+### 44.3 Neural vs World Prediction Conflict Resolution Design
+
+```rust
+// When neural prediction and world model prediction disagree:
+// 1. Both predictions are retained as competing hypotheses
+// 2. Confidence-weighted combination is computed
+// 3. Disagreement magnitude is recorded as uncertainty
+// 4. Neither prediction is silently discarded
+
+pub fn combine_predictions(
+    neural_pred: &Prediction,
+    world_pred: &Prediction,
+) -> CombinedPrediction {
+    let neural_weight = neural_pred.confidence;
+    let world_weight = world_pred.confidence;
+    let total_weight = neural_weight + world_weight;
+    
+    if total_weight < SCALAR_EPSILON {
+        // Both predictions have near-zero confidence
+        return CombinedPrediction::uncertain();
+    }
+    
+    // Weighted combination
+    let combined_state: Vec<Scalar> = neural_pred.predicted_state.iter()
+        .zip(world_pred.predicted_state.iter())
+        .map(|(n, w)| (n * neural_weight + w * world_weight) / total_weight)
+        .collect();
+    
+    // Disagreement magnitude
+    let disagreement: Scalar = neural_pred.predicted_state.iter()
+        .zip(world_pred.predicted_state.iter())
+        .map(|(n, w)| (n - w).powi(2))
+        .sum::<Scalar>()
+        .sqrt();
+    
+    // Combined confidence (reduced by disagreement)
+    let agreement_factor = 1.0 - (disagreement / (combined_state.len() as Scalar).sqrt()).min(1.0);
+    let combined_confidence = (neural_weight + world_weight) / 2.0 * agreement_factor;
+    
+    CombinedPrediction {
+        predicted_state: combined_state,
+        confidence: combined_confidence,
+        neural_confidence: neural_weight,
+        world_confidence: world_weight,
+        disagreement,
+    }
+}
+```
+
+**Conflict Resolution Rules:**
+
+| Rule | Description |
+|---|---|
+| PRED-001 | Neural and world predictions are always combined, never discarded |
+| PRED-002 | Confidence weighting determines contribution of each source |
+| PRED-003 | Disagreement magnitude reduces combined confidence |
+| PRED-004 | If both predictions have near-zero confidence, result is uncertain |
+| PRED-005 | Combined prediction is used for learning signal computation |
+
+---
+
+## 45. Design Completeness
 
 ### 44.1 Completeness Checklist
 
@@ -3545,4 +3750,4 @@ These parameters are exposed in configuration or as implementation constants. Th
 
 ---
 
-*End of Document — CORTEX-DOC-02 Software Design Specification v1.0.0*
+*End of Document — CORTEX-DOC-02 Software Design Specification v1.1.0*

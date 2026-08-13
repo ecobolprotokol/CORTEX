@@ -8,7 +8,7 @@
 |---|---|
 | **Document ID** | CORTEX-DOC-04 |
 | **Title** | Algorithm Specification |
-| **Version** | 1.0.0 |
+| **Version** | 1.1.0 |
 | **Status** | Final Architectural Baseline |
 | **Classification** | Computational Behavior Contract |
 | **Scope** | All algorithms, computational processes, decision procedures |
@@ -21,6 +21,7 @@
 | Version | Date | Author | Description |
 |---|---|---|---|
 | 1.0.0 | 2026-08-13 | CORTEX Architecture | Initial final baseline |
+| 1.1.0 | 2026-08-13 | CORTEX Architecture | Replace SHA-256 with BLAKE3-256 for all hashing operations |
 
 ### Approval
 
@@ -2768,7 +2769,7 @@ PROCEDURE InternetFetch(request: &NetworkRequest, policy: &PolicyState) -> Netwo
         status: response.status,
         timestamp: Timestamp::now(),
         source_url: request.url,
-        content_hash: sha256(response.body),
+        content_hash: blake3::hash(response.body.as_bytes()).into(),
         size_bytes: response.body.len(),
     }
 
@@ -3774,9 +3775,435 @@ These parameters are exposed in configuration or as implementation constants. Th
 
 ---
 
-## 41. Algorithm Completeness
+## 42. Gap Resolution: Additional Algorithm Specifications
 
-### 41.1 Completeness Checklist
+### 42.1 Consolidation Algorithm — Complete Specification
+
+```
+ALGORITHM: ConsolidateComplete
+INPUT: Consolidation candidates, current CortexState, PolicyState
+OUTPUT: ConsolidationResult
+BOUNDS: consolidation_interval, memory budgets
+
+PRECONDITIONS:
+  - learning.enabled = true
+  - Candidate list is non-empty
+  - Policy allows learning operations
+
+PROCEDURE ConsolidateComplete(
+    candidates: &[ConsolidationCandidate],
+    state: &CortexState,
+    policy: &PolicyState
+) -> ConsolidationResult:
+    result ← ConsolidationResult::default()
+    
+    FOR each candidate IN candidates:
+        // 1. Policy check
+        IF NOT policy.allows_learning() THEN
+            result.rejected += 1
+            CONTINUE
+        END IF
+        
+        // 2. Minimum supporting episodes check (prevent single-event dominance)
+        IF candidate.supporting_episodes.len() < 3 THEN
+            result.rejected += 1
+            CONTINUE
+        END IF
+        
+        // 3. Candidate evaluation
+        evaluation ← evaluate_candidate(candidate)
+        IF NOT evaluation.should_consolidate THEN
+            result.rejected += 1
+            CONTINUE
+        END IF
+        
+        // 4. Confidence threshold check
+        IF evaluation.confidence < config.learning.consolidation_threshold THEN
+            result.rejected += 1
+            CONTINUE
+        END IF
+        
+        // 5. Contradiction risk check
+        IF candidate.contradiction_risk > 0.5 THEN
+            result.rejected += 1
+            CONTINUE
+        END IF
+        
+        // 6. Memory budget check
+        IF memory.pressure() == MemoryPressure::Critical THEN
+            // During critical pressure, only consolidate highest-confidence candidates
+            IF evaluation.confidence < 0.8 THEN
+                result.rejected += 1
+                CONTINUE
+            END IF
+        END IF
+        
+        // 7. Integrate based on target type
+        MATCH candidate.target:
+            ConsolidationTarget::Semantic =>
+                IF candidate.knowledge.is_some() THEN
+                    semantic_memory.integrate(candidate.knowledge.unwrap())
+                    result.semantic_integrations += 1
+                END IF
+            
+            ConsolidationTarget::Procedural =>
+                IF candidate.procedure.is_some() THEN
+                    procedural_memory.integrate(candidate.procedure.unwrap())
+                    result.procedural_integrations += 1
+                END IF
+            
+            ConsolidationTarget::Associative =>
+                IF candidate.association.is_some() THEN
+                    associative_memory.integrate(candidate.association.unwrap())
+                    result.associative_integrations += 1
+                END IF
+        END MATCH
+        
+        result.consolidated += 1
+    END FOR
+    
+    RETURN result
+END PROCEDURE
+
+BOUNDS:
+  - Maximum candidates per cycle: derived from consolidation_interval
+  - Memory budget respected at all times
+  - No single cycle can consolidate more than 10% of total state
+
+INVARIANTS:
+  - Consolidated items have provenance from ≥ 3 supporting episodes
+  - Consolidated items have confidence ≥ consolidation_threshold
+  - Memory budgets are not exceeded after consolidation
+  - Forgetting may be triggered to make room for consolidated items
+
+FAILURE/RECOVERY:
+  - If integration fails → item is skipped, not partially integrated
+  - If memory budget exceeded → trigger forgetting before retrying
+  - If policy denied → skip and log
+
+PROVENANCE:
+  - Consolidated items inherit provenance from supporting episodes
+  - Evidence is merged from all supporting episodes
+  - New provenance category: Derived (with parent episode references)
+
+TEST REQUIREMENTS:
+  - Test: consolidation with < 3 supporting episodes → rejected
+  - Test: consolidation with contradiction_risk > 0.5 → rejected
+  - Test: consolidation respects memory budgets
+  - Test: consolidated items have correct provenance
+  - Test: consolidation during critical pressure → high-confidence only
+```
+
+### 42.2 Forgetting Algorithm — Complete Specification
+
+```
+ALGORITHM: ApplyForgettingComplete
+INPUT: ForgettingPolicy, CortexState
+OUTPUT: ForgettingResult
+BOUNDS: Memory budgets
+
+PRECONDITIONS:
+  - Memory pressure ≥ Moderate (or explicit request)
+  - Policy allows learning operations
+
+PROCEDURE ApplyForgettingComplete(
+    policy: &ForgettingPolicy,
+    state: &mut CortexState
+) -> ForgettingResult:
+    result ← ForgettingResult::default()
+    
+    // 1. Score all episodic memories for forgetting
+    FOR each episode IN state.memory.episodic.episodes:
+        forget_score ← compute_forget_score(episode, policy)
+        IF forget_score > FORGET_SCORE_THRESHOLD THEN
+            state.memory.episodic.remove(episode.id)
+            result.episodic_forgotten += 1
+            result.bytes_freed += estimate_size(episode)
+        END IF
+    END FOR
+    
+    // 2. Score semantic memories for forgetting (lower aggression)
+    FOR each knowledge IN state.memory.semantic.knowledge:
+        forget_score ← compute_knowledge_forget_score(knowledge, policy)
+        // Higher threshold for semantic (more valuable)
+        IF forget_score > (FORGET_SCORE_THRESHOLD + 0.1) THEN
+            state.memory.semantic.remove(knowledge.id)
+            result.semantic_forgotten += 1
+            result.bytes_freed += estimate_size(knowledge)
+        END IF
+    END FOR
+    
+    // 3. Score associative memories for forgetting
+    FOR each association IN state.memory.associative.associations:
+        forget_score ← compute_association_forget_score(association, policy)
+        IF forget_score > FORGET_SCORE_THRESHOLD THEN
+            state.memory.associative.remove(association.id)
+            result.associative_forgotten += 1
+            result.bytes_freed += estimate_size(association)
+        END IF
+    END FOR
+    
+    // 4. Update association index after removals
+    state.memory.associative.rebuild_index()
+    
+    RETURN result
+END PROCEDURE
+
+PROCEDURE ComputeForgetScore(episode: &Episode, policy: &ForgettingPolicy) -> Scalar:
+    score ← 0.0
+    
+    // Low importance
+    IF episode.importance < policy.min_importance THEN
+        score ← score + 0.2
+    END IF
+    
+    // Low confidence
+    IF episode.confidence.overall() < policy.min_confidence THEN
+        score ← score + 0.2
+    END IF
+    
+    // Age (if max_age configured)
+    IF policy.max_age.is_some() THEN
+        age ← Timestamp::now().elapsed_since(episode.timestamp)
+        IF age > policy.max_age.unwrap() THEN
+            score ← score + 0.2
+        END IF
+    END IF
+    
+    // Low retrieval frequency
+    IF episode.retrieval_count < policy.min_retrieval_count THEN
+        score ← score + 0.2
+    END IF
+    
+    // Redundancy (consolidated)
+    IF episode.consolidated THEN
+        score ← score + 0.1
+    END IF
+    
+    // Contradiction
+    IF episode.contradicted() THEN
+        score ← score + 0.1
+    END IF
+    
+    RETURN score.clamp(0.0, 1.0)
+END PROCEDURE
+
+BOUNDS:
+  - Forgetting is bounded by memory budgets
+  - No single forgetting cycle can remove > 20% of items
+  - Semantic memories have higher retention threshold than episodic
+
+INVARIANTS:
+  - Forgotten items are permanently removed from their subsystem
+  - Association index is rebuilt after removals
+  - Provenance of consolidated items is preserved (they exist in semantic/procedural)
+  - Forgetting does not remove items that are currently referenced by working memory
+
+FAILURE/RECOVERY:
+  - If removal fails → skip item, continue with next
+  - If index rebuild fails → log error, continue (index is recomputed on next access)
+
+PROVENANCE:
+  - Forgotten items are logged with reason (low importance, low confidence, age, etc.)
+  - Forgetting event is recorded in learning history
+
+TEST REQUIREMENTS:
+  - Test: forgetting respects importance threshold
+  - Test: forgetting respects confidence threshold
+  - Test: forgetting respects age threshold
+  - Test: forgetting respects retrieval frequency threshold
+  - Test: consolidated items have higher retention
+  - Test: semantic memories have higher retention than episodic
+  - Test: no more than 20% of items removed per cycle
+  - Test: association index is valid after forgetting
+```
+
+### 42.3 Selective Learning Gate Algorithm — Complete Specification
+
+```
+ALGORITHM: SelectiveLearningGate
+INPUT: LearningSignal, CortexState, PolicyState, MemoryPressure
+OUTPUT: Approved/Modified/Rejected signal
+BOUNDS: learning_rate, plasticity
+
+PRECONDITIONS:
+  - learning.enabled = true
+  - Signal has non-zero magnitude
+
+PROCEDURE SelectiveLearningGate(
+    signal: &LearningSignal,
+    state: &CortexState,
+    policy: &PolicyState,
+    pressure: MemoryPressure
+) -> GateDecision:
+    
+    // 1. Noise filtering: discard signals below threshold
+    IF signal.magnitude < (config.learning.learning_rate * 0.01) THEN
+        RETURN GateDecision::Rejected("Signal below noise threshold")
+    END IF
+    
+    // 2. Policy check
+    IF NOT policy.allows_learning() THEN
+        RETURN GateDecision::Rejected("Learning disabled by policy")
+    END IF
+    
+    // 3. Single-observation guard
+    IF signal.source_episodes.len() == 1 AND signal.magnitude > 0.5 THEN
+        // Discount single-observation high-magnitude signals
+        modified_signal ← signal.clone()
+        modified_signal.magnitude ← signal.magnitude * SINGLE_OBS_DISCOUNT
+        RETURN GateDecision::Modified(modified_signal, "Single-observation discount applied")
+    END IF
+    
+    // 4. Stability guard: check for catastrophic change
+    IF signal.would_affect_percentage(state) > CATASTROPHIC_CHANGE_THRESHOLD THEN
+        RETURN GateDecision::Rejected("Catastrophic change prevented")
+    END IF
+    
+    // 5. Memory pressure throttling
+    IF pressure == MemoryPressure::Critical THEN
+        // Only allow high-priority signals during critical pressure
+        IF signal.magnitude < config.learning.learning_rate THEN
+            RETURN GateDecision::Rejected("Throttled during critical memory pressure")
+        END IF
+    END IF
+    
+    // 6. Bounded update
+    bounded_magnitude ← signal.magnitude.min(config.learning.learning_rate)
+    bounded_signal ← signal.clone()
+    bounded_signal.magnitude ← bounded_magnitude
+    
+    RETURN GateDecision::Approved(bounded_signal)
+END PROCEDURE
+
+BOUNDS:
+  - Signal magnitude ≤ learning_rate after gating
+  - Single-observation signals discounted by 0.3
+  - No state change > 10% per update
+  - Critical pressure throttles to high-priority only
+
+INVARIANTS:
+  - All learning signals pass through the gate
+  - Rejected signals are logged but do not affect state
+  - Modified signals carry the modification reason
+  - Gate decisions are deterministic for same inputs
+
+FAILURE/RECOVERY:
+  - Gate failure → signal rejected (fail-safe)
+  - Gate timeout → signal rejected (fail-safe)
+
+PROVENANCE:
+  - Gate decisions are recorded in learning history
+  - Rejection reasons are logged for diagnostics
+
+TEST REQUIREMENTS:
+  - Test: noise filtering discards low-magnitude signals
+  - Test: single-observation discount applied correctly
+  - Test: catastrophic change prevention works
+  - Test: critical pressure throttling works
+  - Test: bounded update respects learning_rate
+  - Test: gate is deterministic
+  - Test: rejected signals do not affect state
+```
+
+### 42.4 World-State Inference Algorithm — Complete Specification
+
+```
+ALGORITHM: InferWorldState
+INPUT: NeuralRepresentation, MemoryRetrieval, CurrentWorldState
+OUTPUT: InferredWorldState with uncertainty
+BOUNDS: max_inference_steps (derived from reasoning.max_steps)
+
+PRECONDITIONS:
+  - world.enabled = true (if disabled, return empty state)
+  - Neural representation is available
+
+PROCEDURE InferWorldState(
+    repr: &NeuralRepresentation,
+    memories: &MemoryRetrieval,
+    current_world: &WorldState
+) -> InferredWorldState:
+    
+    // 1. Start with current world state
+    inferred ← current_world.clone()
+    
+    // 2. Extract new entities from representation
+    new_entities ← extract_entities(repr)
+    FOR each entity IN new_entities:
+        IF NOT inferred.has_entity(entity.identity) THEN
+            // New entity: add with inferred confidence (lower than observed)
+            entity.confidence ← entity.confidence * 0.7  // Inference discount
+            inferred.add_entity(entity)
+        ELSE
+            // Existing entity: update with weighted merge
+            existing ← inferred.get_entity(entity.identity)
+            weight ← 0.5  // Inference weight (lower than direct observation)
+            existing.update_weighted(entity, weight)
+        END IF
+    END FOR
+    
+    // 3. Extract new relations from representation
+    new_relations ← extract_relations(repr)
+    FOR each relation IN new_relations:
+        IF NOT inferred.has_relation(relation) THEN
+            relation.confidence ← relation.confidence * 0.7
+            inferred.add_relation(relation)
+        END IF
+    END FOR
+    
+    // 4. Integrate semantic memory context
+    FOR each knowledge IN memories.semantic:
+        inferred.integrate_knowledge(knowledge)
+    END FOR
+    
+    // 5. Compute inference uncertainty
+    // Inferred state always has higher uncertainty than observed state
+    inference_uncertainty ← 1.0 - (repr.confidence.overall() * 0.7)
+    inferred.uncertainty.level ← max(inferred.uncertainty.level, inference_uncertainty)
+    
+    // 6. Mark as inferred (not observed)
+    inferred.source ← WorldStateSource::Inferred
+    
+    RETURN InferredWorldState {
+        state: inferred,
+        confidence: repr.confidence.overall() * 0.7,  // Inference discount
+        uncertainty: inference_uncertainty,
+        source: WorldStateSource::Inferred,
+    }
+END PROCEDURE
+
+BOUNDS:
+  - Inference bounded by max_inference_steps
+  - Inferred confidence always ≤ 0.7 × observed confidence
+  - Uncertainty always ≥ 1 - (observed_confidence × 0.7)
+
+INVARIANTS:
+  - Inferred state is never treated as ground truth
+  - Inferred state carries explicit uncertainty
+  - Inferred state provenance is Inferred, not Observed
+  - Direct observation always overrides inference
+
+FAILURE/RECOVERY:
+  - Inference failure → return current world state unchanged
+  - Entity conflict → merge with lower confidence
+
+PROVENANCE:
+  - Inferred entities carry Inferred provenance
+  - Inherited provenance from source memories
+
+TEST REQUIREMENTS:
+  - Test: inferred confidence < observed confidence
+  - Test: inferred state carries uncertainty
+  - Test: direct observation overrides inference
+  - Test: inference is bounded by max_inference_steps
+  - Test: inferred state provenance is Inferred
+```
+
+---
+
+## 43. Algorithm Completeness
+
+### 43.1 Completeness Checklist
 
 | Algorithm Category | Status | Coverage |
 |---|---|---|
@@ -3849,7 +4276,7 @@ These parameters are exposed in configuration or as implementation constants. Th
 | Checkpoint creation | ✅ Complete | Serialize, write, metadata, cleanup |
 | State transition | ✅ Complete | State machine with valid transitions |
 
-### 41.2 Traceability to Requirements
+### 43.2 Traceability to Requirements
 
 | DOC-01 Requirement | DOC-04 Algorithm Coverage |
 |---|---|
@@ -3872,7 +4299,7 @@ These parameters are exposed in configuration or as implementation constants. Th
 | ERR-001 through ERR-007 | §29 Error Recovery Algorithms |
 | AC-* | §35 Complexity, §36 Invariants, §37 Failure Modes |
 
-### 41.3 Algorithm-to-Subsystem Mapping
+### 43.3 Algorithm-to-Subsystem Mapping
 
 | Subsystem | Algorithms | Count |
 |---|---|---|
@@ -3897,7 +4324,7 @@ These parameters are exposed in configuration or as implementation constants. Th
 | Numerical | NumericalGuard, SafeDivide, SafeSqrt, SafeExp | 4 |
 | **Total** | | **58** |
 
-### 41.4 Final Algorithm Contract Statement
+### 43.4 Final Algorithm Contract Statement
 
 > **This document constitutes the computational behavior contract for CORTEX.** It defines every algorithm, every formula, every decision procedure, and every execution semantic that governs CORTEX's cognitive operations.
 >
@@ -3917,9 +4344,9 @@ These parameters are exposed in configuration or as implementation constants. Th
 
 ---
 
-## 42. Appendix: Algorithm Quick Reference
+## 44. Appendix: Algorithm Quick Reference
 
-### 42.1 Core Formulas
+### 44.1 Core Formulas
 
 | Formula | Expression | Usage |
 |---|---|---|
@@ -3932,7 +4359,7 @@ These parameters are exposed in configuration or as implementation constants. Th
 | Language Score | `Lang + Context + Semantic + Memory + World + Verification - Contradiction - Risk` | Prediction scoring |
 | State Transition | `C(t+1) = F(C(t), O(t), E(t), P(t))` | Cognitive evolution |
 
-### 42.2 Algorithm Execution Order
+### 44.2 Algorithm Execution Order
 
 ```
 1.  ParseObservation
@@ -3950,7 +4377,7 @@ These parameters are exposed in configuration or as implementation constants. Th
 13. MaybeCheckpoint
 ```
 
-### 42.3 Budget Enforcement Points
+### 44.3 Budget Enforcement Points
 
 | Point | Budget Checked | Action on Exhaustion |
 |---|---|---|
@@ -3962,7 +4389,7 @@ These parameters are exposed in configuration or as implementation constants. Th
 | Before memory retrieval | `max_memory_retrieval` | Limit results |
 | Before replay episode | `max_replay_count` | Stop replaying |
 
-### 42.4 Policy Gate Points
+### 44.4 Policy Gate Points
 
 | Point | Operation | Gate Check |
 |---|---|---|
@@ -3977,4 +4404,4 @@ These parameters are exposed in configuration or as implementation constants. Th
 
 ---
 
-*End of Document — CORTEX-DOC-04 Algorithm Specification v1.0.0*
+*End of Document — CORTEX-DOC-04 Algorithm Specification v1.1.0*

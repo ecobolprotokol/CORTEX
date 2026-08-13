@@ -8,7 +8,7 @@
 |---|---|
 | **Document ID** | CORTEX-DOC-01 |
 | **Title** | Technical Specification |
-| **Version** | 1.0.0 |
+| **Version** | 1.1.0 |
 | **Status** | Final Architectural Baseline |
 | **Classification** | System Contract |
 | **Scope** | End-to-end technical requirements and boundaries |
@@ -21,6 +21,7 @@
 | Version | Date | Author | Description |
 |---|---|---|---|
 | 1.0.0 | 2026-08-13 | CORTEX Architecture | Initial final baseline |
+| 1.1.0 | 2026-08-13 | CORTEX Architecture | Replace SHA-256 with BLAKE3-256 for all hashing operations |
 
 ### Approval
 
@@ -666,7 +667,7 @@ This allows experiments to identify why two runs diverged.
 | PRS-001 | `.cx` SHALL be a binary, versioned, section-oriented cognitive state container. |
 | PRS-002 | `.cx` SHALL contain sections: HEADER, ARCHITECTURE, LANGUAGE, NEURAL, CELLS, COLUMNS, FIELDS, WORKING_MEMORY, EPISODIC_MEMORY, SEMANTIC_MEMORY, PROCEDURAL_MEMORY, ASSOCIATIVE_MEMORY, WORLD_MODEL, REASONING, PLANNING, VERIFICATION, LEARNING, SELF_MODEL, PROVENANCE, CHECKPOINT_METADATA, INTEGRITY. |
 | PRS-003 | Each section SHALL have: TYPE (u16), VERSION (u16), FLAGS (u32), OFFSET (u64), LENGTH (u64), CHECKSUM (u128), DATA (bytes). |
-| PRS-004 | File header SHALL contain: magic (`b"CORTEX\0\0"`), format_version, architecture_version, algorithm_version, config_hash (SHA-256), state_id (UUID), created_at, last_checkpoint, integrity metadata. |
+| PRS-004 | File header SHALL contain: magic (`b"CORTEX\0\0"`), format_version, architecture_version, algorithm_version, config_hash (BLAKE3-256), state_id (UUID), created_at, last_checkpoint, integrity metadata. |
 | PRS-005 | `.cx` SHALL record algorithm versions for: cell, column, plasticity, memory, language, reasoning, planning, verification, consolidation. |
 | PRS-006 | `.cx` SHALL support partial loading, validation, migration, recovery, and checkpointing. |
 
@@ -779,7 +780,7 @@ When a subsystem is disabled (`enabled = false`), it SHALL return a defined defa
 |---|---|---|
 | Serialization | bincode, serde | Infrastructure only |
 | Compression | zstd, lz4 | Infrastructure only |
-| Cryptography | SHA-256, HMAC | Integrity only |
+| Cryptography | BLAKE3 | Integrity only |
 | Networking | TCP/HTTP stack | API, internet |
 | OS interaction | libc, tokio | Runtime infrastructure |
 
@@ -1041,7 +1042,7 @@ Implementations can change without requiring architectural replacement of the en
 |---|---|---|
 | Serialization | serde, bincode, or equivalent | — |
 | Compression | zstd, lz4, or equivalent | — |
-| Cryptography | SHA-256, HMAC | — |
+| Cryptography | BLAKE3 | — |
 | Networking | std::net, tokio, hyper, or equivalent | — |
 | OS interaction | libc, std::fs | — |
 | AI/ML frameworks | **None** | PyTorch, TensorFlow, ONNX, candle (as cognitive substrate) |
@@ -1141,7 +1142,95 @@ Implementations can change without requiring architectural replacement of the en
 
 ---
 
-## 22. Technical Assumptions
+## 22. Gap Resolution: Additional Requirements
+
+The following subsections close gaps identified during cross-document audit. They are normative and supplementary to the requirements in §2-§21.
+
+### 22.1 State Versioning & Migration Requirements
+
+| ID | Requirement | Priority |
+|---|---|---|
+| FR-MIG-001 | State migration SHALL be sequential: v1 → v2 → ... → vN. No version skipping. | MUST |
+| FR-MIG-002 | Each migration step SHALL be a pure function: old bytes → new bytes. | MUST |
+| FR-MIG-003 | Migration SHALL preserve semantic content whenever technically possible. | MUST |
+| FR-MIG-004 | Migration SHALL be idempotent: applying the same migration twice produces the same result. | MUST |
+| FR-MIG-005 | Failed migration SHALL trigger recovery from valid checkpoint, never partial state. | MUST |
+| FR-MIG-006 | Original data SHALL be preserved in a backup until migration succeeds. | MUST |
+| FR-MIG-007 | Downgrade (newer version to older version) SHALL NOT be supported. | MUST |
+| FR-MIG-008 | Migration SHALL log before/after version information. | MUST |
+
+### 22.2 World-State Inference Requirements
+
+| ID | Requirement | Priority |
+|---|---|---|
+| FR-INF-001 | When direct observation is unavailable, CORTEX SHALL infer world state from memory and reasoning. | MUST |
+| FR-INF-002 | Inferred state SHALL carry lower confidence than directly observed state. | MUST |
+| FR-INF-003 | Inference SHALL be bounded by `reasoning.max_steps`. | MUST |
+| FR-INF-004 | Inferred state SHALL NOT be treated as ground truth without verification. | MUST |
+
+### 22.3 Memory Pressure Management Requirements
+
+| ID | Requirement | Priority |
+|---|---|---|
+| FR-MEM-P-001 | CORTEX SHALL compute memory pressure as: ratio of total used bytes to total budget across all subsystems. | MUST |
+| FR-MEM-P-002 | Pressure levels: Low (< 0.7), Moderate (0.7-0.85), High (0.85-0.95), Critical (≥ 0.95). | MUST |
+| FR-MEM-P-003 | Low pressure: no action. | MUST |
+| FR-MEM-P-004 | Moderate pressure: trigger consolidation. | MUST |
+| FR-MEM-P-005 | High pressure: consolidation + aggressive forgetting. | MUST |
+| FR-MEM-P-006 | Critical pressure: consolidation + emergency forgetting + working memory compression. | MUST |
+| FR-MEM-P-007 | Pressure response SHALL NOT cause data corruption. | MUST |
+
+### 22.4 Hypothesis Generation Requirements
+
+| ID | Requirement | Priority |
+|---|---|---|
+| FR-HYP-001 | Hypothesis generation SHALL produce at most `max_hypotheses` (default: 10) hypotheses. | MUST |
+| FR-HYP-002 | If no hypotheses can be generated, reasoning SHALL return uncertain result. | MUST |
+| FR-HYP-003 | Each hypothesis SHALL carry provenance from its source (memory, world, episode). | MUST |
+| FR-HYP-004 | Analogical hypotheses SHALL carry a discount factor of 0.7 relative to direct hypotheses. | MUST |
+
+### 22.5 Internet Provenance & Staleness Requirements
+
+| ID | Requirement | Priority |
+|---|---|---|
+| FR-INT-P-001 | Internet-sourced knowledge SHALL carry `Internet` provenance category. | MUST |
+| FR-INT-P-002 | Internet-sourced knowledge SHALL have initial `verification_status = Unknown`. | MUST |
+| FR-INT-P-003 | Internet-sourced knowledge SHALL be subject to verification before promotion to Verified status. | MUST |
+| FR-INT-P-004 | Staleness SHALL be computed as: `age_hours / staleness_half_life` where staleness_half_life defaults to 168 hours (7 days). | MUST |
+| FR-INT-P-005 | Internet-sourced knowledge older than `staleness_max_age` (default: 720 hours / 30 days) SHALL be flagged for re-verification or forgetting. | MUST |
+
+### 22.6 Error Recovery Cascade Requirements
+
+| ID | Priority |
+|---|---|
+| FR-REC-001 | Recovery cascade: Recoverable error → log and continue; Cognitive error → attribute and learn; Input error → reject with defined error; Network error → record failed observation and continue; State corruption → validate checkpoint and recover; Configuration error → prevent startup; Policy violation → deny operation; Resource exhaustion → bounded result and log; Fatal runtime error → safe stop with state preservation attempt. | MUST |
+| FR-REC-002 | Recovery actions SHALL be logged with error kind, severity, and action taken. | MUST |
+| FR-REC-003 | Recovery from state corruption SHALL follow priority: current valid state → latest valid checkpoint → previous valid checkpoint → initial state → safe stop. | MUST |
+
+### 22.7 Self-Model Calibration Requirements
+
+| ID | Requirement | Priority |
+|---|---|---|
+| FR-SLF-C-001 | Self-model prediction accuracy SHALL be updated using exponential moving average with α = 0.1. | MUST |
+| FR-SLF-C-002 | Self-model SHALL be updated after every cognitive pipeline completion with performance metrics. | MUST |
+| FR-SLF-C-003 | Self-model SHALL NOT be interpreted as proof of consciousness or subjective experience. | MUST |
+| FR-SLF-C-004 | Self-model SHALL NOT gain authority to change policy. | MUST |
+| FR-SLF-C-005 | Self-model historical performance SHALL be bounded to 100 snapshots. | MUST |
+
+### 22.8 Selective Learning Gate Requirements
+
+| ID | Requirement | Priority |
+|---|---|---|
+| FR-SLG-001 | CORTEX SHALL implement a selective learning gate that evaluates each learning signal before application. | MUST |
+| FR-SLG-002 | The gate SHALL evaluate: signal magnitude, prediction error magnitude, source reliability, current memory pressure, and policy state. | MUST |
+| FR-SLG-003 | Signals with magnitude < `learning_rate × 0.01` SHALL be discarded (noise filtering). | MUST |
+| FR-SLG-004 | Signals from single observations with magnitude > 0.5 SHALL be discounted by factor 0.3 (single-observation guard). | MUST |
+| FR-SLG-005 | When memory pressure is Critical, learning SHALL be throttled to highest-priority signals only. | MUST |
+| FR-SLG-006 | Learning signals that would cause > 10% state change SHALL be rejected by the stability guard. | MUST |
+
+---
+
+## 23. Technical Assumptions
 
 | # | Assumption |
 |---|---|
@@ -1161,7 +1250,7 @@ Implementations can change without requiring architectural replacement of the en
 
 ---
 
-## 23. Open Technical Parameters
+## 24. Open Technical Parameters
 
 The following parameters are defined in configuration but may require tuning based on deployment context:
 
@@ -1192,7 +1281,7 @@ These parameters are exposed in `cortex.toml` for operator tuning. They do not r
 
 ---
 
-## 24. Requirements Traceability
+## 25. Requirements Traceability
 
 ### 24.1 Traceability Matrix — Functional Requirements to Subsystems
 
@@ -1264,7 +1353,7 @@ These parameters are exposed in `cortex.toml` for operator tuning. They do not r
 
 ---
 
-## 25. Deployment Contract
+## 26. Deployment Contract
 
 ### 25.1 Minimum Valid Deployment
 
@@ -1312,7 +1401,7 @@ After deployment, the `cortex` binary is ready for use when it can:
 
 ---
 
-## 26. Final Contract Statement
+## 27. Final Contract Statement
 
 > **This document constitutes the system-level technical contract for CORTEX.** It defines what CORTEX MUST do, what it MUST NOT do, and the boundaries within which it operates. All implementation decisions, test strategies, deployment procedures, and validation activities SHALL conform to the requirements specified herein.
 >
@@ -1322,4 +1411,4 @@ After deployment, the `cortex` binary is ready for use when it can:
 
 ---
 
-*End of Document — CORTEX-DOC-01 Technical Specification v1.0.0*
+*End of Document — CORTEX-DOC-01 Technical Specification v1.1.0*

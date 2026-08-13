@@ -8,7 +8,7 @@
 |---|---|
 | **Document ID** | CORTEX-DOC-03 |
 | **Title** | Data & State Specification |
-| **Version** | 1.0.0 |
+| **Version** | 1.1.0 |
 | **Status** | Final Architectural Baseline |
 | **Classification** | Data Contract |
 | **Scope** | All data structures, state definitions, ownership, lifecycle, persistence |
@@ -21,6 +21,7 @@
 | Version | Date | Author | Description |
 |---|---|---|---|
 | 1.0.0 | 2026-08-13 | CORTEX Architecture | Initial final baseline |
+| 1.1.0 | 2026-08-13 | CORTEX Architecture | Replace SHA-256 with BLAKE3-256 for all hashing operations |
 
 ### Approval
 
@@ -2826,7 +2827,7 @@ BYTE OFFSET    SIZE    FIELD                   TYPE
 0x0008         4       format_version          u32 (LE)
 0x000C         4       architecture_version    u32 (LE)
 0x0010         4       algorithm_version       u32 (LE)
-0x0014         32      config_hash             [u8; 32] (SHA-256)
+0x0014         32      config_hash             [u8; 32] (BLAKE3-256)
 0x0034         16      state_id                [u8; 16] (UUID v4)
 0x0044         8       created_at              u64 (LE, ms since epoch)
 0x004C         8       last_checkpoint         u64 (LE, ms since epoch)
@@ -2886,7 +2887,7 @@ Total: 40 bytes per section entry
 BYTE OFFSET    SIZE    FIELD                   TYPE
 ─────────────────────────────────────────────────────────
 +0x00          16      file_checksum           u128 (LE)
-+0x10          4       checksum_algorithm      u32 (LE)  // 1 = SHA-256 truncated
++0x10          4       checksum_algorithm      u32 (LE)  // 2 = BLAKE3 truncated
 +0x14          4       compression_algorithm   u32 (LE)  // 0 = none, 1 = zstd
 +0x18          8       uncompressed_size       u64 (LE)
 +0x20          8       compressed_size         u64 (LE)
@@ -3431,35 +3432,31 @@ Attempt recovery:
 
 ---
 
-## 35. Integrity & SHA-256 Rules
+## 35. Integrity & BLAKE3 Rules
 
 ### 35.1 Checksum Strategy
 
 | Level | Algorithm | Scope |
 |---|---|---|
-| File level | SHA-256 truncated to u128 | Entire file |
-| Section level | SHA-256 truncated to u128 | Individual section data |
-| Config level | SHA-256 full (32 bytes) | cortex.toml content |
+| File level | BLAKE3 truncated to u128 | Entire file |
+| Section level | BLAKE3 truncated to u128 | Individual section data |
+| Config level | BLAKE3 full (32 bytes) | cortex.toml content |
 
 ### 35.2 Checksum Computation
 
 ```rust
-/// Compute SHA-256 truncated to u128 for section data.
+/// Compute BLAKE3 truncated to u128 for section data.
 fn compute_section_checksum(data: &[u8]) -> u128 {
-    use sha2::{Sha256, Digest};
-    let mut hasher = Sha256::new();
-    hasher.update(data);
-    let result = hasher.finalize();
+    let hash = blake3::hash(data);
+    let bytes = hash.as_bytes();
     // Take first 16 bytes as u128
-    u128::from_le_bytes(result[..16].try_into().unwrap())
+    u128::from_le_bytes(bytes[..16].try_into().unwrap())
 }
 
-/// Compute SHA-256 for config file.
+/// Compute BLAKE3 for config file.
 fn compute_config_hash(config_content: &[u8]) -> [u8; 32] {
-    use sha2::{Sha256, Digest};
-    let mut hasher = Sha256::new();
-    hasher.update(config_content);
-    hasher.finalize().into()
+    let hash = blake3::hash(config_content);
+    *hash.as_bytes()
 }
 ```
 
@@ -3650,7 +3647,7 @@ pub enum DataValidationError {
 | Parameter | Current Value | Open Question | Resolution Path |
 |---|---|---|---|
 | Scalar precision | f32 | Should f16/bf16 be supported at runtime? | Benchmark on target hardware |
-| Checksum algorithm | SHA-256 truncated to u128 | Is u128 sufficient for integrity? | Evaluate collision probability |
+| Checksum algorithm | BLAKE3 truncated to u128 | Is u128 sufficient for integrity? | Evaluate collision probability |
 | Compression level | zstd level 3 | Optimal level for .cx? | Benchmark size vs. speed |
 | BoundedVec capacity (learning history) | 1000 | Sufficient for diagnostics? | Operational evaluation |
 | BoundedVec capacity (self model history) | 100 | Sufficient for performance tracking? | Operational evaluation |
@@ -3667,7 +3664,116 @@ pub enum DataValidationError {
 
 ---
 
-## 40. Data Completeness
+## 40. Gap Resolution: Additional Data Specifications
+
+### 40.1 Verification Status Lifecycle
+
+Verification status transitions are governed by a strict state machine:
+
+```
+                ┌──────────────┐
+                │   Unknown    │
+                └──────┬───────┘
+                       │ evidence gathered
+                       ↓
+                ┌──────────────┐
+                │   Observed   │ (direct observation)
+                └──────┬───────┘
+                       │ inferred from evidence
+                       ↓
+                ┌──────────────┐
+                │   Inferred   │ (no direct evidence)
+                └──────┬───────┘
+                       │ evidence strengthens
+                       ↓
+                ┌──────────────┐
+                │  Supported   │ (evidence total_strength >= 0.5)
+                └──────┬───────┘
+                       │ evidence strengthens further
+                       ↓
+                ┌──────────────┐
+                │  Provisional │ (evidence total_strength >= 0.3)
+                └──────┬───────┘
+                       │ evidence meets all verification criteria
+                       ↓
+                ┌──────────────┐
+                │   Verified   │ (independent >= 2, strength >= threshold,
+                │              │  source_quality >= 0.7, consistency >= 0.8)
+                └──────────────┘
+                       
+    Any status ──contradiction found──→ Contradicted
+```
+
+**Transition Rules:**
+
+| From | To | Condition |
+|---|---|---|
+| Unknown | Observed | Direct observation recorded |
+| Unknown | Inferred | Inferred from other knowledge |
+| Unknown | Provisional | Evidence with total_strength >= 0.3 |
+| Unknown | Verified | NEVER directly (must pass through intermediates) |
+| Observed | Supported | Additional evidence gathered |
+| Observed | Provisional | Evidence with total_strength >= 0.3 |
+| Inferred | Supported | Supporting evidence gathered |
+| Inferred | Provisional | Evidence with total_strength >= 0.3 |
+| Supported | Provisional | Confidence downgraded |
+| Supported | Verified | All verification criteria met |
+| Provisional | Supported | Evidence strengthened |
+| Provisional | Verified | All verification criteria met |
+| Verified | Contradicted | Contradicting evidence found |
+| Any | Contradicted | Contradicting evidence found |
+
+**Invariant:** Verification SHALL never silently upgrade UNKNOWN to VERIFIED without satisfying configured evidence conditions (minimum_confidence threshold).
+
+### 40.2 Memory Capacity & Eviction State Transitions
+
+```
+Memory Pressure State Machine:
+
+    ┌────────┐
+    │  Low   │ (< 0.7 usage ratio)
+    └───┬────┘
+        │ usage increases
+        ↓
+  ┌───────────┐
+  │ Moderate  │ (0.7 - 0.85)
+  └─────┬─────┘
+        │ usage increases
+        ↓
+  ┌───────────┐
+  │   High    │ (0.85 - 0.95)
+  └─────┬─────┘
+        │ usage increases
+        ↓
+  ┌───────────┐
+  │ Critical  │ (≥ 0.95)
+  └───────────┘
+
+Pressure Response Actions:
+  Low      → No action
+  Moderate → Consolidate
+  High     → Consolidate + Forget (moderate policy)
+  Critical → Consolidate + Forget (emergency policy) + Compress working memory
+```
+
+**Eviction Priority:**
+
+When eviction is triggered, items are scored for forgetting using multi-factor computation:
+
+| Factor | Weight | Description |
+|---|---|---|
+| Low importance | 0.20 | importance < min_importance |
+| Low confidence | 0.20 | confidence.overall() < min_confidence |
+| Age | 0.20 | age > max_age (if configured) |
+| Low retrieval frequency | 0.20 | retrieval_count < min_retrieval_count |
+| Redundancy | 0.10 | already consolidated |
+| Contradiction | 0.10 | contradicted by other knowledge |
+
+Items with forget_score > 0.7 are candidates for eviction. Eviction is processed oldest-first among candidates.
+
+---
+
+## 41. Data Completeness
 
 ### 40.1 Completeness Checklist
 
@@ -3703,7 +3809,7 @@ pub enum DataValidationError {
 | State versioning | ✅ Complete | Version hierarchy, rules |
 | Migration rules | ✅ Complete | Pipeline, rules |
 | Corrupt-state handling | ✅ Complete | Detection, response, rules |
-| Integrity & SHA-256 | ✅ Complete | Checksum strategy, computation, rules |
+| Integrity & BLAKE3 | ✅ Complete | Checksum strategy, computation, rules |
 | Deterministic representation | ✅ Complete | Determinism requirements, rules |
 | Resource limits | ✅ Complete | Memory, compute, network limits |
 | Data validation rules | ✅ Complete | Pipeline, per-type rules, error types |
@@ -3749,4 +3855,4 @@ pub enum DataValidationError {
 
 ---
 
-*End of Document — CORTEX-DOC-03 Data & State Specification v1.0.0*
+*End of Document — CORTEX-DOC-03 Data & State Specification v1.1.0*

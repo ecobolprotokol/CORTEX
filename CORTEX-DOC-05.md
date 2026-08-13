@@ -8,7 +8,7 @@
 |---|---|
 | **Document ID** | CORTEX-DOC-05 |
 | **Title** | API & CLI Specification |
-| **Version** | 1.0.0 |
+| **Version** | 1.1.0 |
 | **Status** | Final Architectural Baseline |
 | **Classification** | Interface Contract |
 | **Scope** | All external interfaces: HTTP API, CLI, environment variables |
@@ -21,6 +21,7 @@
 | Version | Date | Author | Description |
 |---|---|---|---|
 | 1.0.0 | 2026-08-13 | CORTEX Architecture | Initial final baseline |
+| 1.1.0 | 2026-08-13 | CORTEX Architecture | Update cross-references for BLAKE3 migration |
 
 ### Approval
 
@@ -2793,7 +2794,83 @@ Exit code: 4
 
 ---
 
-## 42. API/CLI Completeness
+## 42. Gap Resolution: Additional Interface Specifications
+
+### 42.1 Error Recovery Cascade — API/CLI Behavior
+
+When errors occur during API or CLI operations, the following cascade is followed:
+
+```
+Error Occurs
+    │
+    ↓
+Classify Error Kind
+    │
+    ├── InputError → 400 Bad Request (API) / stderr + exit 2 (CLI)
+    │
+    ├── EncodingError → 400 Bad Request (API) / stderr + exit 2 (CLI)
+    │
+    ├── AuthenticationError → 401 Unauthorized (API) / stderr + exit 5 (CLI)
+    │
+    ├── AuthorizationError → 403 Forbidden (API) / stderr + exit 6 (CLI)
+    │
+    ├── ValidationError → 422 Unprocessable Entity (API) / stderr + exit 2 (CLI)
+    │
+    ├── PolicyError → 403 Forbidden (API) / stderr + exit 6 (CLI)
+    │
+    ├── ResourceError → 503 Service Unavailable (API) / stderr + exit 7 (CLI)
+    │
+    ├── NetworkError → 502 Bad Gateway (API) / stderr + exit 8 (CLI)
+    │
+    ├── PersistenceError → 500 Internal Server Error (API) / stderr + exit 9 (CLI)
+    │
+    ├── TimeoutError → 504 Gateway Timeout (API) / stderr + exit 11 (CLI)
+    │
+    ├── SubsystemDisabled → 501 Not Implemented (API) / stderr + exit 1 (CLI)
+    │
+    ├── ConfigError → 500 Internal Server Error (API) / stderr + exit 3 (CLI)
+    │
+    └── RuntimeError → 500 Internal Server Error (API) / stderr + exit 13 (CLI)
+```
+
+**Error Response Rules:**
+
+| Rule | Description |
+|---|---|
+| ERR-API-001 | All API errors return structured JSON with code, kind, message |
+| ERR-API-002 | All CLI errors print to stderr with error message and hint |
+| ERR-API-003 | Recoverable errors include `recoverable: true` in response |
+| ERR-API-004 | Fatal errors include `recoverable: false` in response |
+| ERR-API-005 | Error messages do not leak internal state or secrets |
+| ERR-API-006 | Error codes are deterministic for same error condition |
+| ERR-API-007 | Exit codes match the error category (see DOC-05 §32) |
+
+### 42.2 Configuration Validation API Response
+
+When configuration validation is triggered (e.g., via `cortex status` or startup):
+
+```json
+{
+  "success": false,
+  "error": {
+    "code": "CORTEX_ERR_020",
+    "kind": "ConfigError",
+    "message": "Configuration validation failed",
+    "details": {
+      "validation_errors": [
+        {"field": "model.cells", "rule": "RangeViolation", "message": "Must be >= 256", "value": 128},
+        {"field": "language.context_window", "rule": "DependencyViolation", "message": "Must be >= generation_limit"}
+      ]
+    },
+    "recoverable": false,
+    "request_id": "550e8400-e29b-41d4-a716-446655440000"
+  }
+}
+```
+
+---
+
+## 43. API/CLI Completeness
 
 ### 42.1 Completeness Checklist
 
@@ -2879,4 +2956,4 @@ Exit code: 4
 
 ---
 
-*End of Document — CORTEX-DOC-05 API & CLI Specification v1.0.0*
+*End of Document — CORTEX-DOC-05 API & CLI Specification v1.1.0*
