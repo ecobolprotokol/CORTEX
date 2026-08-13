@@ -1,5 +1,18 @@
 use crate::types::scalars::Scalar;
 
+#[derive(Debug, Clone, Default)]
+pub struct RuntimeMetrics {
+    pub episode_count: u64,
+    pub entity_count: u64,
+    pub hypothesis_count: u64,
+    pub checkpoint_count: u32,
+    pub verification_rate: Scalar,
+    pub reasoning_consistency: Scalar,
+    pub learning_rate: Scalar,
+    pub uptime_seconds: u64,
+    pub api_requests: u64,
+}
+
 #[derive(Debug, Clone)]
 pub struct Metrics {
     pub prediction_error: Scalar,
@@ -67,7 +80,7 @@ impl Diagnostics {
         }
     }
 
-    pub fn collect(&self) -> Metrics {
+    pub fn collect(&self, runtime_metrics: Option<RuntimeMetrics>) -> Metrics {
         let avg_error = if self.prediction_errors.is_empty() {
             0.0
         } else {
@@ -81,19 +94,20 @@ impl Diagnostics {
             *self.memory_usage.last().unwrap_or(&0.0)
         };
 
+        let rm = runtime_metrics.unwrap_or_default();
         Metrics {
             prediction_error: avg_error,
             memory_pressure,
-            learning_rate_effective: 0.001,
-            episode_count: 0,
+            learning_rate_effective: rm.learning_rate,
+            episode_count: rm.episode_count,
             total_learning_events: self.learning_signals.iter().sum(),
-            uptime_seconds: 0,
-            entity_count: 0,
-            hypothesis_count: 0,
-            checkpoint_count: 0,
-            verification_rate: 0.0,
-            reasoning_consistency: 0.0,
-            api_requests: 0,
+            uptime_seconds: rm.uptime_seconds,
+            entity_count: rm.entity_count,
+            hypothesis_count: rm.hypothesis_count,
+            checkpoint_count: rm.checkpoint_count,
+            verification_rate: rm.verification_rate,
+            reasoning_consistency: rm.reasoning_consistency,
+            api_requests: rm.api_requests,
         }
     }
 

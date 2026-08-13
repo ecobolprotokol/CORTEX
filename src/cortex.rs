@@ -17,12 +17,17 @@ use crate::language::vocabulary::Vocabulary;
 use crate::neural::field::Field;
 use crate::memory::episodic::EpisodicMemory;
 use crate::memory::semantic::SemanticMemory;
+use crate::memory::associative::AssociativeMemory;
 use crate::memory::working::WorkingMemory;
 use crate::world::entity::{EntityManager, EntityKind};
 use crate::reasoning::hypothesis::HypothesisGenerator;
 use crate::policy::gate::{PolicyDecision, PolicyGate};
 use crate::learning::stability::StabilityGuard;
 use crate::persistence::checkpoint::CheckpointManager;
+use crate::persistence::format::FormatHandler;
+use crate::memory::consolidation::ConsolidationEngine;
+use crate::verification::VerificationPipeline;
+use crate::self_model::SelfModelManager;
 use crate::self_model::capability::SelfModel as CapabilitySelfModel;
 use crate::observability::diagnostics::Diagnostics;
 
@@ -37,12 +42,17 @@ pub struct CortexRuntime {
     pub neural_field: Field,
     pub memory_episodic: EpisodicMemory,
     pub memory_semantic: SemanticMemory,
+    pub memory_associative: AssociativeMemory,
     pub memory_working: WorkingMemory,
     pub world_entity_manager: EntityManager,
     pub reasoning_generator: HypothesisGenerator,
     pub policy_gate: PolicyGate,
     pub learning_stability: StabilityGuard,
     pub persistence_checkpoint: CheckpointManager,
+    pub format_handler: FormatHandler,
+    pub consolidation: ConsolidationEngine,
+    pub verification_pipeline: VerificationPipeline,
+    pub self_model_manager: SelfModelManager,
     pub self_model: CapabilitySelfModel,
     pub diagnostics: Diagnostics,
     observation_count: u64,
@@ -96,6 +106,7 @@ impl CortexRuntime {
         let neural_field = Field::new(config.model.columns, config.model.cells);
         let memory_episodic = EpisodicMemory::new(config.memory.episodic_mb as usize);
         let memory_semantic = SemanticMemory::new(config.memory.semantic_mb as usize);
+        let memory_associative = AssociativeMemory::new();
         let memory_working = WorkingMemory::new(config.memory.working_mb as usize);
         let world_entity_manager = EntityManager::new();
         let reasoning_generator =
@@ -106,6 +117,10 @@ impl CortexRuntime {
             config.learning.plasticity,
         );
         let persistence_checkpoint = CheckpointManager::new(10);
+        let format_handler = FormatHandler::new();
+        let consolidation = ConsolidationEngine::new(config.learning.consolidation_interval);
+        let verification_pipeline = VerificationPipeline::new(config.verification.minimum_confidence);
+        let self_model_manager = SelfModelManager::new();
         let self_model = CapabilitySelfModel::new();
         let diagnostics = Diagnostics::new();
         let mutation_log = MutationLog::new(10_000);
@@ -121,12 +136,17 @@ impl CortexRuntime {
             neural_field,
             memory_episodic,
             memory_semantic,
+            memory_associative,
             memory_working,
             world_entity_manager,
             reasoning_generator,
             policy_gate,
             learning_stability,
             persistence_checkpoint,
+            format_handler,
+            consolidation,
+            verification_pipeline,
+            self_model_manager,
             self_model,
             diagnostics,
             observation_count: 0,
@@ -161,6 +181,12 @@ impl CortexRuntime {
             self.transition_to(RuntimeState::Stopped)?;
             Err(CortexError::RuntimeError("Recovery failed".into()))
         }
+    }
+
+    pub fn save_state(&self) -> Result<(), CortexError> {
+        let data = bincode::serialize(&self.state)
+            .map_err(|e| CortexError::SerializationError(format!("Failed to serialize state: {}", e)))?;
+        self.format_handler.save_to_file(&self.config.persistence.state, &data)
     }
 
     fn execute_pipeline(&mut self, input: &str) -> Result<String, CortexError> {
@@ -355,7 +381,7 @@ impl CortexRuntime {
             .first()
             .map(|h| h.confidence)
             .unwrap_or(0.0);
-        let _verified = top_confidence >= self.config.verification.minimum_confidence;
+        let verified = top_confidence >= self.config.verification.minimum_confidence;
 
         // Stage 9: Generate response
         let response = if let Some(conclusion) = hypotheses.iter().find(|h| h.confidence > 0.3) {
@@ -384,6 +410,15 @@ impl CortexRuntime {
             success: true,
             error: None,
         });
+
+        // Self-model update from experience
+        if self.observation_count > 0 && !hypotheses.is_empty() {
+            let prediction_correct = verified;
+            self.self_model_manager.update_from_experience(prediction_correct, input);
+            let assessment = self.self_model_manager.get_model().assess();
+            self.state.self_model.prediction_accuracy = assessment.prediction_accuracy;
+            self.state.self_model.uncertainty_level = 1.0 - assessment.overall;
+        }
 
         // Stage 11: Apply learning
         if self.config.learning.enabled {
@@ -417,6 +452,7 @@ impl CortexRuntime {
                 self.memory_episodic.next_id,
             );
             self.state.metadata.checkpoint_count += 1;
+            let _ = self.save_state();
             self.mutation_log.record(RecordParams {
                 kind: MutationKind::CheckpointCreate,
                 description: "periodic checkpoint",
@@ -435,6 +471,23 @@ impl CortexRuntime {
         {
             self.state.learning.total_consolidation_events += 1;
             tracing::info!(count = self.observation_count, "Memory consolidation triggered");
+            self.consolidation.record_episode();
+            if self.consolidation.should_consolidate() {
+                tracing::info!("Running memory consolidation");
+                let report = self.consolidation.consolidate(
+                    &mut self.memory_episodic,
+                    &mut self.memory_semantic,
+                    &mut self.memory_associative,
+                );
+                tracing::info!(
+                    episodes_merged = report.episodes_merged,
+                    knowledge_created = report.knowledge_extracted,
+                    associations_strengthened = report.patterns_strengthened,
+                    memories_decayed = report.memories_decayed,
+                    "Consolidation complete"
+                );
+                self.consolidation.reset_counter();
+            }
         }
 
         self.state_version += 1;
@@ -484,6 +537,29 @@ impl Runtime for CortexRuntime {
         tracing::info!("Configuration validated");
 
         self.transition_to(RuntimeState::LoadingState)?;
+        let state_path = &self.config.persistence.state;
+        if std::path::Path::new(state_path).exists() {
+            match self.format_handler.load_from_file(state_path) {
+                Ok(data) => {
+                    match bincode::deserialize::<CortexState>(&data) {
+                        Ok(loaded_state) => {
+                            if loaded_state.metadata.architecture_version == ARCHITECTURE_VERSION {
+                                self.state = loaded_state;
+                                tracing::info!(path = %state_path, "State loaded from disk");
+                            } else {
+                                tracing::warn!("Architecture version mismatch, using fresh state");
+                            }
+                        }
+                        Err(e) => {
+                            tracing::warn!(error = %e, "Failed to deserialize state, using fresh state");
+                        }
+                    }
+                }
+                Err(e) => {
+                    tracing::warn!(error = %e, "Failed to load state file, using fresh state");
+                }
+            }
+        }
         tracing::info!(version = self.state_version, "State loaded");
 
         self.transition_to(RuntimeState::Validating)?;
@@ -540,6 +616,10 @@ impl Runtime for CortexRuntime {
         self.state.metadata.last_updated = Timestamp::now();
         tracing::info!("State validated for shutdown");
 
+        match self.save_state() {
+            Ok(()) => tracing::info!("State saved to disk"),
+            Err(e) => tracing::warn!(error = %e, "Failed to save state to disk"),
+        }
         self.persistence_checkpoint.create_checkpoint(
             self.memory_episodic.episodes.len() as u64,
             self.memory_episodic.next_id,

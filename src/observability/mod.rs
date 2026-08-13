@@ -1,6 +1,6 @@
 pub mod diagnostics;
 
-pub use diagnostics::{Diagnostics, Metrics, HealthStatus};
+pub use diagnostics::{Diagnostics, Metrics, HealthStatus, RuntimeMetrics};
 
 use crate::error::CortexError;
 
@@ -34,7 +34,7 @@ impl ObservabilityManager {
     }
 
     pub fn collect_metrics(&self) -> Metrics {
-        let mut metrics = self.diagnostics.collect();
+        let mut metrics = self.diagnostics.collect(None);
         metrics.uptime_seconds = self.uptime_seconds();
         metrics
     }

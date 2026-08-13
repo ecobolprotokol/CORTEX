@@ -156,6 +156,34 @@ impl FormatHandler {
             data.len()
         }
     }
+
+    pub fn save_to_file(&self, path: &str, data: &[u8]) -> Result<(), CortexError> {
+        let serialized = self.serialize(data)?;
+        if let Some(parent) = std::path::Path::new(path).parent() {
+            if !parent.as_os_str().is_empty() {
+                std::fs::create_dir_all(parent)
+                    .map_err(|e| CortexError::PersistenceError(format!("Failed to create directory: {}", e)))?;
+            }
+        }
+        let tmp_path = format!("{}.tmp", path);
+        std::fs::write(&tmp_path, &serialized)
+            .map_err(|e| CortexError::PersistenceError(format!("Failed to write temp file: {}", e)))?;
+        let file = std::fs::File::open(&tmp_path)
+            .map_err(|e| CortexError::PersistenceError(format!("Failed to open for sync: {}", e)))?;
+        file.sync_all()
+            .map_err(|e| CortexError::PersistenceError(format!("Failed to sync: {}", e)))?;
+        drop(file);
+        std::fs::rename(&tmp_path, path)
+            .map_err(|e| CortexError::PersistenceError(format!("Failed to rename: {}", e)))?;
+        tracing::debug!(path = %path, bytes = serialized.len(), "State saved to disk");
+        Ok(())
+    }
+
+    pub fn load_from_file(&self, path: &str) -> Result<Vec<u8>, CortexError> {
+        let data = std::fs::read(path)
+            .map_err(|e| CortexError::PersistenceError(format!("Failed to read state file: {}", e)))?;
+        self.deserialize(&data)
+    }
 }
 
 impl Default for FormatHandler {

@@ -9,7 +9,7 @@ fn test_diagnostics_health() {
 #[test]
 fn test_diagnostics_metrics() {
     let diag = Diagnostics::new();
-    let metrics = diag.collect();
+    let metrics = diag.collect(None);
     assert!(metrics.uptime_seconds == 0);
     assert_eq!(metrics.episode_count, 0);
 }
