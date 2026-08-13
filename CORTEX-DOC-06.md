@@ -51,7 +51,7 @@ This document defines **how CORTEX is built, tested, and released**. It constitu
 
 ### 1.2 Toolchain Pinning
 
-> **Repository Structure Reference:** The `rust-toolchain.toml` file location and file structure are defined in **CORTEX-DOC-11 §6.3**.
+> **Current State Reference:** The `rust-toolchain.toml` file location and file structure are documented in **CORTEX-DOC-11 §6.3** (current state).
 
 ```toml
 # rust-toolchain.toml
@@ -468,7 +468,7 @@ PATCH: Backward-compatible bug fixes.
 >
 > **CORTEX build contract: 8 pipeline stages, 9 build invariants, semantic versioning, reproducible builds.**
 >
-> **Repository structure:** Build artifact locations, release profile details, CI/CD directory layout, and repository naming conventions are defined in **CORTEX-DOC-11 Repository Architecture & Structure Specification** (§8-§9, §10). DOC-11 is the single source of truth for repository-level structure.
+> **Current State:** Build artifact locations, release profile details, CI/CD directory layout, and repository naming conventions are documented in **CORTEX-DOC-11 Current Repository Architecture & Structure** (§8-§9, §10). The target architecture is defined in **CORTEX-FINAL-BASELINE.md**.
 
 ---
 

@@ -385,7 +385,7 @@ cortex/
 
 ### 5.1 Repository Layout
 
-> **Authoritative Source:** The complete repository tree, directory responsibilities, naming conventions, and structural invariants are defined in **CORTEX-DOC-11 Repository Architecture & Structure Specification**. The layout below is a summary reference; for the full specification see DOC-11 §2.1.
+> **Current State Reference:** The current repository tree, directory responsibilities, naming conventions, and structural invariants are documented in **CORTEX-DOC-11 Current Repository Architecture & Structure**. The layout below is a summary reference; for the full current-state specification see DOC-11 §2.1. The target architecture is defined in **CORTEX-FINAL-BASELINE.md**.
 
 ```
 cortex/
@@ -3752,7 +3752,7 @@ pub fn combine_predictions(
 >
 > **CORTEX software architecture: 71 modules, 5 layers, 12 trait interfaces, 1 binary, 1 process, 1 state file.**
 >
-> **Repository structure:** The complete repository tree, directory responsibilities, naming conventions, dependency boundaries, and structural invariants are defined in **CORTEX-DOC-11 Repository Architecture & Structure Specification** (§2-§14). DOC-11 is the single source of truth for repository-level structure.
+> **Current Repository:** The current repository structure is documented in **CORTEX-DOC-11 Current Repository Architecture & Structure** (§2-§14). The target repository architecture is defined in **CORTEX-FINAL-BASELINE.md**.
 
 ---
 
