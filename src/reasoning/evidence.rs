@@ -1,5 +1,5 @@
 use crate::types::scalars::Scalar;
-use crate::types::evidence::{Evidence, EvidencePolarity, EvidenceSet, EvidenceContent};
+use crate::types::evidence::{Evidence, EvidencePolarity, EvidenceSet};
 use crate::types::common::Timestamp;
 
 #[derive(Debug, Clone)]

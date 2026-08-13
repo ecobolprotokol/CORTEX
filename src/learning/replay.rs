@@ -1,7 +1,4 @@
 use crate::types::scalars::Scalar;
-use crate::types::common::Timestamp;
-use std::collections::BinaryHeap;
-use std::cmp::Ordering;
 
 #[derive(Debug, Clone)]
 pub struct ReplayEntry {

@@ -48,6 +48,7 @@ pub fn select_top_hypothesis(
 
 pub struct FullReasoningPipeline {
     generator: HypothesisGenerator,
+    #[allow(dead_code)]
     evidence_evaluator: EvidenceEvaluator,
     contradiction_detector: ContradictionDetector,
     max_steps: u32,

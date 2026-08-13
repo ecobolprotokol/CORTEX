@@ -10,7 +10,7 @@ pub use stability::StabilityGuard;
 
 use crate::error::CortexError;
 use crate::types::scalars::Scalar;
-use crate::types::observation::{PredictionError, Experience};
+use crate::types::observation::PredictionError;
 
 pub trait LearningSystem {
     fn record_experience(&mut self, experience: &str) -> Result<(), CortexError>;
@@ -80,7 +80,7 @@ impl LearningPipeline {
                 unique.len() as Scalar / words.len() as Scalar
             }
         };
-        ((word_count as Scalar * 0.05 + unique_ratio * 0.5).min(1.0))
+        (word_count as Scalar * 0.05 + unique_ratio * 0.5).min(1.0)
     }
 
     pub fn total_events(&self) -> u64 {

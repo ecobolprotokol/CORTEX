@@ -1,7 +1,6 @@
 use serde::{Deserialize, Serialize};
 
 use crate::types::scalars::Scalar;
-use crate::types::common::Timestamp;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SimulationResult {

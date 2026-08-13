@@ -4,7 +4,7 @@ pub use confidence::{ConfidenceModel, VerificationResult};
 
 use crate::error::CortexError;
 use crate::types::scalars::Scalar;
-use crate::types::evidence::{EvidenceSet, VerificationStatus, ConfidenceState};
+use crate::types::evidence::{EvidenceSet, VerificationStatus};
 use crate::types::state::KnowledgeClaim;
 
 pub trait VerificationEngine {

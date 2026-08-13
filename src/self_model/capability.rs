@@ -69,7 +69,7 @@ impl CapabilityAssessment {
         capabilities
             .iter()
             .min_by(|a, b| {
-                a.1.partial_cmp(b.1)
+                a.1.partial_cmp(&b.1)
                     .unwrap_or(std::cmp::Ordering::Equal)
             })
             .map(|(name, value)| (*name, *value))
@@ -89,7 +89,7 @@ impl CapabilityAssessment {
         capabilities
             .iter()
             .max_by(|a, b| {
-                a.1.partial_cmp(b.1)
+                a.1.partial_cmp(&b.1)
                     .unwrap_or(std::cmp::Ordering::Equal)
             })
             .map(|(name, value)| (*name, *value))

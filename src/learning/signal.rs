@@ -1,5 +1,4 @@
 use crate::types::scalars::Scalar;
-use crate::types::common::Timestamp;
 
 #[derive(Debug, Clone)]
 pub struct LearningSignal {

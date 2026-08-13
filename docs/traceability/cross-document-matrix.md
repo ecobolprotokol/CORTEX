@@ -15,8 +15,7 @@ DOC-01 (Technical Specification) ← ROOT
 ├── DOC-06 (Build & Release Specification)
 ├── DOC-08 (Deployment & Operations Specification)
 ├── DOC-09 (Security & Privacy Specification)
-├── DOC-10 (Configuration Reference)
-└── CORTEX-FINAL-BASELINE (Final Architectural Baseline)
+└── DOC-10 (Configuration Reference)
 ```
 
 ## Cross-Document References
@@ -43,7 +42,6 @@ DOC-01 (Technical Specification) ← ROOT
 | DOC-09 | DOC-01 | §15, §16 | Security → Requirements |
 | DOC-10 | DOC-01 | §13 | Configuration → Requirements |
 | DOC-11 | DOC-02 | §4-5 | Repository → Architecture |
-| FINAL-BASELINE | DOC-02 | (all) | Baseline → Architecture |
 
 ## Requirement Domain Coverage
 

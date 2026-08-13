@@ -28,7 +28,7 @@ impl SelfModelManager {
     pub fn update_from_experience(
         &mut self,
         prediction_correct: bool,
-        context: &str,
+        _context: &str,
     ) {
         let accuracy_delta = if prediction_correct { 0.01 } else { -0.02 };
         self.model.prediction_accuracy =
@@ -71,7 +71,8 @@ impl SelfModelManager {
         self.model.uncertainty_level = variance.sqrt();
         self.model.prediction_accuracy = avg;
 
-        self.capability_history.push(self.model.capabilities.clone());
+        self.capability_history
+            .push(CapabilityAssessment::from_capability_set(&self.model.capabilities));
         if self.capability_history.len() > 100 {
             self.capability_history.remove(0);
         }
