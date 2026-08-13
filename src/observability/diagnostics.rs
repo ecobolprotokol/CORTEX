@@ -84,8 +84,7 @@ impl Diagnostics {
         let avg_error = if self.prediction_errors.is_empty() {
             0.0
         } else {
-            self.prediction_errors.iter().sum::<Scalar>()
-                / self.prediction_errors.len() as Scalar
+            self.prediction_errors.iter().sum::<Scalar>() / self.prediction_errors.len() as Scalar
         };
 
         let memory_pressure = if self.memory_usage.is_empty() {
@@ -158,8 +157,8 @@ impl Diagnostics {
             message: learning_health.2,
         });
 
-        let overall_score = components.iter().map(|c| c.score).sum::<Scalar>()
-            / components.len() as Scalar;
+        let overall_score =
+            components.iter().map(|c| c.score).sum::<Scalar>() / components.len() as Scalar;
         let healthy = components.iter().all(|c| c.healthy);
 
         HealthStatus {
@@ -198,8 +197,7 @@ impl Diagnostics {
         if self.prediction_errors.is_empty() {
             return 0.0;
         }
-        self.prediction_errors.iter().sum::<Scalar>()
-            / self.prediction_errors.len() as Scalar
+        self.prediction_errors.iter().sum::<Scalar>() / self.prediction_errors.len() as Scalar
     }
 
     pub fn current_memory_pressure(&self) -> Scalar {

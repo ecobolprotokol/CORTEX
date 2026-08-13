@@ -75,11 +75,7 @@ impl AttributionEngine {
 
     pub fn attribute(&self, error: Scalar, context: &str) -> ErrorAttribution {
         let source = self.detect_source(context);
-        let reliability = self
-            .source_reliability
-            .get(&source)
-            .copied()
-            .unwrap_or(0.5);
+        let reliability = self.source_reliability.get(&source).copied().unwrap_or(0.5);
 
         let contributing_factors = self.extract_factors(context);
 
@@ -103,10 +99,7 @@ impl AttributionEngine {
 
         scores
             .into_iter()
-            .max_by(|a, b| {
-                a.1.partial_cmp(&b.1)
-                    .unwrap_or(std::cmp::Ordering::Equal)
-            })
+            .max_by(|a, b| a.1.partial_cmp(&b.1).unwrap_or(std::cmp::Ordering::Equal))
             .map(|(source, _)| source)
             .unwrap_or(ErrorSource::Environment)
     }
@@ -121,10 +114,7 @@ impl AttributionEngine {
             .collect()
     }
 
-    pub fn attribute_batch(
-        &self,
-        errors: &[(Scalar, &str)],
-    ) -> Vec<ErrorAttribution> {
+    pub fn attribute_batch(&self, errors: &[(Scalar, &str)]) -> Vec<ErrorAttribution> {
         errors
             .iter()
             .map(|(magnitude, context)| self.attribute(*magnitude, context))

@@ -1,6 +1,6 @@
-use crate::types::scalars::Scalar;
-use crate::types::evidence::{Evidence, EvidencePolarity, EvidenceSet};
 use crate::types::common::Timestamp;
+use crate::types::evidence::{Evidence, EvidencePolarity, EvidenceSet};
+use crate::types::scalars::Scalar;
 
 #[derive(Debug, Clone)]
 pub struct EvidenceQuality {
@@ -44,8 +44,7 @@ impl EvidenceEvaluator {
             }
         };
 
-        (avg_strength * 0.5 + count_bonus * 0.2 + polarity_diversity + 0.0)
-            .min(1.0)
+        (avg_strength * 0.5 + count_bonus * 0.2 + polarity_diversity + 0.0).min(1.0)
     }
 
     pub fn gather_supporting(evidence: &[Evidence]) -> Vec<&Evidence> {
@@ -91,11 +90,7 @@ impl EvidenceEvaluator {
             (1.0 - avg_age / 24.0).max(0.0)
         };
 
-        let source_reliability = if items.is_empty() {
-            0.0
-        } else {
-            0.5
-        };
+        let source_reliability = if items.is_empty() { 0.0 } else { 0.5 };
 
         let overall = strength_score * 0.35
             + diversity_score * 0.2

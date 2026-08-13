@@ -1,5 +1,5 @@
-use crate::types::ids::{ConceptId, GoalId, HypothesisId};
 use crate::types::common::Timestamp;
+use crate::types::ids::{ConceptId, GoalId, HypothesisId};
 
 #[derive(Debug, Clone)]
 pub struct WorkingMemory {
@@ -73,9 +73,7 @@ impl WorkingMemory {
     }
 
     pub fn active_count(&self) -> usize {
-        self.active_concepts.len()
-            + self.active_hypotheses.len()
-            + self.goals.len()
+        self.active_concepts.len() + self.active_hypotheses.len() + self.goals.len()
     }
 
     pub fn is_full(&self) -> bool {

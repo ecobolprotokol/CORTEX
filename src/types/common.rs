@@ -116,8 +116,7 @@ impl Default for ComputeBudget {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[derive(Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct ContextState {
     pub conversation_id: Option<u64>,
     pub episode_context: Vec<EpisodeId>,
@@ -125,7 +124,6 @@ pub struct ContextState {
     pub world_assumptions: Vec<EntityId>,
     pub temporal_context: TemporalContext,
 }
-
 
 impl ContextState {
     pub fn initial() -> Self {

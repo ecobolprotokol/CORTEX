@@ -1,5 +1,5 @@
-use crate::types::ids::CellId;
 use super::cell::Cell;
+use crate::types::ids::CellId;
 
 #[derive(Debug, Clone)]
 pub struct Column {
@@ -40,15 +40,9 @@ impl Column {
             .collect();
         indexed.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
 
-        let winners: Vec<usize> = indexed[..max_active]
-            .iter()
-            .map(|(i, _)| *i)
-            .collect();
+        let winners: Vec<usize> = indexed[..max_active].iter().map(|(i, _)| *i).collect();
 
-        let winner_ids: Vec<CellId> = winners
-            .iter()
-            .map(|&i| self.cells[i].id)
-            .collect();
+        let winner_ids: Vec<CellId> = winners.iter().map(|&i| self.cells[i].id).collect();
 
         for (i, cell) in self.cells.iter_mut().enumerate() {
             if winners.contains(&i) {

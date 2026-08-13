@@ -1,6 +1,6 @@
-use serde::{Deserialize, Serialize};
 use crate::types::ids::HypothesisId;
 use crate::types::scalars::Scalar;
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ReasoningType {
@@ -63,7 +63,11 @@ impl HypothesisGenerator {
         });
         self.next_id += 1;
 
-        for (i, ctx) in context.iter().take(self.max_hypotheses.saturating_sub(1)).enumerate() {
+        for (i, ctx) in context
+            .iter()
+            .take(self.max_hypotheses.saturating_sub(1))
+            .enumerate()
+        {
             let rtype = match i % 4 {
                 0 => ReasoningType::Abductive,
                 1 => ReasoningType::Deductive,
@@ -85,10 +89,7 @@ impl HypothesisGenerator {
         if word_count > 5 {
             hypotheses.push(Hypothesis {
                 id: HypothesisId::from(self.next_id),
-                proposition: format!(
-                    "Complex input detected: {} semantic units",
-                    word_count / 2
-                ),
+                proposition: format!("Complex input detected: {} semantic units", word_count / 2),
                 confidence: 0.4,
                 reasoning_type: ReasoningType::Constraint,
                 evidence_count: 0,
@@ -149,7 +150,10 @@ impl HypothesisGenerator {
             self.next_id += 1;
         }
 
-        for constraint in constraints.iter().take(self.max_hypotheses.saturating_sub(hypotheses.len())) {
+        for constraint in constraints
+            .iter()
+            .take(self.max_hypotheses.saturating_sub(hypotheses.len()))
+        {
             hypotheses.push(Hypothesis {
                 id: HypothesisId::from(self.next_id),
                 proposition: format!("Constraint: {}", constraint),

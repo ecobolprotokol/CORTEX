@@ -1,5 +1,5 @@
+use crate::types::evidence::{ConfidenceState, VerificationStatus};
 use crate::types::scalars::Scalar;
-use crate::types::evidence::{VerificationStatus, ConfidenceState};
 
 #[derive(Debug, Clone)]
 pub struct VerificationResult {
@@ -72,10 +72,7 @@ impl ConfidenceModel {
         let weighted_consistency = state.consistency * self.consistency_weight;
         let uncertainty_penalty = state.uncertainty * self.uncertainty_penalty;
 
-        let raw = weighted_belief
-            + weighted_evidence
-            + weighted_source
-            + weighted_consistency
+        let raw = weighted_belief + weighted_evidence + weighted_source + weighted_consistency
             - uncertainty_penalty;
 
         raw.clamp(0.0, 1.0)
@@ -109,10 +106,7 @@ impl ConfidenceModel {
         }
     }
 
-    pub fn merge_confidence_states(
-        &self,
-        states: &[ConfidenceState],
-    ) -> ConfidenceState {
+    pub fn merge_confidence_states(&self, states: &[ConfidenceState]) -> ConfidenceState {
         if states.is_empty() {
             return ConfidenceState::default();
         }

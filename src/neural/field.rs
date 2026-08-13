@@ -1,5 +1,5 @@
-use crate::types::ids::ColumnId;
 use super::column::Column;
+use crate::types::ids::ColumnId;
 
 #[derive(Debug, Clone)]
 pub struct Field {
@@ -80,11 +80,7 @@ impl Field {
             .map(|c| c.activation)
             .sum();
         let count = self.total_cells() as f32;
-        self.average_activation = if count > 0.0 {
-            total / count
-        } else {
-            0.0
-        };
+        self.average_activation = if count > 0.0 { total / count } else { 0.0 };
     }
 
     pub fn compute_coherence(&mut self) -> f32 {

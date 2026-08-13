@@ -43,7 +43,11 @@ fn test_fault_transition() {
         RuntimeState::Learning,
     ];
     for state in &states {
-        assert!(state.can_transition_to(&RuntimeState::Fault), "{:?} should transition to Fault", state);
+        assert!(
+            state.can_transition_to(&RuntimeState::Fault),
+            "{:?} should transition to Fault",
+            state
+        );
     }
 }
 

@@ -87,8 +87,7 @@ impl ReplayBuffer {
             }
         }
 
-        self.entries
-            .push(ReplayEntry::new(experience, priority));
+        self.entries.push(ReplayEntry::new(experience, priority));
     }
 
     pub fn sample(&mut self, n: usize) -> Vec<ReplayEntry> {
@@ -104,10 +103,7 @@ impl ReplayBuffer {
             .map(|(i, e)| (i, e.effective_priority()))
             .collect();
 
-        indexed.sort_by(|a, b| {
-            b.1.partial_cmp(&a.1)
-                .unwrap_or(std::cmp::Ordering::Equal)
-        });
+        indexed.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
 
         let selected: Vec<ReplayEntry> = indexed
             .iter()
@@ -140,11 +136,7 @@ impl ReplayBuffer {
     }
 
     pub fn update_priority(&mut self, experience: &str, new_priority: Scalar) {
-        if let Some(entry) = self
-            .entries
-            .iter_mut()
-            .find(|e| e.experience == experience)
-        {
+        if let Some(entry) = self.entries.iter_mut().find(|e| e.experience == experience) {
             entry.priority = new_priority;
         }
     }

@@ -1,5 +1,5 @@
-use cortex::persistence::format::FormatHandler;
 use cortex::persistence::checkpoint::CheckpointManager;
+use cortex::persistence::format::FormatHandler;
 
 #[test]
 fn test_format_handler_serialize() {

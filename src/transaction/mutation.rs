@@ -1,5 +1,5 @@
-use serde::{Deserialize, Serialize};
 use crate::types::common::Timestamp;
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct MutationId(u64);
@@ -10,7 +10,9 @@ impl MutationId {
         static COUNTER: AtomicU64 = AtomicU64::new(1);
         Self(COUNTER.fetch_add(1, Ordering::Relaxed))
     }
-    pub fn raw(self) -> u64 { self.0 }
+    pub fn raw(self) -> u64 {
+        self.0
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -62,7 +64,10 @@ pub struct MutationLog {
 
 impl MutationLog {
     pub fn new(max_size: usize) -> Self {
-        Self { records: Vec::new(), max_size }
+        Self {
+            records: Vec::new(),
+            max_size,
+        }
     }
 
     pub fn record(&mut self, params: RecordParams) -> MutationId {
@@ -95,6 +100,9 @@ impl MutationLog {
     }
 
     pub fn count_by_kind(&self, kind: MutationKind) -> usize {
-        self.records.iter().filter(|r| r.kind == kind && r.success).count()
+        self.records
+            .iter()
+            .filter(|r| r.kind == kind && r.success)
+            .count()
     }
 }

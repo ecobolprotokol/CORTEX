@@ -112,18 +112,72 @@ pub struct PersistenceConfig {
 impl Default for CortexConfig {
     fn default() -> Self {
         Self {
-            model: ModelConfig { cells: 4096, columns: 64, dimension: 256, precision: "f32".into(), sparsity_ratio: 0.05 },
-            language: LanguageConfig { enabled: true, vocabulary_capacity: 65536, context_window: 4096, generation_limit: 1024, learning: true },
-            memory: MemoryConfig { working_mb: 128, episodic_mb: 512, semantic_mb: 512, procedural_mb: 256, associative_mb: 256 },
-            learning: LearningConfig { enabled: true, learning_rate: 0.001, plasticity: 0.01, replay: true, consolidation_interval: 1000 },
-            world: WorldConfig { enabled: true, prediction_horizon: 8 },
-            reasoning: ReasoningConfig { enabled: true, max_steps: 32 },
-            planning: PlanningConfig { enabled: true, max_depth: 8, max_branches: 16 },
-            verification: VerificationConfig { enabled: true, minimum_confidence: 0.80 },
-            internet: InternetConfig { enabled: true, timeout_seconds: 15, max_response_mb: 4 },
-            policy: PolicyConfig { learning: true, internet_learning: true, self_modification: false, policy_modification: false, runtime_modification: false },
-            api: ApiConfig { enabled: true, bind: "127.0.0.1:8080".into(), api_key_env: "CORTEX_API_KEY".into() },
-            persistence: PersistenceConfig { state: "cortex.cx".into(), checkpoint_interval: 1000 },
+            model: ModelConfig {
+                cells: 4096,
+                columns: 64,
+                dimension: 256,
+                precision: "f32".into(),
+                sparsity_ratio: 0.05,
+            },
+            language: LanguageConfig {
+                enabled: true,
+                vocabulary_capacity: 65536,
+                context_window: 4096,
+                generation_limit: 1024,
+                learning: true,
+            },
+            memory: MemoryConfig {
+                working_mb: 128,
+                episodic_mb: 512,
+                semantic_mb: 512,
+                procedural_mb: 256,
+                associative_mb: 256,
+            },
+            learning: LearningConfig {
+                enabled: true,
+                learning_rate: 0.001,
+                plasticity: 0.01,
+                replay: true,
+                consolidation_interval: 1000,
+            },
+            world: WorldConfig {
+                enabled: true,
+                prediction_horizon: 8,
+            },
+            reasoning: ReasoningConfig {
+                enabled: true,
+                max_steps: 32,
+            },
+            planning: PlanningConfig {
+                enabled: true,
+                max_depth: 8,
+                max_branches: 16,
+            },
+            verification: VerificationConfig {
+                enabled: true,
+                minimum_confidence: 0.80,
+            },
+            internet: InternetConfig {
+                enabled: true,
+                timeout_seconds: 15,
+                max_response_mb: 4,
+            },
+            policy: PolicyConfig {
+                learning: true,
+                internet_learning: true,
+                self_modification: false,
+                policy_modification: false,
+                runtime_modification: false,
+            },
+            api: ApiConfig {
+                enabled: true,
+                bind: "127.0.0.1:8080".into(),
+                api_key_env: "CORTEX_API_KEY".into(),
+            },
+            persistence: PersistenceConfig {
+                state: "cortex.cx".into(),
+                checkpoint_interval: 1000,
+            },
         }
     }
 }
@@ -131,10 +185,12 @@ impl Default for CortexConfig {
 impl CortexConfig {
     pub fn load(path: &str) -> Result<Self, CortexError> {
         let config = if std::path::Path::new(path).exists() {
-            let content = std::fs::read_to_string(path)
-                .map_err(|e| CortexError::ConfigError(format!("Failed to read config '{}': {}", path, e)))?;
-            let config: Self = toml::from_str(&content)
-                .map_err(|e| CortexError::ConfigError(format!("Failed to parse config '{}': {}", path, e)))?;
+            let content = std::fs::read_to_string(path).map_err(|e| {
+                CortexError::ConfigError(format!("Failed to read config '{}': {}", path, e))
+            })?;
+            let config: Self = toml::from_str(&content).map_err(|e| {
+                CortexError::ConfigError(format!("Failed to parse config '{}': {}", path, e))
+            })?;
             config
         } else {
             tracing::debug!(path = %path, "Config file not found, using defaults");
@@ -148,116 +204,189 @@ impl CortexConfig {
 
     pub fn validate(&self) -> Result<(), CortexError> {
         if self.model.cells < 256 {
-            return Err(CortexError::ConfigError("model.cells must be >= 256".into()));
+            return Err(CortexError::ConfigError(
+                "model.cells must be >= 256".into(),
+            ));
         }
         if self.model.columns < 16 {
-            return Err(CortexError::ConfigError("model.columns must be >= 16".into()));
+            return Err(CortexError::ConfigError(
+                "model.columns must be >= 16".into(),
+            ));
         }
         if self.model.dimension < 64 {
-            return Err(CortexError::ConfigError("model.dimension must be >= 64".into()));
+            return Err(CortexError::ConfigError(
+                "model.dimension must be >= 64".into(),
+            ));
         }
         if self.model.sparsity_ratio <= 0.0 || self.model.sparsity_ratio > 1.0 {
-            return Err(CortexError::ConfigError("model.sparsity_ratio must be in (0, 1]".into()));
+            return Err(CortexError::ConfigError(
+                "model.sparsity_ratio must be in (0, 1]".into(),
+            ));
         }
         if self.language.vocabulary_capacity < 256 {
-            return Err(CortexError::ConfigError("language.vocabulary_capacity must be >= 256".into()));
+            return Err(CortexError::ConfigError(
+                "language.vocabulary_capacity must be >= 256".into(),
+            ));
         }
         if self.language.context_window < 64 {
-            return Err(CortexError::ConfigError("language.context_window must be >= 64".into()));
+            return Err(CortexError::ConfigError(
+                "language.context_window must be >= 64".into(),
+            ));
         }
         if self.language.generation_limit < 32 {
-            return Err(CortexError::ConfigError("language.generation_limit must be >= 32".into()));
+            return Err(CortexError::ConfigError(
+                "language.generation_limit must be >= 32".into(),
+            ));
         }
         if self.memory.working_mb < 16 {
-            return Err(CortexError::ConfigError("memory.working_mb must be >= 16".into()));
+            return Err(CortexError::ConfigError(
+                "memory.working_mb must be >= 16".into(),
+            ));
         }
         if self.memory.episodic_mb < 32 {
-            return Err(CortexError::ConfigError("memory.episodic_mb must be >= 32".into()));
+            return Err(CortexError::ConfigError(
+                "memory.episodic_mb must be >= 32".into(),
+            ));
         }
         if self.memory.semantic_mb < 32 {
-            return Err(CortexError::ConfigError("memory.semantic_mb must be >= 32".into()));
+            return Err(CortexError::ConfigError(
+                "memory.semantic_mb must be >= 32".into(),
+            ));
         }
         if self.learning.learning_rate <= 0.0 || self.learning.learning_rate > 1.0 {
-            return Err(CortexError::ConfigError("learning.learning_rate must be in (0, 1]".into()));
+            return Err(CortexError::ConfigError(
+                "learning.learning_rate must be in (0, 1]".into(),
+            ));
         }
         if self.learning.plasticity < 0.0 || self.learning.plasticity > 1.0 {
-            return Err(CortexError::ConfigError("learning.plasticity must be in [0, 1]".into()));
+            return Err(CortexError::ConfigError(
+                "learning.plasticity must be in [0, 1]".into(),
+            ));
         }
-        if self.verification.minimum_confidence < 0.0 || self.verification.minimum_confidence > 1.0 {
-            return Err(CortexError::ConfigError("verification.minimum_confidence must be in [0, 1]".into()));
+        if self.verification.minimum_confidence < 0.0 || self.verification.minimum_confidence > 1.0
+        {
+            return Err(CortexError::ConfigError(
+                "verification.minimum_confidence must be in [0, 1]".into(),
+            ));
         }
         if self.persistence.checkpoint_interval == 0 {
-            return Err(CortexError::ConfigError("persistence.checkpoint_interval must be > 0".into()));
+            return Err(CortexError::ConfigError(
+                "persistence.checkpoint_interval must be > 0".into(),
+            ));
         }
         Ok(())
     }
 
     pub fn apply_env_overrides(mut self) -> Self {
         if let Ok(v) = env::var("CORTEX_MODEL_CELLS") {
-            if let Ok(n) = v.parse() { self.model.cells = n; }
+            if let Ok(n) = v.parse() {
+                self.model.cells = n;
+            }
         }
         if let Ok(v) = env::var("CORTEX_MODEL_COLUMNS") {
-            if let Ok(n) = v.parse() { self.model.columns = n; }
+            if let Ok(n) = v.parse() {
+                self.model.columns = n;
+            }
         }
         if let Ok(v) = env::var("CORTEX_MODEL_DIMENSION") {
-            if let Ok(n) = v.parse() { self.model.dimension = n; }
+            if let Ok(n) = v.parse() {
+                self.model.dimension = n;
+            }
         }
         if let Ok(v) = env::var("CORTEX_MODEL_SPARSITY_RATIO") {
-            if let Ok(n) = v.parse() { self.model.sparsity_ratio = n; }
+            if let Ok(n) = v.parse() {
+                self.model.sparsity_ratio = n;
+            }
         }
         if let Ok(v) = env::var("CORTEX_LANGUAGE_ENABLED") {
-            if let Ok(n) = v.parse() { self.language.enabled = n; }
+            if let Ok(n) = v.parse() {
+                self.language.enabled = n;
+            }
         }
         if let Ok(v) = env::var("CORTEX_LANGUAGE_VOCABULARY_CAPACITY") {
-            if let Ok(n) = v.parse() { self.language.vocabulary_capacity = n; }
+            if let Ok(n) = v.parse() {
+                self.language.vocabulary_capacity = n;
+            }
         }
         if let Ok(v) = env::var("CORTEX_LANGUAGE_CONTEXT_WINDOW") {
-            if let Ok(n) = v.parse() { self.language.context_window = n; }
+            if let Ok(n) = v.parse() {
+                self.language.context_window = n;
+            }
         }
         if let Ok(v) = env::var("CORTEX_LANGUAGE_GENERATION_LIMIT") {
-            if let Ok(n) = v.parse() { self.language.generation_limit = n; }
+            if let Ok(n) = v.parse() {
+                self.language.generation_limit = n;
+            }
         }
         if let Ok(v) = env::var("CORTEX_MEMORY_WORKING_MB") {
-            if let Ok(n) = v.parse() { self.memory.working_mb = n; }
+            if let Ok(n) = v.parse() {
+                self.memory.working_mb = n;
+            }
         }
         if let Ok(v) = env::var("CORTEX_MEMORY_EPISODIC_MB") {
-            if let Ok(n) = v.parse() { self.memory.episodic_mb = n; }
+            if let Ok(n) = v.parse() {
+                self.memory.episodic_mb = n;
+            }
         }
         if let Ok(v) = env::var("CORTEX_MEMORY_SEMANTIC_MB") {
-            if let Ok(n) = v.parse() { self.memory.semantic_mb = n; }
+            if let Ok(n) = v.parse() {
+                self.memory.semantic_mb = n;
+            }
         }
         if let Ok(v) = env::var("CORTEX_LEARNING_ENABLED") {
-            if let Ok(n) = v.parse() { self.learning.enabled = n; }
+            if let Ok(n) = v.parse() {
+                self.learning.enabled = n;
+            }
         }
         if let Ok(v) = env::var("CORTEX_LEARNING_RATE") {
-            if let Ok(n) = v.parse() { self.learning.learning_rate = n; }
+            if let Ok(n) = v.parse() {
+                self.learning.learning_rate = n;
+            }
         }
         if let Ok(v) = env::var("CORTEX_LEARNING_PLASTICITY") {
-            if let Ok(n) = v.parse() { self.learning.plasticity = n; }
+            if let Ok(n) = v.parse() {
+                self.learning.plasticity = n;
+            }
         }
         if let Ok(v) = env::var("CORTEX_WORLD_ENABLED") {
-            if let Ok(n) = v.parse() { self.world.enabled = n; }
+            if let Ok(n) = v.parse() {
+                self.world.enabled = n;
+            }
         }
         if let Ok(v) = env::var("CORTEX_REASONING_ENABLED") {
-            if let Ok(n) = v.parse() { self.reasoning.enabled = n; }
+            if let Ok(n) = v.parse() {
+                self.reasoning.enabled = n;
+            }
         }
         if let Ok(v) = env::var("CORTEX_REASONING_MAX_STEPS") {
-            if let Ok(n) = v.parse() { self.reasoning.max_steps = n; }
+            if let Ok(n) = v.parse() {
+                self.reasoning.max_steps = n;
+            }
         }
         if let Ok(v) = env::var("CORTEX_PLANNING_ENABLED") {
-            if let Ok(n) = v.parse() { self.planning.enabled = n; }
+            if let Ok(n) = v.parse() {
+                self.planning.enabled = n;
+            }
         }
         if let Ok(v) = env::var("CORTEX_VERIFICATION_ENABLED") {
-            if let Ok(n) = v.parse() { self.verification.enabled = n; }
+            if let Ok(n) = v.parse() {
+                self.verification.enabled = n;
+            }
         }
         if let Ok(v) = env::var("CORTEX_VERIFICATION_MINIMUM_CONFIDENCE") {
-            if let Ok(n) = v.parse() { self.verification.minimum_confidence = n; }
+            if let Ok(n) = v.parse() {
+                self.verification.minimum_confidence = n;
+            }
         }
         if let Ok(v) = env::var("CORTEX_INTERNET_ENABLED") {
-            if let Ok(n) = v.parse() { self.internet.enabled = n; }
+            if let Ok(n) = v.parse() {
+                self.internet.enabled = n;
+            }
         }
         if let Ok(v) = env::var("CORTEX_API_ENABLED") {
-            if let Ok(n) = v.parse() { self.api.enabled = n; }
+            if let Ok(n) = v.parse() {
+                self.api.enabled = n;
+            }
         }
         if let Ok(v) = env::var("CORTEX_API_BIND") {
             self.api.bind = v;
@@ -266,7 +395,9 @@ impl CortexConfig {
             self.persistence.state = v;
         }
         if let Ok(v) = env::var("CORTEX_PERSISTENCE_CHECKPOINT_INTERVAL") {
-            if let Ok(n) = v.parse() { self.persistence.checkpoint_interval = n; }
+            if let Ok(n) = v.parse() {
+                self.persistence.checkpoint_interval = n;
+            }
         }
         self
     }

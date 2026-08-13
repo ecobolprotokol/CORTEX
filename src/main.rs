@@ -72,7 +72,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             let cfg = load_config(&config);
             let mut runtime = CortexRuntime::new(cfg)?;
             runtime.boot()?;
-            println!("CORTEX v{} | Interactive mode (type 'exit' to quit)", env!("CARGO_PKG_VERSION"));
+            println!(
+                "CORTEX v{} | Interactive mode (type 'exit' to quit)",
+                env!("CARGO_PKG_VERSION")
+            );
 
             let stdin = std::io::stdin();
             loop {
@@ -118,8 +121,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
         Commands::Serve { bind, config } => {
             let cfg = load_config(&config);
-            let api_key = std::env::var(&cfg.api.api_key_env)
-                .unwrap_or_else(|_| "cortex-default-key".into());
+            let api_key =
+                std::env::var(&cfg.api.api_key_env).unwrap_or_else(|_| "cortex-default-key".into());
             let mut api_manager = cortex::api::ApiManager::new(&api_key);
             println!("CORTEX API server listening on {}", bind);
             println!("Press Ctrl+C to stop");
@@ -146,7 +149,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             println!("CORTEX v{}", env!("CARGO_PKG_VERSION"));
             println!("State: {:?}", runtime.runtime_state);
             println!("Episodes: {}", runtime.state.metadata.episode_count);
-            println!("Learning events: {}", runtime.state.learning.total_learning_events);
+            println!(
+                "Learning events: {}",
+                runtime.state.learning.total_learning_events
+            );
             println!("Checkpoints: {}", runtime.state.metadata.checkpoint_count);
             println!("Vocabulary size: {}", runtime.language_vocabulary.size());
             runtime.shutdown()?;

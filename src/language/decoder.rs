@@ -5,7 +5,6 @@ use crate::types::state::SemanticState;
 use super::language_model::LanguageModel;
 use super::semantics::{ConceptKind, SemanticConcept, SemanticEntity, SemanticRelation};
 
-
 pub struct Decoder {
     pub lexical_cache: HashMap<String, Vec<String>>,
 }

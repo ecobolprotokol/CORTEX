@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use crate::types::ids::{ConceptId, EntityId, RelationId, SymbolId};
 use crate::types::state::SemanticState;
 
-use super::syntax::{SyntaxNode, SyntacticRole};
+use super::syntax::{SyntacticRole, SyntaxNode};
 
 #[derive(Debug, Clone)]
 pub struct SemanticConcept {
@@ -65,7 +65,12 @@ impl SemanticAnalyzer {
         &mut self,
         nodes: &[SyntaxNode],
         symbols: &[SymbolId],
-    ) -> (Vec<SemanticConcept>, Vec<SemanticRelation>, Vec<SemanticEntity>, SemanticState) {
+    ) -> (
+        Vec<SemanticConcept>,
+        Vec<SemanticRelation>,
+        Vec<SemanticEntity>,
+        SemanticState,
+    ) {
         let mut concepts = Vec::new();
         let mut relations = Vec::new();
         let mut entities = Vec::new();

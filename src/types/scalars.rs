@@ -2,15 +2,13 @@ use serde::{Deserialize, Serialize};
 
 pub type Scalar = f32;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
-#[derive(Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, Default)]
 pub enum Precision {
     #[default]
     F32,
     F16,
     BF16,
 }
-
 
 pub const SCALAR_EPSILON: Scalar = 1e-6;
 

@@ -3,8 +3,8 @@ pub mod confidence;
 pub use confidence::{ConfidenceModel, VerificationResult};
 
 use crate::error::CortexError;
-use crate::types::scalars::Scalar;
 use crate::types::evidence::{EvidenceSet, VerificationStatus};
+use crate::types::scalars::Scalar;
 use crate::types::state::KnowledgeClaim;
 
 pub trait VerificationEngine {
@@ -52,11 +52,7 @@ impl VerificationPipeline {
                 "{} {} {}",
                 claim.proposition.subject,
                 claim.proposition.predicate,
-                claim
-                    .proposition
-                    .object
-                    .as_deref()
-                    .unwrap_or("")
+                claim.proposition.object.as_deref().unwrap_or("")
             ),
             status,
             confidence: overall,
@@ -64,7 +60,11 @@ impl VerificationPipeline {
         }
     }
 
-    fn classify_status(&self, confidence: Scalar, counter_evidence: &EvidenceSet) -> VerificationStatus {
+    fn classify_status(
+        &self,
+        confidence: Scalar,
+        counter_evidence: &EvidenceSet,
+    ) -> VerificationStatus {
         if counter_evidence.len() > 3 {
             return VerificationStatus::Contradicted;
         }

@@ -1,9 +1,9 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-use crate::types::scalars::Scalar;
 use crate::types::common::Timestamp;
 use crate::types::ids::{EntityId, TransitionId};
+use crate::types::scalars::Scalar;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PredictedState {
@@ -64,18 +64,11 @@ impl TransitionModel {
         });
     }
 
-    pub fn predict(
-        &self,
-        current_state: &str,
-        action: &str,
-    ) -> PredictedState {
+    pub fn predict(&self, current_state: &str, action: &str) -> PredictedState {
         let mut matched_rules: Vec<&TransitionRule> = self
             .rules
             .iter()
-            .filter(|r| {
-                action.contains(&r.action_pattern)
-                    || r.action_pattern.contains(action)
-            })
+            .filter(|r| action.contains(&r.action_pattern) || r.action_pattern.contains(action))
             .collect();
 
         matched_rules.sort_by(|a, b| {

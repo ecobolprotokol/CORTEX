@@ -1,6 +1,6 @@
 pub mod capability;
 
-pub use capability::{SelfModel, CapabilityAssessment};
+pub use capability::{CapabilityAssessment, SelfModel};
 
 use crate::error::CortexError;
 use crate::types::scalars::Scalar;
@@ -25,11 +25,7 @@ impl SelfModelManager {
         }
     }
 
-    pub fn update_from_experience(
-        &mut self,
-        prediction_correct: bool,
-        _context: &str,
-    ) {
+    pub fn update_from_experience(&mut self, prediction_correct: bool, _context: &str) {
         let accuracy_delta = if prediction_correct { 0.01 } else { -0.02 };
         self.model.prediction_accuracy =
             (self.model.prediction_accuracy + accuracy_delta).clamp(0.0, 1.0);
@@ -58,11 +54,8 @@ impl SelfModelManager {
         }
 
         let avg = recent.iter().sum::<Scalar>() / recent.len() as Scalar;
-        let variance = recent
-            .iter()
-            .map(|x| (x - avg).powi(2))
-            .sum::<Scalar>()
-            / recent.len() as Scalar;
+        let variance =
+            recent.iter().map(|x| (x - avg).powi(2)).sum::<Scalar>() / recent.len() as Scalar;
 
         self.model.capabilities.prediction_accuracy = avg;
         self.model.capabilities.verification_reliability = (avg * 0.9).min(1.0);
@@ -72,7 +65,9 @@ impl SelfModelManager {
         self.model.prediction_accuracy = avg;
 
         self.capability_history
-            .push(CapabilityAssessment::from_capability_set(&self.model.capabilities));
+            .push(CapabilityAssessment::from_capability_set(
+                &self.model.capabilities,
+            ));
         if self.capability_history.len() > 100 {
             self.capability_history.remove(0);
         }

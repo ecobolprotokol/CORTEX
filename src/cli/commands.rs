@@ -20,7 +20,9 @@ impl CliCommand {
             return Ok(CliCommand::Help);
         }
 
-        let config = args.iter().position(|a| a == "--config")
+        let config = args
+            .iter()
+            .position(|a| a == "--config")
             .and_then(|i| args.get(i + 1))
             .cloned()
             .unwrap_or_else(|| "cortex.toml".into());
@@ -28,7 +30,9 @@ impl CliCommand {
         match args[1].as_str() {
             "run" => Ok(CliCommand::Run { config }),
             "serve" => {
-                let bind = args.iter().position(|a| a == "--bind")
+                let bind = args
+                    .iter()
+                    .position(|a| a == "--bind")
                     .and_then(|i| args.get(i + 1))
                     .cloned()
                     .unwrap_or_else(|| "127.0.0.1:8080".into());
@@ -55,8 +59,8 @@ impl CliCommand {
 pub fn dispatch(args: &[String]) -> Result<String, CortexError> {
     let cmd = CliCommand::parse(args)?;
     match cmd {
-        CliCommand::Help => {
-            Ok("CORTEX — A persistent, state-based, continually learning AI model\n\n\
+        CliCommand::Help => Ok(
+            "CORTEX — A persistent, state-based, continually learning AI model\n\n\
                 Usage: cortex <command> [options]\n\n\
                 Commands:\n  \
                   run          Start the interactive runtime\n  \
@@ -71,11 +75,9 @@ pub fn dispatch(args: &[String]) -> Result<String, CortexError> {
                 Options:\n  \
                   --config <path>   Config file (default: cortex.toml)\n  \
                   --bind <addr>     API bind address (serve only)"
-                .to_string())
-        }
-        CliCommand::Version => {
-            Ok(format!("CORTEX v{}", env!("CARGO_PKG_VERSION")))
-        }
+                .to_string(),
+        ),
+        CliCommand::Version => Ok(format!("CORTEX v{}", env!("CARGO_PKG_VERSION"))),
         CliCommand::Observe { text, config } => {
             let cfg = crate::config::CortexConfig::load(&config)
                 .unwrap_or_else(|_| crate::config::CortexConfig::default());
@@ -126,10 +128,8 @@ pub fn dispatch(args: &[String]) -> Result<String, CortexError> {
             rt.shutdown()?;
             Ok("Checkpoint created".into())
         }
-        CliCommand::Run { .. } | CliCommand::Serve { .. } => {
-            Err(CortexError::RuntimeError(
-                "Use the cortex binary for interactive run/serve modes".into(),
-            ))
-        }
+        CliCommand::Run { .. } | CliCommand::Serve { .. } => Err(CortexError::RuntimeError(
+            "Use the cortex binary for interactive run/serve modes".into(),
+        )),
     }
 }

@@ -53,7 +53,8 @@ impl ContentParser {
                         }
                     }
 
-                    if !in_script && !in_style
+                    if !in_script
+                        && !in_style
                         && (tag.starts_with("p")
                             || tag.starts_with("br")
                             || tag.starts_with("div")
@@ -65,9 +66,11 @@ impl ContentParser {
                             || tag.starts_with("h6")
                             || tag.starts_with("li")
                             || tag.starts_with("tr"))
-                            && !result.ends_with('\n') && !result.is_empty() {
-                                result.push('\n');
-                            }
+                        && !result.ends_with('\n')
+                        && !result.is_empty()
+                    {
+                        result.push('\n');
+                    }
 
                     i = tag_end + 1;
                 } else {
@@ -81,10 +84,7 @@ impl ContentParser {
             }
         }
 
-        let cleaned = result
-            .split_whitespace()
-            .collect::<Vec<&str>>()
-            .join(" ");
+        let cleaned = result.split_whitespace().collect::<Vec<&str>>().join(" ");
 
         cleaned.trim().to_string()
     }

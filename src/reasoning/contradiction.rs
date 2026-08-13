@@ -1,6 +1,6 @@
+use crate::types::common::Timestamp;
 use crate::types::ids::HypothesisId;
 use crate::types::scalars::Scalar;
-use crate::types::common::Timestamp;
 
 #[derive(Debug, Clone)]
 pub struct Contradiction {

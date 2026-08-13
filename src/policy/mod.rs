@@ -1,10 +1,10 @@
-pub mod risk;
 pub mod gate;
 pub mod resource_limits;
+pub mod risk;
 
-pub use risk::{RiskEstimator, RiskEstimate};
-pub use gate::{PolicyGate, PolicyDecision, GateResult};
+pub use gate::{GateResult, PolicyDecision, PolicyGate};
 pub use resource_limits::ResourceLimits;
+pub use risk::{RiskEstimate, RiskEstimator};
 
 use crate::error::CortexError;
 use crate::types::scalars::Scalar;

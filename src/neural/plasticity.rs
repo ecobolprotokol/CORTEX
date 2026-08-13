@@ -23,7 +23,14 @@ impl PlasticityRule {
         delta.clamp(-self.plasticity_bound, self.plasticity_bound)
     }
 
-    pub fn apply_update(&self, weight: f32, activation: f32, confidence: f32, error: f32, voltage: f32) -> f32 {
+    pub fn apply_update(
+        &self,
+        weight: f32,
+        activation: f32,
+        confidence: f32,
+        error: f32,
+        voltage: f32,
+    ) -> f32 {
         let delta = self.compute_update(activation, confidence, error, voltage);
         (weight + delta).clamp(-1.0, 1.0)
     }

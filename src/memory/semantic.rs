@@ -47,11 +47,7 @@ impl SemanticMemory {
         }
     }
 
-    pub fn store(
-        &mut self,
-        concept: &str,
-        properties: Vec<(String, String)>,
-    ) -> Knowledge {
+    pub fn store(&mut self, concept: &str, properties: Vec<(String, String)>) -> Knowledge {
         let k = Knowledge {
             id: KnowledgeId::from(self.next_id),
             concept: concept.to_string(),

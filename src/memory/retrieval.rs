@@ -2,8 +2,8 @@ use crate::types::common::ContextState;
 use crate::types::observation::Observation;
 use crate::types::scalars::Scalar;
 
-use super::episodic::Episode;
 use super::associative::Association;
+use super::episodic::Episode;
 
 const WEIGHT_SEMANTIC: Scalar = 0.30;
 const WEIGHT_CONTEXT: Scalar = 0.20;
@@ -155,9 +155,7 @@ impl RetrievalEngine {
         (total / associations.len() as Scalar).min(1.0)
     }
 
-    pub fn detect_contradictions(
-        episodes: &[Episode],
-    ) -> Vec<(&Episode, &Episode, String)> {
+    pub fn detect_contradictions(episodes: &[Episode]) -> Vec<(&Episode, &Episode, String)> {
         let mut contradictions = Vec::new();
 
         for i in 0..episodes.len() {
@@ -169,17 +167,10 @@ impl RetrievalEngine {
                 let b_words: Vec<&str> = b.observation.text.split_whitespace().collect();
 
                 let negation_markers = ["not", "never", "no", "isn't", "aren't", "won't", "can't"];
-                let a_has_negation = a_words
-                    .iter()
-                    .any(|w| negation_markers.contains(w));
-                let b_has_negation = b_words
-                    .iter()
-                    .any(|w| negation_markers.contains(w));
+                let a_has_negation = a_words.iter().any(|w| negation_markers.contains(w));
+                let b_has_negation = b_words.iter().any(|w| negation_markers.contains(w));
 
-                let content_overlap = a_words
-                    .iter()
-                    .filter(|w| b_words.contains(w))
-                    .count();
+                let content_overlap = a_words.iter().filter(|w| b_words.contains(w)).count();
 
                 if content_overlap > 2 && a_has_negation != b_has_negation {
                     contradictions.push((
@@ -197,10 +188,7 @@ impl RetrievalEngine {
         contradictions
     }
 
-    pub fn filter_by_confidence(
-        episodes: &[Episode],
-        min_confidence: Scalar,
-    ) -> Vec<&Episode> {
+    pub fn filter_by_confidence(episodes: &[Episode], min_confidence: Scalar) -> Vec<&Episode> {
         episodes
             .iter()
             .filter(|e| e.confidence >= min_confidence)
@@ -222,10 +210,7 @@ impl RetrievalEngine {
             })
             .collect();
 
-        scored.sort_by(|a, b| {
-            b.1.partial_cmp(&a.1)
-                .unwrap_or(std::cmp::Ordering::Equal)
-        });
+        scored.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
         scored
     }
 }

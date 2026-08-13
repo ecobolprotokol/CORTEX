@@ -1,23 +1,21 @@
-pub mod hypothesis;
-pub mod evidence;
 pub mod contradiction;
+pub mod evidence;
+pub mod hypothesis;
 
-pub use hypothesis::{HypothesisGenerator, Hypothesis, ReasoningType, ReasoningResult};
+pub use contradiction::{Contradiction, ContradictionDetector};
 pub use evidence::EvidenceEvaluator;
-pub use contradiction::{ContradictionDetector, Contradiction};
+pub use hypothesis::{Hypothesis, HypothesisGenerator, ReasoningResult, ReasoningType};
 
 use crate::error::CortexError;
-use crate::types::scalars::Scalar;
 use crate::types::ids::HypothesisId;
+use crate::types::scalars::Scalar;
 
 pub trait ReasoningEngine {
     fn evaluate(&mut self, input: &str) -> Result<ReasoningResult, CortexError>;
     fn max_steps(&self) -> u32;
 }
 
-pub fn rank_hypotheses(
-    hypotheses: &mut [Hypothesis],
-) {
+pub fn rank_hypotheses(hypotheses: &mut [Hypothesis]) {
     hypotheses.sort_by(|a, b| {
         let score_a = compute_hypothesis_score(a);
         let score_b = compute_hypothesis_score(b);
@@ -32,10 +30,7 @@ pub fn compute_hypothesis_score(h: &Hypothesis) -> Scalar {
     h.confidence + evidence_bonus
 }
 
-pub fn select_top_hypothesis(
-    hypotheses: &[Hypothesis],
-    threshold: Scalar,
-) -> Option<&Hypothesis> {
+pub fn select_top_hypothesis(hypotheses: &[Hypothesis], threshold: Scalar) -> Option<&Hypothesis> {
     hypotheses
         .iter()
         .filter(|h| compute_hypothesis_score(h) >= threshold)

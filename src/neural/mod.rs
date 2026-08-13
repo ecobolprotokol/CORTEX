@@ -1,14 +1,14 @@
 pub mod cell;
 pub mod column;
 pub mod field;
-pub mod temporal;
 pub mod plasticity;
+pub mod temporal;
 
 use crate::error::CortexError;
 use crate::types::common::ContextState;
+use crate::types::evidence::ConfidenceState;
 use crate::types::ids::{CellId, ColumnId};
 use crate::types::observation::Prediction;
-use crate::types::evidence::ConfidenceState;
 
 pub trait NeuralCore {
     fn process(

@@ -52,7 +52,8 @@ impl StabilityGuard {
         let final_delta = if within_bounds {
             clamped
         } else {
-            let scale = self.max_cumulative_change / cumulative.max(crate::types::scalars::SCALAR_EPSILON);
+            let scale =
+                self.max_cumulative_change / cumulative.max(crate::types::scalars::SCALAR_EPSILON);
             clamped * scale
         };
 
@@ -84,8 +85,8 @@ impl StabilityGuard {
         };
 
         let stability_factor = if self.recent_changes.len() > 10 {
-            let avg = self.recent_changes.iter().sum::<Scalar>()
-                / self.recent_changes.len() as Scalar;
+            let avg =
+                self.recent_changes.iter().sum::<Scalar>() / self.recent_changes.len() as Scalar;
             if avg > self.max_change_per_observation * 0.8 {
                 0.7
             } else {

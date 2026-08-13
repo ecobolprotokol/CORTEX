@@ -2,34 +2,34 @@
 
 use crate::config::CortexConfig;
 use crate::error::CortexError;
+use crate::language::tokenizer::Tokenizer;
+use crate::language::vocabulary::Vocabulary;
+use crate::learning::stability::StabilityGuard;
+use crate::memory::associative::AssociativeMemory;
+use crate::memory::consolidation::ConsolidationEngine;
+use crate::memory::episodic::EpisodicMemory;
+use crate::memory::semantic::SemanticMemory;
+use crate::memory::working::WorkingMemory;
+use crate::neural::field::Field;
+use crate::observability::diagnostics::Diagnostics;
+use crate::persistence::checkpoint::CheckpointManager;
+use crate::persistence::format::FormatHandler;
+use crate::policy::gate::{PolicyDecision, PolicyGate};
+use crate::reasoning::hypothesis::HypothesisGenerator;
 use crate::runtime::{Runtime, RuntimeState};
+use crate::self_model::capability::SelfModel as CapabilitySelfModel;
+use crate::self_model::SelfModelManager;
+use crate::transaction::invariant::StateInvariant;
 use crate::transaction::mutation::{MutationKind, MutationLog, RecordParams};
 use crate::transaction::state_tx::StateTransaction;
-use crate::transaction::invariant::StateInvariant;
+use crate::types::common::Timestamp;
 use crate::types::state::{
     AlgorithmVersions, CortexState, LanguageState, LearningState, MemoryState, NeuralState,
     PlanningState, ProvenanceState, ReasoningState, SelfModel, StateMetadata, VerificationState,
     WorldState, ARCHITECTURE_VERSION, SCHEMA_VERSION,
 };
-use crate::types::common::Timestamp;
-use crate::language::tokenizer::Tokenizer;
-use crate::language::vocabulary::Vocabulary;
-use crate::neural::field::Field;
-use crate::memory::episodic::EpisodicMemory;
-use crate::memory::semantic::SemanticMemory;
-use crate::memory::associative::AssociativeMemory;
-use crate::memory::working::WorkingMemory;
-use crate::world::entity::{EntityManager, EntityKind};
-use crate::reasoning::hypothesis::HypothesisGenerator;
-use crate::policy::gate::{PolicyDecision, PolicyGate};
-use crate::learning::stability::StabilityGuard;
-use crate::persistence::checkpoint::CheckpointManager;
-use crate::persistence::format::FormatHandler;
-use crate::memory::consolidation::ConsolidationEngine;
 use crate::verification::VerificationPipeline;
-use crate::self_model::SelfModelManager;
-use crate::self_model::capability::SelfModel as CapabilitySelfModel;
-use crate::observability::diagnostics::Diagnostics;
+use crate::world::entity::{EntityKind, EntityManager};
 
 pub struct CortexRuntime {
     pub state: CortexState,
@@ -109,17 +109,15 @@ impl CortexRuntime {
         let memory_associative = AssociativeMemory::new();
         let memory_working = WorkingMemory::new(config.memory.working_mb as usize);
         let world_entity_manager = EntityManager::new();
-        let reasoning_generator =
-            HypothesisGenerator::new(config.reasoning.max_steps as usize);
+        let reasoning_generator = HypothesisGenerator::new(config.reasoning.max_steps as usize);
         let policy_gate = PolicyGate::new();
-        let learning_stability = StabilityGuard::new(
-            config.learning.learning_rate,
-            config.learning.plasticity,
-        );
+        let learning_stability =
+            StabilityGuard::new(config.learning.learning_rate, config.learning.plasticity);
         let persistence_checkpoint = CheckpointManager::new(10);
         let format_handler = FormatHandler::new();
         let consolidation = ConsolidationEngine::new(config.learning.consolidation_interval);
-        let verification_pipeline = VerificationPipeline::new(config.verification.minimum_confidence);
+        let verification_pipeline =
+            VerificationPipeline::new(config.verification.minimum_confidence);
         let self_model_manager = SelfModelManager::new();
         let self_model = CapabilitySelfModel::new();
         let diagnostics = Diagnostics::new();
@@ -184,9 +182,11 @@ impl CortexRuntime {
     }
 
     pub fn save_state(&self) -> Result<(), CortexError> {
-        let data = bincode::serialize(&self.state)
-            .map_err(|e| CortexError::SerializationError(format!("Failed to serialize state: {}", e)))?;
-        self.format_handler.save_to_file(&self.config.persistence.state, &data)
+        let data = bincode::serialize(&self.state).map_err(|e| {
+            CortexError::SerializationError(format!("Failed to serialize state: {}", e))
+        })?;
+        self.format_handler
+            .save_to_file(&self.config.persistence.state, &data)
     }
 
     fn execute_pipeline(&mut self, input: &str) -> Result<String, CortexError> {
@@ -264,16 +264,18 @@ impl CortexRuntime {
             .collect();
         self.state.memory.episodic.episodes.clear();
         for ep in &self.memory_episodic.episodes {
-            self.state.memory.episodic.episodes.push(
-                crate::types::state::EpisodeRecord {
+            self.state
+                .memory
+                .episodic
+                .episodes
+                .push(crate::types::state::EpisodeRecord {
                     id: ep.id,
                     observation: ep.observation.clone(),
                     timestamp: ep.timestamp,
                     importance: ep.importance,
                     consolidated: ep.consolidated,
                     retrieval_count: ep.retrieval_count,
-                },
-            );
+                });
         }
         self.state.memory.episodic.next_id =
             crate::types::ids::EpisodeId::from(self.memory_episodic.next_id);
@@ -377,10 +379,7 @@ impl CortexRuntime {
         }
 
         // Stage 8: Verify claims
-        let top_confidence = hypotheses
-            .first()
-            .map(|h| h.confidence)
-            .unwrap_or(0.0);
+        let top_confidence = hypotheses.first().map(|h| h.confidence).unwrap_or(0.0);
         let verified = top_confidence >= self.config.verification.minimum_confidence;
 
         // Stage 9: Generate response
@@ -399,7 +398,8 @@ impl CortexRuntime {
         } else {
             hypotheses.iter().map(|h| h.confidence).sum::<f32>() / hypotheses.len() as f32
         };
-        self.memory_episodic.store(crate::types::observation::Observation::user_provided(input));
+        self.memory_episodic
+            .store(crate::types::observation::Observation::user_provided(input));
         self.state.metadata.episode_count += 1;
         self.mutation_log.record(RecordParams {
             kind: MutationKind::MemoryStore,
@@ -414,7 +414,8 @@ impl CortexRuntime {
         // Self-model update from experience
         if self.observation_count > 0 && !hypotheses.is_empty() {
             let prediction_correct = verified;
-            self.self_model_manager.update_from_experience(prediction_correct, input);
+            self.self_model_manager
+                .update_from_experience(prediction_correct, input);
             let assessment = self.self_model_manager.get_model().assess();
             self.state.self_model.prediction_accuracy = assessment.prediction_accuracy;
             self.state.self_model.uncertainty_level = 1.0 - assessment.overall;
@@ -470,7 +471,10 @@ impl CortexRuntime {
             && self.observation_count % self.config.learning.consolidation_interval == 0
         {
             self.state.learning.total_consolidation_events += 1;
-            tracing::info!(count = self.observation_count, "Memory consolidation triggered");
+            tracing::info!(
+                count = self.observation_count,
+                "Memory consolidation triggered"
+            );
             self.consolidation.record_episode();
             if self.consolidation.should_consolidate() {
                 tracing::info!("Running memory consolidation");
@@ -540,21 +544,19 @@ impl Runtime for CortexRuntime {
         let state_path = &self.config.persistence.state;
         if std::path::Path::new(state_path).exists() {
             match self.format_handler.load_from_file(state_path) {
-                Ok(data) => {
-                    match bincode::deserialize::<CortexState>(&data) {
-                        Ok(loaded_state) => {
-                            if loaded_state.metadata.architecture_version == ARCHITECTURE_VERSION {
-                                self.state = loaded_state;
-                                tracing::info!(path = %state_path, "State loaded from disk");
-                            } else {
-                                tracing::warn!("Architecture version mismatch, using fresh state");
-                            }
-                        }
-                        Err(e) => {
-                            tracing::warn!(error = %e, "Failed to deserialize state, using fresh state");
+                Ok(data) => match bincode::deserialize::<CortexState>(&data) {
+                    Ok(loaded_state) => {
+                        if loaded_state.metadata.architecture_version == ARCHITECTURE_VERSION {
+                            self.state = loaded_state;
+                            tracing::info!(path = %state_path, "State loaded from disk");
+                        } else {
+                            tracing::warn!("Architecture version mismatch, using fresh state");
                         }
                     }
-                }
+                    Err(e) => {
+                        tracing::warn!(error = %e, "Failed to deserialize state, using fresh state");
+                    }
+                },
                 Err(e) => {
                     tracing::warn!(error = %e, "Failed to load state file, using fresh state");
                 }
@@ -634,7 +636,10 @@ impl Runtime for CortexRuntime {
             success: true,
             error: None,
         });
-        tracing::info!(checkpoint_count = self.state.metadata.checkpoint_count, "Final checkpoint created");
+        tracing::info!(
+            checkpoint_count = self.state.metadata.checkpoint_count,
+            "Final checkpoint created"
+        );
 
         self.transition_to(RuntimeState::Stopped)?;
         tracing::info!(

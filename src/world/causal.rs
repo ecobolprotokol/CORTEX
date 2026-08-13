@@ -1,8 +1,8 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-use crate::types::scalars::Scalar;
 use crate::types::common::Timestamp;
+use crate::types::scalars::Scalar;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CausalHypothesis {
@@ -45,9 +45,10 @@ impl CausalModel {
     }
 
     pub fn add_hypothesis(&mut self, cause: &str, effect: &str) {
-        let exists = self.hypotheses.iter().any(|h| {
-            h.cause == cause && h.effect == effect
-        });
+        let exists = self
+            .hypotheses
+            .iter()
+            .any(|h| h.cause == cause && h.effect == effect);
         if !exists {
             self.hypotheses.push(CausalHypothesis {
                 cause: cause.to_string(),
@@ -62,7 +63,9 @@ impl CausalModel {
     }
 
     pub fn strengthen(&mut self, cause: &str, effect: &str) {
-        if let Some(h) = self.hypotheses.iter_mut()
+        if let Some(h) = self
+            .hypotheses
+            .iter_mut()
             .find(|h| h.cause == cause && h.effect == effect)
         {
             h.evidence_count += 1;
@@ -72,7 +75,9 @@ impl CausalModel {
     }
 
     pub fn weaken(&mut self, cause: &str, effect: &str) {
-        if let Some(h) = self.hypotheses.iter_mut()
+        if let Some(h) = self
+            .hypotheses
+            .iter_mut()
             .find(|h| h.cause == cause && h.effect == effect)
         {
             h.false_positive_count += 1;
@@ -99,13 +104,15 @@ impl CausalModel {
             .copied()
             .unwrap_or(0);
 
-        let temporal_correct = self.temporal_order.iter().any(|(c, e, _)| {
-            c == cause && e == effect
-        });
+        let temporal_correct = self
+            .temporal_order
+            .iter()
+            .any(|(c, e, _)| c == cause && e == effect);
 
-        let hypothesis = self.hypotheses.iter().find(|h| {
-            h.cause == cause && h.effect == effect
-        });
+        let hypothesis = self
+            .hypotheses
+            .iter()
+            .find(|h| h.cause == cause && h.effect == effect);
 
         let strength = hypothesis.map(|h| h.strength).unwrap_or(0.0);
 
@@ -153,11 +160,7 @@ impl CausalModel {
         effects
     }
 
-    pub fn compute_granger_causality(
-        &self,
-        cause: &str,
-        effect: &str,
-    ) -> Scalar {
+    pub fn compute_granger_causality(&self, cause: &str, effect: &str) -> Scalar {
         let co_occur = self
             .co_occurrence_matrix
             .get(&(cause.to_string(), effect.to_string()))

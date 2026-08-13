@@ -1,16 +1,16 @@
-pub mod signal;
 pub mod attribution;
 pub mod replay;
+pub mod signal;
 pub mod stability;
 
-pub use signal::{SignalGenerator, LearningSignal};
-pub use attribution::{AttributionEngine, ErrorSource, ErrorAttribution};
+pub use attribution::{AttributionEngine, ErrorAttribution, ErrorSource};
 pub use replay::ReplayBuffer;
+pub use signal::{LearningSignal, SignalGenerator};
 pub use stability::StabilityGuard;
 
 use crate::error::CortexError;
-use crate::types::scalars::Scalar;
 use crate::types::observation::PredictionError;
+use crate::types::scalars::Scalar;
 
 pub trait LearningSystem {
     fn record_experience(&mut self, experience: &str) -> Result<(), CortexError>;
@@ -56,7 +56,9 @@ impl LearningPipeline {
             attribution.source
         );
 
-        let clamped_magnitude = self.stability_guard.clamp_update(signal.magnitude * self.learning_rate);
+        let clamped_magnitude = self
+            .stability_guard
+            .clamp_update(signal.magnitude * self.learning_rate);
 
         self.total_learning_events += 1;
 

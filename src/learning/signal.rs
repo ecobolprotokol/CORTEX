@@ -80,8 +80,8 @@ impl SignalGenerator {
         access_frequency: Scalar,
         importance: Scalar,
     ) -> LearningSignal {
-        let magnitude = (importance * 0.4 + access_frequency * 0.3 + (1.0 - memory_age) * 0.3)
-            .min(1.0);
+        let magnitude =
+            (importance * 0.4 + access_frequency * 0.3 + (1.0 - memory_age) * 0.3).min(1.0);
 
         LearningSignal {
             magnitude,
@@ -107,10 +107,7 @@ impl SignalGenerator {
         }
 
         let total_magnitude: Scalar = signals.iter().map(|s| s.magnitude).sum();
-        let max_priority: Scalar = signals
-            .iter()
-            .map(|s| s.priority)
-            .fold(0.0f32, Scalar::max);
+        let max_priority: Scalar = signals.iter().map(|s| s.priority).fold(0.0f32, Scalar::max);
         let avg_magnitude = total_magnitude / signals.len() as Scalar;
 
         LearningSignal {

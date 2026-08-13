@@ -1,12 +1,12 @@
-pub mod entity;
-pub mod transition;
 pub mod causal;
+pub mod entity;
 pub mod simulation;
+pub mod transition;
 
-pub use entity::EntityManager;
-pub use transition::TransitionModel;
 pub use causal::CausalModel;
+pub use entity::EntityManager;
 pub use simulation::WorldSimulator;
+pub use transition::TransitionModel;
 
 use crate::error::CortexError;
 use crate::types::scalars::Scalar;

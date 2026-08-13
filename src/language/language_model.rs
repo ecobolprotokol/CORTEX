@@ -64,13 +64,12 @@ impl LanguageModel {
 
     pub fn update_from_tokens(&mut self, tokens: &[String]) {
         for token in tokens {
-            *self.vocab_frequencies
-                .entry(token.clone())
-                .or_insert(0) += 1;
+            *self.vocab_frequencies.entry(token.clone()).or_insert(0) += 1;
         }
 
         for window in tokens.windows(2) {
-            *self.bigram_counts
+            *self
+                .bigram_counts
                 .entry((window[0].clone(), window[1].clone()))
                 .or_insert(0) += 1;
         }
@@ -123,7 +122,11 @@ impl LanguageModel {
             })
             .collect();
 
-        scored.sort_by(|a, b| b.score.partial_cmp(&a.score).unwrap_or(std::cmp::Ordering::Equal));
+        scored.sort_by(|a, b| {
+            b.score
+                .partial_cmp(&a.score)
+                .unwrap_or(std::cmp::Ordering::Equal)
+        });
         scored.truncate(top_k);
 
         let _ = context_len;
@@ -141,11 +144,7 @@ impl LanguageModel {
         if let Some(last) = self.context_window.last() {
             let bigram = (last.clone(), token.to_string());
             let bigram_count = self.bigram_counts.get(&bigram).copied().unwrap_or(0);
-            let unigram_count = self
-                .vocab_frequencies
-                .get(last)
-                .copied()
-                .unwrap_or(1);
+            let unigram_count = self.vocab_frequencies.get(last).copied().unwrap_or(1);
             let conditional = bigram_count as f32 / unigram_count as f32;
             return (base * 0.4 + conditional * 0.6).min(1.0);
         }
@@ -182,9 +181,7 @@ impl LanguageModel {
     }
 
     fn semantic_score(&self, token: &str) -> f32 {
-        let noun_markers = [
-            "the", "a", "an", "this", "that", "is", "are", "was", "were",
-        ];
+        let noun_markers = ["the", "a", "an", "this", "that", "is", "are", "was", "were"];
         let verb_markers = [
             "to", "can", "will", "would", "could", "should", "may", "might",
         ];
@@ -246,13 +243,49 @@ impl LanguageModel {
 fn is_content_word(token: &str) -> bool {
     matches!(
         token,
-        "time" | "year" | "people" | "day" | "man" | "child" | "world"
-            | "life" | "hand" | "place" | "work" | "number" | "night"
-            | "home" | "room" | "story" | "book" | "word" | "car"
-            | "computer" | "data" | "model" | "concept" | "system"
-            | "process" | "state" | "input" | "text" | "meaning"
-            | "language" | "function" | "result" | "method" | "type"
-            | "value" | "error" | "file" | "code" | "test" | "user"
-            | "application" | "network" | "memory" | "algorithm"
+        "time"
+            | "year"
+            | "people"
+            | "day"
+            | "man"
+            | "child"
+            | "world"
+            | "life"
+            | "hand"
+            | "place"
+            | "work"
+            | "number"
+            | "night"
+            | "home"
+            | "room"
+            | "story"
+            | "book"
+            | "word"
+            | "car"
+            | "computer"
+            | "data"
+            | "model"
+            | "concept"
+            | "system"
+            | "process"
+            | "state"
+            | "input"
+            | "text"
+            | "meaning"
+            | "language"
+            | "function"
+            | "result"
+            | "method"
+            | "type"
+            | "value"
+            | "error"
+            | "file"
+            | "code"
+            | "test"
+            | "user"
+            | "application"
+            | "network"
+            | "memory"
+            | "algorithm"
     )
 }

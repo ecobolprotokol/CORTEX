@@ -81,11 +81,7 @@ impl PolicyGate {
                 "Checkpoint operation allowed".into(),
                 0.1,
             ),
-            "observe" => (
-                PolicyDecision::Allow,
-                "Observation allowed".into(),
-                0.05,
-            ),
+            "observe" => (PolicyDecision::Allow, "Observation allowed".into(), 0.05),
             "query" => (
                 PolicyDecision::Allow,
                 "Query operation allowed".into(),
@@ -101,11 +97,7 @@ impl PolicyGate {
                 "Memory consolidation allowed".into(),
                 0.2,
             ),
-            "neural_process" => (
-                PolicyDecision::Allow,
-                "Neural process allowed".into(),
-                0.1,
-            ),
+            "neural_process" => (PolicyDecision::Allow, "Neural process allowed".into(), 0.1),
             "world_integrate" => (
                 PolicyDecision::Allow,
                 "World integration allowed".into(),
@@ -126,19 +118,14 @@ impl PolicyGate {
                 "Verification evaluation allowed".into(),
                 0.1,
             ),
-            "memory_store" => (
-                PolicyDecision::Allow,
-                "Memory store allowed".into(),
-                0.1,
-            ),
-            "memory_evict" => (
-                PolicyDecision::Allow,
-                "Memory eviction allowed".into(),
-                0.2,
-            ),
+            "memory_store" => (PolicyDecision::Allow, "Memory store allowed".into(), 0.1),
+            "memory_evict" => (PolicyDecision::Allow, "Memory eviction allowed".into(), 0.2),
             _ => (
                 PolicyDecision::Deny,
-                format!("Unknown operation '{}' is not allowed by default", operation),
+                format!(
+                    "Unknown operation '{}' is not allowed by default",
+                    operation
+                ),
                 1.0,
             ),
         };
@@ -150,11 +137,7 @@ impl PolicyGate {
         }
     }
 
-    pub fn evaluate_with_context(
-        &self,
-        operation: &str,
-        _context: &str,
-    ) -> GateResult {
+    pub fn evaluate_with_context(&self, operation: &str, _context: &str) -> GateResult {
         self.evaluate(operation)
     }
 

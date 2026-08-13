@@ -1,5 +1,5 @@
-use crate::error::CortexError;
 use super::mutation::{MutationId, MutationKind, MutationLog, RecordParams};
+use crate::error::CortexError;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TransactionState {
@@ -32,9 +32,7 @@ impl StateTransaction {
 
     pub fn apply(&mut self, mutation: &str) -> Result<(), CortexError> {
         if self.state != TransactionState::Active {
-            return Err(CortexError::RuntimeError(
-                "Transaction not active".into(),
-            ));
+            return Err(CortexError::RuntimeError("Transaction not active".into()));
         }
         self.mutations_applied.push(mutation.to_string());
         Ok(())

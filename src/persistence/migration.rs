@@ -84,9 +84,7 @@ impl MigrationHandler {
 
         let magic = [data[0], data[1], data[2], data[3]];
         if magic != crate::persistence::format::FORMAT_MAGIC {
-            return Err(CortexError::PersistenceError(
-                "Invalid magic bytes".into(),
-            ));
+            return Err(CortexError::PersistenceError("Invalid magic bytes".into()));
         }
 
         let version = u32::from_le_bytes([data[4], data[5], data[6], data[7]]);
@@ -115,10 +113,7 @@ impl MigrationHandler {
                 .iter()
                 .find(|m| m.from_version == current)
                 .ok_or_else(|| {
-                    CortexError::PersistenceError(format!(
-                        "No migration from version {}",
-                        current
-                    ))
+                    CortexError::PersistenceError(format!("No migration from version {}", current))
                 })?;
             path.push(step.clone());
             current = step.to_version;

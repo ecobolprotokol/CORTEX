@@ -1,5 +1,5 @@
-use crate::types::ids::CheckpointId;
 use crate::types::common::Timestamp;
+use crate::types::ids::CheckpointId;
 
 #[derive(Debug, Clone)]
 pub struct Checkpoint {

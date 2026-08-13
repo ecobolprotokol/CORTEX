@@ -54,14 +54,8 @@ impl Vocabulary {
     }
 
     pub fn add_association(&mut self, source: SymbolId, target: SymbolId) {
-        self.associations
-            .entry(source)
-            .or_default()
-            .push(target);
-        self.associations
-            .entry(target)
-            .or_default()
-            .push(source);
+        self.associations.entry(source).or_default().push(target);
+        self.associations.entry(target).or_default().push(source);
     }
 
     pub fn confidence(&self, id: SymbolId) -> f32 {

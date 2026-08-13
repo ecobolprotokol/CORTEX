@@ -71,12 +71,7 @@ impl RiskEstimator {
         }
     }
 
-    pub fn estimate(
-        &self,
-        operation: &str,
-        impact: Scalar,
-        reversibility: Scalar,
-    ) -> RiskEstimate {
+    pub fn estimate(&self, operation: &str, impact: Scalar, reversibility: Scalar) -> RiskEstimate {
         let scope = self.assess_scope(operation);
         let duration = self.assess_duration(operation);
         let dependencies = self.assess_dependencies(operation);
@@ -122,10 +117,8 @@ impl RiskEstimator {
             RiskLevel::Critical
         };
 
-        let overall_assessment = format!(
-            "Operation '{}' risk: {} ({:.2})",
-            operation, level, score
-        );
+        let overall_assessment =
+            format!("Operation '{}' risk: {} ({:.2})", operation, level, score);
 
         RiskEstimate {
             score,

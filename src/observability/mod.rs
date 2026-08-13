@@ -1,6 +1,6 @@
 pub mod diagnostics;
 
-pub use diagnostics::{Diagnostics, Metrics, HealthStatus, RuntimeMetrics};
+pub use diagnostics::{Diagnostics, HealthStatus, Metrics, RuntimeMetrics};
 
 use crate::error::CortexError;
 

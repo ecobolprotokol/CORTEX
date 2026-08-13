@@ -102,7 +102,8 @@ impl RiskEvaluator {
                 name: "Irreversibility".into(),
                 weight: self.weights.reversibility_weight,
                 value: (1.0 - reversibility).clamp(0.0, 1.0),
-                contribution: (1.0 - reversibility).clamp(0.0, 1.0) * self.weights.reversibility_weight,
+                contribution: (1.0 - reversibility).clamp(0.0, 1.0)
+                    * self.weights.reversibility_weight,
             },
             RiskFactor {
                 name: "Cascading".into(),
@@ -146,7 +147,9 @@ impl RiskEvaluator {
             if factor.contribution > 0.2 {
                 match factor.name.as_str() {
                     "Cost" => suggestions.push("Consider breaking into smaller steps".into()),
-                    "Uncertainty" => suggestions.push("Gather more evidence before proceeding".into()),
+                    "Uncertainty" => {
+                        suggestions.push("Gather more evidence before proceeding".into())
+                    }
                     "Complexity" => suggestions.push("Simplify the approach".into()),
                     "Irreversibility" => suggestions.push("Add rollback checkpoints".into()),
                     "Cascading" => suggestions.push("Isolate dependent components".into()),

@@ -1,8 +1,8 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-use crate::types::ids::EntityId;
 use crate::types::common::Timestamp;
+use crate::types::ids::EntityId;
 use crate::types::scalars::Scalar;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]

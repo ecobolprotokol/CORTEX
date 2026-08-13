@@ -101,7 +101,10 @@ fn test_invariant_check_prevents_corrupt_state() {
     state.verification.confidence_threshold = 1.5;
     let result = StateInvariant::validate_state(&state);
     assert!(result.is_err());
-    assert!(result.unwrap_err().to_string().contains("confidence_threshold"));
+    assert!(result
+        .unwrap_err()
+        .to_string()
+        .contains("confidence_threshold"));
 }
 
 #[test]
@@ -110,7 +113,10 @@ fn test_invariant_check_prevents_zero_version() {
     state.metadata.architecture_version = 0;
     let result = StateInvariant::validate_state(&state);
     assert!(result.is_err());
-    assert!(result.unwrap_err().to_string().contains("architecture_version"));
+    assert!(result
+        .unwrap_err()
+        .to_string()
+        .contains("architecture_version"));
 }
 
 #[test]

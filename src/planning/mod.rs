@@ -1,8 +1,8 @@
 pub mod plan;
 pub mod risk;
 
-pub use plan::{PlanBuilder, Plan, PlanStep};
-pub use risk::{RiskEvaluator, RiskAssessment};
+pub use plan::{Plan, PlanBuilder, PlanStep};
+pub use risk::{RiskAssessment, RiskEvaluator};
 
 use crate::error::CortexError;
 use crate::types::scalars::Scalar;
@@ -15,10 +15,7 @@ pub trait PlanningEngine {
     fn max_branches(&self) -> u32;
 }
 
-pub fn simulate_plan(
-    plan: &Plan,
-    transition_fn: TransitionFn<'_>,
-) -> PlanSimulationResult {
+pub fn simulate_plan(plan: &Plan, transition_fn: TransitionFn<'_>) -> PlanSimulationResult {
     let mut cumulative_cost = 0.0f32;
     let mut cumulative_risk = 0.0f32;
     let mut step_results = Vec::new();
@@ -48,8 +45,7 @@ pub fn simulate_plan(
     let avg_confidence = if step_results.is_empty() {
         0.0
     } else {
-        step_results.iter().map(|r| r.confidence).sum::<Scalar>()
-            / step_results.len() as Scalar
+        step_results.iter().map(|r| r.confidence).sum::<Scalar>() / step_results.len() as Scalar
     };
 
     PlanSimulationResult {

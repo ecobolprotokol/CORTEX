@@ -1,7 +1,7 @@
-use serde::{Deserialize, Serialize};
-use crate::types::ids::{PlanId, GoalId};
-use crate::types::scalars::Scalar;
 use crate::types::common::Timestamp;
+use crate::types::ids::{GoalId, PlanId};
+use crate::types::scalars::Scalar;
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PlanStep {
@@ -41,10 +41,7 @@ impl PlanBuilder {
         let steps = self.decompose_goal(goal);
 
         let total_cost: Scalar = steps.iter().map(|s| s.estimated_cost).sum();
-        let max_risk: Scalar = steps
-            .iter()
-            .map(|s| s.risk)
-            .fold(0.0f32, Scalar::max);
+        let max_risk: Scalar = steps.iter().map(|s| s.risk).fold(0.0f32, Scalar::max);
 
         Plan {
             id,
@@ -58,19 +55,12 @@ impl PlanBuilder {
         }
     }
 
-    pub fn build_detailed(
-        &mut self,
-        goal: &str,
-        steps: Vec<PlanStep>,
-    ) -> Plan {
+    pub fn build_detailed(&mut self, goal: &str, steps: Vec<PlanStep>) -> Plan {
         let id = PlanId::from(self.next_id);
         self.next_id += 1;
 
         let total_cost: Scalar = steps.iter().map(|s| s.estimated_cost).sum();
-        let max_risk: Scalar = steps
-            .iter()
-            .map(|s| s.risk)
-            .fold(0.0f32, Scalar::max);
+        let max_risk: Scalar = steps.iter().map(|s| s.risk).fold(0.0f32, Scalar::max);
         let avg_confidence: Scalar = if steps.is_empty() {
             0.0
         } else {
@@ -148,11 +138,7 @@ impl PlanBuilder {
         }
 
         plan.estimated_cost = plan.steps.iter().map(|s| s.estimated_cost).sum();
-        plan.estimated_risk = plan
-            .steps
-            .iter()
-            .map(|s| s.risk)
-            .fold(0.0f32, Scalar::max);
+        plan.estimated_risk = plan.steps.iter().map(|s| s.risk).fold(0.0f32, Scalar::max);
     }
 }
 

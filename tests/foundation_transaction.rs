@@ -1,6 +1,6 @@
+use cortex::transaction::invariant::StateInvariant;
 use cortex::transaction::mutation::{MutationId, MutationKind, MutationLog, RecordParams};
 use cortex::transaction::state_tx::{StateTransaction, TransactionState};
-use cortex::transaction::invariant::StateInvariant;
 use cortex::types::state::CortexState;
 
 #[test]
@@ -70,9 +70,33 @@ fn test_mutation_log_failed() {
 #[test]
 fn test_mutation_log_count_by_kind() {
     let mut log = MutationLog::new(100);
-    log.record(RecordParams { kind: MutationKind::LanguageEncode, description: "a", subsystem: "lang", pre_version: 0, post_version: 1, success: true, error: None });
-    log.record(RecordParams { kind: MutationKind::LanguageEncode, description: "b", subsystem: "lang", pre_version: 1, post_version: 2, success: true, error: None });
-    log.record(RecordParams { kind: MutationKind::NeuralProcess, description: "c", subsystem: "neural", pre_version: 0, post_version: 1, success: true, error: None });
+    log.record(RecordParams {
+        kind: MutationKind::LanguageEncode,
+        description: "a",
+        subsystem: "lang",
+        pre_version: 0,
+        post_version: 1,
+        success: true,
+        error: None,
+    });
+    log.record(RecordParams {
+        kind: MutationKind::LanguageEncode,
+        description: "b",
+        subsystem: "lang",
+        pre_version: 1,
+        post_version: 2,
+        success: true,
+        error: None,
+    });
+    log.record(RecordParams {
+        kind: MutationKind::NeuralProcess,
+        description: "c",
+        subsystem: "neural",
+        pre_version: 0,
+        post_version: 1,
+        success: true,
+        error: None,
+    });
     assert_eq!(log.count_by_kind(MutationKind::LanguageEncode), 2);
     assert_eq!(log.count_by_kind(MutationKind::NeuralProcess), 1);
 }

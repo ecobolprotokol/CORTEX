@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 use crate::types::common::Timestamp;
-use crate::types::ids::{EpisodeId, EvidenceId, KnowledgeId, ProvenanceId, SourceId, SessionId};
+use crate::types::ids::{EpisodeId, EvidenceId, KnowledgeId, ProvenanceId, SessionId, SourceId};
 use crate::types::observation::Observation;
 use crate::types::scalars::Scalar;
 
@@ -49,8 +49,7 @@ impl EvidenceSet {
     }
 
     pub fn total_strength(&self) -> Scalar {
-        self.items.iter().map(|e| e.strength).sum::<Scalar>()
-            / self.items.len().max(1) as Scalar
+        self.items.iter().map(|e| e.strength).sum::<Scalar>() / self.items.len().max(1) as Scalar
     }
 
     pub fn supporting(&self) -> Vec<&Evidence> {

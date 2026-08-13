@@ -163,11 +163,7 @@ impl WorldSimulator {
         result
     }
 
-    pub fn compare_trajectories(
-        &self,
-        a: &SimulationResult,
-        b: &SimulationResult,
-    ) -> Scalar {
+    pub fn compare_trajectories(&self, a: &SimulationResult, b: &SimulationResult) -> Scalar {
         let min_len = a.steps.len().min(b.steps.len());
         if min_len == 0 {
             return 0.0;
@@ -195,11 +191,7 @@ impl WorldSimulator {
         let mut confidences = Vec::new();
 
         for _ in 0..samples {
-            let result = self.simulate(
-                initial_state,
-                &[action.to_string()],
-                transition_fn,
-            );
+            let result = self.simulate(initial_state, &[action.to_string()], transition_fn);
             results.push(result.final_state);
             confidences.push(result.confidence);
         }

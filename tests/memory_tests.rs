@@ -1,9 +1,9 @@
-use cortex::memory::episodic::EpisodicMemory;
-use cortex::memory::semantic::SemanticMemory;
-use cortex::memory::working::WorkingMemory;
 use cortex::memory::associative::AssociativeMemory;
+use cortex::memory::episodic::EpisodicMemory;
 use cortex::memory::procedural::ProceduralMemory;
 use cortex::memory::retrieval::RetrievalEngine;
+use cortex::memory::semantic::SemanticMemory;
+use cortex::memory::working::WorkingMemory;
 use cortex::types::observation::Observation;
 
 #[test]
@@ -64,11 +64,7 @@ fn test_working_memory() {
 #[test]
 fn test_associative_memory() {
     let mut memory = AssociativeMemory::new();
-    let assoc = memory.create(
-        1,
-        2,
-        cortex::memory::associative::AssociationKind::Semantic,
-    );
+    let assoc = memory.create(1, 2, cortex::memory::associative::AssociationKind::Semantic);
     assert!(assoc.id.raw() > 0);
     assert_eq!(memory.associations.len(), 1);
 }
@@ -76,7 +72,12 @@ fn test_associative_memory() {
 #[test]
 fn test_procedural_memory() {
     let mut memory = ProceduralMemory::new();
-    let proc = memory.store("test procedure", "when needed", vec!["step 1".into(), "step 2".into()], "success");
+    let proc = memory.store(
+        "test procedure",
+        "when needed",
+        vec!["step 1".into(), "step 2".into()],
+        "success",
+    );
     assert!(proc.id.raw() > 0);
     assert_eq!(memory.procedures.len(), 1);
 }

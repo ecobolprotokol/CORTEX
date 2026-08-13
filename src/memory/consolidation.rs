@@ -1,9 +1,9 @@
 use crate::types::common::Timestamp;
 use crate::types::scalars::Scalar;
 
+use super::associative::{AssociationKind, AssociativeMemory};
 use super::episodic::EpisodicMemory;
 use super::semantic::SemanticMemory;
-use super::associative::{AssociativeMemory, AssociationKind};
 
 pub struct ConsolidationEngine {
     pub interval: u64,
@@ -82,8 +82,8 @@ impl ConsolidationEngine {
                     let higher_importance = episodic.episodes[i]
                         .importance
                         .max(episodic.episodes[j].importance);
-                    let combined_retrievals = episodic.episodes[i].retrieval_count
-                        + episodic.episodes[j].retrieval_count;
+                    let combined_retrievals =
+                        episodic.episodes[i].retrieval_count + episodic.episodes[j].retrieval_count;
 
                     if !to_mark.contains(&i) {
                         episodic.episodes[i].importance = higher_importance;
@@ -107,11 +107,7 @@ impl ConsolidationEngine {
         merged_count
     }
 
-    fn generalize(
-        &self,
-        episodic: &EpisodicMemory,
-        semantic: &mut SemanticMemory,
-    ) -> u64 {
+    fn generalize(&self, episodic: &EpisodicMemory, semantic: &mut SemanticMemory) -> u64 {
         let mut extracted = 0;
 
         let mut word_frequency: std::collections::HashMap<String, u64> =
@@ -133,10 +129,7 @@ impl ConsolidationEngine {
             .collect();
 
         for word in frequent_words {
-            let exists = semantic
-                .knowledge
-                .iter()
-                .any(|k| k.concept == word);
+            let exists = semantic.knowledge.iter().any(|k| k.concept == word);
 
             if !exists {
                 semantic.store(
@@ -183,11 +176,7 @@ impl ConsolidationEngine {
 
                 if !exists {
                     let delta = (*count as Scalar / 10.0).min(0.3);
-                    let new_a = associative.create(
-                        source_id,
-                        target_id,
-                        AssociationKind::Semantic,
-                    );
+                    let new_a = associative.create(source_id, target_id, AssociationKind::Semantic);
                     associative.strengthen(new_a.id, delta);
                     strengthened += 1;
                 } else {

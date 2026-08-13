@@ -1,10 +1,10 @@
-pub mod routes;
 pub mod auth;
 pub mod handlers;
+pub mod routes;
 
-pub use routes::Router;
 pub use auth::Authenticator;
 pub use handlers::RequestHandler;
+pub use routes::Router;
 
 use crate::error::CortexError;
 
@@ -77,10 +77,7 @@ impl ApiManager {
         self.request_count
     }
 
-    pub fn start_synchronous_server(
-        &mut self,
-        bind: &str,
-    ) -> Result<(), CortexError> {
+    pub fn start_synchronous_server(&mut self, bind: &str) -> Result<(), CortexError> {
         use std::io::{BufRead, BufReader, Write};
         use std::net::TcpListener;
 
@@ -89,13 +86,17 @@ impl ApiManager {
 
         tracing::info!(bind = %bind, "API server listening");
 
-        listener.set_nonblocking(false)
+        listener
+            .set_nonblocking(false)
             .map_err(|e| CortexError::RuntimeError(format!("Failed to set nonblocking: {}", e)))?;
 
         for stream in listener.incoming() {
             match stream {
                 Ok(stream) => {
-                    let peer = stream.peer_addr().map(|a| a.to_string()).unwrap_or_default();
+                    let peer = stream
+                        .peer_addr()
+                        .map(|a| a.to_string())
+                        .unwrap_or_default();
                     let reader = BufReader::new(&stream);
                     let mut writer = &stream;
 

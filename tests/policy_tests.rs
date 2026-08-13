@@ -1,6 +1,6 @@
 use cortex::policy::gate::{PolicyDecision, PolicyGate};
-use cortex::policy::risk::RiskEstimator;
 use cortex::policy::resource_limits::ResourceLimits;
+use cortex::policy::risk::RiskEstimator;
 
 #[test]
 fn test_policy_gate_allows_known_operation() {
@@ -28,14 +28,26 @@ fn test_policy_gate_blocks_learning() {
 fn test_policy_gate_allows_all_cognitive_operations() {
     let gate = PolicyGate::new();
     let allowed = vec![
-        "observe", "query", "checkpoint", "consolidate",
-        "neural_process", "world_integrate", "reasoning_evaluate",
-        "planning_evaluate", "verification_evaluate", "memory_store",
+        "observe",
+        "query",
+        "checkpoint",
+        "consolidate",
+        "neural_process",
+        "world_integrate",
+        "reasoning_evaluate",
+        "planning_evaluate",
+        "verification_evaluate",
+        "memory_store",
         "memory_evict",
     ];
     for op in allowed {
         let result = gate.evaluate(op);
-        assert_eq!(result.decision, PolicyDecision::Allow, "Operation '{}' should be Allow", op);
+        assert_eq!(
+            result.decision,
+            PolicyDecision::Allow,
+            "Operation '{}' should be Allow",
+            op
+        );
     }
 }
 
@@ -80,7 +92,9 @@ fn test_resource_limits_entities() {
 fn test_resource_limits_operation_rate() {
     let limits = ResourceLimits::default();
     assert!(limits.check_operation_rate(10).is_ok());
-    assert!(limits.check_operation_rate(limits.max_operations_per_minute).is_err());
+    assert!(limits
+        .check_operation_rate(limits.max_operations_per_minute)
+        .is_err());
 }
 
 #[test]

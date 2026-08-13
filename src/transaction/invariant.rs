@@ -28,15 +28,15 @@ impl StateInvariant {
             ));
         }
         if state.metadata.schema_version == 0 {
-            return Err(CortexError::StateError(
-                "schema_version must be > 0".into(),
-            ));
+            return Err(CortexError::StateError("schema_version must be > 0".into()));
         }
         Ok(())
     }
 
     fn validate_confidence_bounds(state: &CortexState) -> Result<(), CortexError> {
-        if state.verification.confidence_threshold > 1.0 || state.verification.confidence_threshold < 0.0 {
+        if state.verification.confidence_threshold > 1.0
+            || state.verification.confidence_threshold < 0.0
+        {
             return Err(CortexError::StateError(
                 "verification.confidence_threshold must be in [0, 1]".into(),
             ));
@@ -64,7 +64,10 @@ impl StateInvariant {
         Self::validate_state(state)
     }
 
-    pub fn post_mutation_check(state: &CortexState, _expected_version: u64) -> Result<(), CortexError> {
+    pub fn post_mutation_check(
+        state: &CortexState,
+        _expected_version: u64,
+    ) -> Result<(), CortexError> {
         Self::validate_state(state)
     }
 }

@@ -54,8 +54,7 @@ pub struct AlgorithmVersions {
     pub consolidation_algorithm: String,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[derive(Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct LanguageState {
     pub symbols: Vec<SymbolId>,
     pub tokens: Vec<TokenId>,
@@ -69,15 +68,12 @@ pub struct LanguageState {
     pub confidence: ConfidenceState,
 }
 
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[derive(Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct SyntaxState {
     pub rules_applied: u64,
     pub parse_depth: u32,
     pub active_patterns: Vec<String>,
 }
-
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SemanticState {
@@ -104,8 +100,7 @@ pub struct IntentHypothesis {
     pub supporting_evidence: Vec<EvidenceId>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[derive(Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct NeuralState {
     pub fields: Vec<FieldState>,
     pub active_cells: Vec<CellId>,
@@ -115,7 +110,6 @@ pub struct NeuralState {
     pub prediction: Option<NeuralPredictionState>,
     pub confidence: ConfidenceState,
 }
-
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FieldState {
@@ -133,8 +127,7 @@ pub struct NeuralPredictionState {
     pub context: Vec<u64>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[derive(Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct MemoryState {
     pub working: WorkingMemory,
     pub episodic: EpisodicMemory,
@@ -143,9 +136,7 @@ pub struct MemoryState {
     pub associative: AssociativeMemory,
 }
 
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[derive(Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct WorkingMemory {
     pub input: Option<String>,
     pub active_concepts: Vec<ConceptId>,
@@ -156,7 +147,6 @@ pub struct WorkingMemory {
     pub recent_inputs: Vec<String>,
     pub recent_outputs: Vec<String>,
 }
-
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EpisodicMemory {
@@ -274,8 +264,7 @@ pub struct AssociationRecord {
     pub created_at: Timestamp,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[derive(Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct WorldState {
     pub entities: Vec<Entity>,
     pub relations: Vec<Relation>,
@@ -283,7 +272,6 @@ pub struct WorldState {
     pub temporal_context: TemporalContext,
     pub uncertainty: UncertaintyState,
 }
-
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Entity {
@@ -311,8 +299,7 @@ pub struct Event {
     pub timestamp: Timestamp,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[derive(Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct ReasoningState {
     pub active_hypotheses: Vec<Hypothesis>,
     pub conclusion: Option<Conclusion>,
@@ -321,7 +308,6 @@ pub struct ReasoningState {
     pub contradiction_log: Vec<Contradiction>,
     pub budget_remaining: u32,
 }
-
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Hypothesis {
@@ -360,8 +346,7 @@ pub struct Contradiction {
     pub resolved: bool,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[derive(Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct PlanningState {
     pub active_goals: Vec<Goal>,
     pub candidate_plans: Vec<Plan>,
@@ -369,7 +354,6 @@ pub struct PlanningState {
     pub budget_remaining: u32,
     pub simulation_count: u32,
 }
-
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Goal {
@@ -511,13 +495,11 @@ impl Default for CapabilitySet {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[derive(Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct LimitationSet {
     pub known_limitations: Vec<String>,
     pub resource_constraints: Vec<String>,
 }
-
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MemoryHealth {

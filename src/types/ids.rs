@@ -5,7 +5,9 @@ static COUNTER: AtomicU64 = AtomicU64::new(1);
 
 macro_rules! define_id {
     ($name:ident) => {
-        #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+        #[derive(
+            Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize,
+        )]
         pub struct $name(u64);
 
         impl $name {

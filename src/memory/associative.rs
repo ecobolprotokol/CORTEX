@@ -49,12 +49,7 @@ impl AssociativeMemory {
         }
     }
 
-    pub fn create(
-        &mut self,
-        source: u64,
-        target: u64,
-        kind: AssociationKind,
-    ) -> Association {
+    pub fn create(&mut self, source: u64, target: u64, kind: AssociationKind) -> Association {
         let a = Association {
             id: AssociationId::from(self.next_id),
             source,
@@ -66,14 +61,8 @@ impl AssociativeMemory {
         };
         self.next_id += 1;
 
-        self.forward_index
-            .entry(source)
-            .or_default()
-            .push(a.id);
-        self.backward_index
-            .entry(target)
-            .or_default()
-            .push(a.id);
+        self.forward_index.entry(source).or_default().push(a.id);
+        self.backward_index.entry(target).or_default().push(a.id);
 
         self.associations.push(a.clone());
         a
@@ -141,13 +130,11 @@ impl AssociativeMemory {
     }
 
     pub fn strongest_for(&self, entity_id: u64) -> Option<&Association> {
-        self.get_associations(entity_id)
-            .into_iter()
-            .max_by(|a, b| {
-                a.strength
-                    .partial_cmp(&b.strength)
-                    .unwrap_or(std::cmp::Ordering::Equal)
-            })
+        self.get_associations(entity_id).into_iter().max_by(|a, b| {
+            a.strength
+                .partial_cmp(&b.strength)
+                .unwrap_or(std::cmp::Ordering::Equal)
+        })
     }
 
     pub fn remove(&mut self, id: AssociationId) -> bool {

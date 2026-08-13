@@ -1,13 +1,23 @@
-use cortex::types::ids::*;
-use cortex::types::scalars::{Confidence, ScalarOps, SCALAR_EPSILON};
 use cortex::types::common::Timestamp;
 use cortex::types::evidence::{ConfidenceState, EvidencePolarity, EvidenceSet, VerificationStatus};
+use cortex::types::ids::*;
 use cortex::types::observation::Observation;
+use cortex::types::scalars::{Confidence, ScalarOps, SCALAR_EPSILON};
 use cortex::types::state::{ARCHITECTURE_VERSION, SCHEMA_VERSION};
 
 #[test]
 fn test_confidence_clamped_to_range() {
-    let values = vec![-1.0, -0.01, 0.0, 0.5, 1.0, 1.01, 2.0, f32::INFINITY, f32::NEG_INFINITY];
+    let values = vec![
+        -1.0,
+        -0.01,
+        0.0,
+        0.5,
+        1.0,
+        1.01,
+        2.0,
+        f32::INFINITY,
+        f32::NEG_INFINITY,
+    ];
     for v in values {
         let c = Confidence::new(v);
         assert!(c.raw() >= 0.0, "Confidence({}) should be >= 0", v);
@@ -54,8 +64,16 @@ fn test_confidence_state_overall_always_in_range() {
     ];
     for cs in &test_cases {
         let overall = cs.overall();
-        assert!(overall >= 0.0, "ConfidenceState::overall() should be >= 0, got {}", overall);
-        assert!(overall <= 1.0, "ConfidenceState::overall() should be <= 1, got {}", overall);
+        assert!(
+            overall >= 0.0,
+            "ConfidenceState::overall() should be >= 0, got {}",
+            overall
+        );
+        assert!(
+            overall <= 1.0,
+            "ConfidenceState::overall() should be <= 1, got {}",
+            overall
+        );
     }
 }
 
@@ -194,7 +212,10 @@ fn test_scalar_epsilon_is_positive_and_usable() {
     let epsilon = SCALAR_EPSILON;
     assert!(epsilon > 0.0, "SCALAR_EPSILON must be positive");
     assert!(epsilon < 1.0, "SCALAR_EPSILON must be less than 1.0");
-    assert!(1.0_f32 - epsilon < 1.0, "SCALAR_EPSILON must be small enough for float comparison");
+    assert!(
+        1.0_f32 - epsilon < 1.0,
+        "SCALAR_EPSILON must be small enough for float comparison"
+    );
 }
 
 #[test]
@@ -218,6 +239,12 @@ fn test_cortex_state_serialization_roundtrip() {
     let state = cortex::types::state::CortexState::default();
     let json = serde_json::to_string(&state).unwrap();
     let deserialized: cortex::types::state::CortexState = serde_json::from_str(&json).unwrap();
-    assert_eq!(state.metadata.architecture_version, deserialized.metadata.architecture_version);
-    assert_eq!(state.metadata.schema_version, deserialized.metadata.schema_version);
+    assert_eq!(
+        state.metadata.architecture_version,
+        deserialized.metadata.architecture_version
+    );
+    assert_eq!(
+        state.metadata.schema_version,
+        deserialized.metadata.schema_version
+    );
 }

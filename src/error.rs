@@ -51,10 +51,9 @@ impl std::error::Error for CortexError {}
 
 impl CortexError {
     pub fn is_recoverable(&self) -> bool {
-        matches!(self,
-            Self::NetworkError(_) |
-            Self::ResourceError(_) |
-            Self::SubsystemDisabled(_)
+        matches!(
+            self,
+            Self::NetworkError(_) | Self::ResourceError(_) | Self::SubsystemDisabled(_)
         )
     }
 }

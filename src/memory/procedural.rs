@@ -89,10 +89,7 @@ impl ProceduralMemory {
     }
 
     pub fn find_by_name(&self, name: &str) -> Vec<&Procedure> {
-        self.procedures
-            .iter()
-            .filter(|p| p.name == name)
-            .collect()
+        self.procedures.iter().filter(|p| p.name == name).collect()
     }
 
     pub fn by_success_rate(&self) -> Vec<&Procedure> {

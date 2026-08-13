@@ -1,5 +1,5 @@
-use cortex::verification::confidence::ConfidenceModel;
 use cortex::types::evidence::VerificationStatus;
+use cortex::verification::confidence::ConfidenceModel;
 
 #[test]
 fn test_confidence_model_verify() {

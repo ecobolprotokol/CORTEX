@@ -1,8 +1,8 @@
-use cortex::reasoning::hypothesis::HypothesisGenerator;
-use cortex::reasoning::evidence::EvidenceEvaluator;
 use cortex::reasoning::contradiction::ContradictionDetector;
+use cortex::reasoning::evidence::EvidenceEvaluator;
+use cortex::reasoning::hypothesis::HypothesisGenerator;
+use cortex::types::evidence::{Evidence, EvidenceContent, EvidencePolarity};
 use cortex::types::ids::HypothesisId;
-use cortex::types::evidence::{Evidence, EvidencePolarity, EvidenceContent};
 
 #[test]
 fn test_hypothesis_generator() {
@@ -13,17 +13,15 @@ fn test_hypothesis_generator() {
 
 #[test]
 fn test_evidence_evaluator() {
-    let evidence = vec![
-        Evidence {
-            id: cortex::types::ids::EvidenceId::from(1),
-            source: cortex::types::ids::ProvenanceId::from(1),
-            content: EvidenceContent::Text("Test evidence".into()),
-            strength: 0.8,
-            polarity: EvidencePolarity::Supports,
-            timestamp: cortex::types::common::Timestamp::now(),
-            related: vec![],
-        },
-    ];
+    let evidence = vec![Evidence {
+        id: cortex::types::ids::EvidenceId::from(1),
+        source: cortex::types::ids::ProvenanceId::from(1),
+        content: EvidenceContent::Text("Test evidence".into()),
+        strength: 0.8,
+        polarity: EvidencePolarity::Supports,
+        timestamp: cortex::types::common::Timestamp::now(),
+        related: vec![],
+    }];
     let quality = EvidenceEvaluator::evaluate_evidence_quality(&evidence);
     assert!(quality > 0.0);
 }

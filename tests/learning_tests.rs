@@ -1,6 +1,6 @@
-use cortex::learning::signal::SignalGenerator;
 use cortex::learning::attribution::AttributionEngine;
 use cortex::learning::replay::ReplayBuffer;
+use cortex::learning::signal::SignalGenerator;
 use cortex::learning::stability::StabilityGuard;
 
 #[test]

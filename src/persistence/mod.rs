@@ -1,9 +1,9 @@
-pub mod format;
 pub mod checkpoint;
+pub mod format;
 pub mod migration;
 
-pub use format::FormatHandler;
 pub use checkpoint::CheckpointManager;
+pub use format::FormatHandler;
 pub use migration::MigrationHandler;
 
 use crate::error::CortexError;

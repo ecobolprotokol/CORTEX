@@ -12,9 +12,7 @@ impl Default for Tokenizer {
 
 impl Tokenizer {
     pub fn new() -> Self {
-        Self {
-            tokens: Vec::new(),
-        }
+        Self { tokens: Vec::new() }
     }
 
     pub fn normalize(&self, text: &str) -> String {

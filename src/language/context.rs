@@ -3,8 +3,7 @@ use std::collections::HashMap;
 use crate::types::common::ContextState;
 use crate::types::ids::{ConceptId, EpisodeId, SymbolId};
 
-#[derive(Debug, Clone)]
-#[derive(Default)]
+#[derive(Debug, Clone, Default)]
 pub struct HierarchicalContext {
     pub symbol_context: Vec<SymbolId>,
     pub sentence_context: Vec<String>,
@@ -14,7 +13,6 @@ pub struct HierarchicalContext {
     pub world_context: Vec<String>,
     pub long_term_context: Vec<String>,
 }
-
 
 pub struct ContextModel {
     pub window_sizes: WindowSizes,
@@ -100,7 +98,12 @@ impl ContextModel {
     }
 
     fn update_sentence_context(&mut self, wm: &crate::types::state::WorkingMemory) {
-        for input in wm.recent_inputs.iter().rev().take(self.window_sizes.sentence) {
+        for input in wm
+            .recent_inputs
+            .iter()
+            .rev()
+            .take(self.window_sizes.sentence)
+        {
             self.context.sentence_context.push(input.clone());
         }
         if self.context.sentence_context.len() > self.window_sizes.sentence {
@@ -150,10 +153,14 @@ impl ContextModel {
     ) {
         self.context.world_context.clear();
         for entity in &global.world_assumptions {
-            self.context.world_context.push(format!("entity:{}", entity.raw()));
+            self.context
+                .world_context
+                .push(format!("entity:{}", entity.raw()));
         }
         for assumption in &wm.world_assumptions {
-            self.context.world_context.push(format!("assumption:{}", assumption.raw()));
+            self.context
+                .world_context
+                .push(format!("assumption:{}", assumption.raw()));
         }
         if self.context.world_context.len() > self.window_sizes.world {
             self.context.world_context.truncate(self.window_sizes.world);
@@ -194,13 +201,13 @@ impl ContextModel {
     fn compute_attention_weights(&mut self) {
         self.attention_weights.clear();
 
-        let symbol_weight = self.context.symbol_context.len() as f32
-            / self.window_sizes.symbol.max(1) as f32;
+        let symbol_weight =
+            self.context.symbol_context.len() as f32 / self.window_sizes.symbol.max(1) as f32;
         self.attention_weights
             .insert("symbol".into(), symbol_weight.min(1.0));
 
-        let sentence_weight = self.context.sentence_context.len() as f32
-            / self.window_sizes.sentence.max(1) as f32;
+        let sentence_weight =
+            self.context.sentence_context.len() as f32 / self.window_sizes.sentence.max(1) as f32;
         self.attention_weights
             .insert("sentence".into(), sentence_weight.min(1.0));
 
@@ -209,23 +216,23 @@ impl ContextModel {
         self.attention_weights
             .insert("conversation".into(), conversation_weight.min(1.0));
 
-        let episode_weight = self.context.episode_context.len() as f32
-            / self.window_sizes.episode.max(1) as f32;
+        let episode_weight =
+            self.context.episode_context.len() as f32 / self.window_sizes.episode.max(1) as f32;
         self.attention_weights
             .insert("episode".into(), episode_weight.min(1.0));
 
-        let semantic_weight = self.context.semantic_context.len() as f32
-            / self.window_sizes.semantic.max(1) as f32;
+        let semantic_weight =
+            self.context.semantic_context.len() as f32 / self.window_sizes.semantic.max(1) as f32;
         self.attention_weights
             .insert("semantic".into(), semantic_weight.min(1.0));
 
-        let world_weight = self.context.world_context.len() as f32
-            / self.window_sizes.world.max(1) as f32;
+        let world_weight =
+            self.context.world_context.len() as f32 / self.window_sizes.world.max(1) as f32;
         self.attention_weights
             .insert("world".into(), world_weight.min(1.0));
 
-        let long_term_weight = self.context.long_term_context.len() as f32
-            / self.window_sizes.long_term.max(1) as f32;
+        let long_term_weight =
+            self.context.long_term_context.len() as f32 / self.window_sizes.long_term.max(1) as f32;
         self.attention_weights
             .insert("long_term".into(), long_term_weight.min(1.0));
     }
@@ -238,7 +245,10 @@ impl ContextModel {
         let mut sizes = HashMap::new();
         sizes.insert("symbol".into(), self.context.symbol_context.len());
         sizes.insert("sentence".into(), self.context.sentence_context.len());
-        sizes.insert("conversation".into(), self.context.conversation_context.len());
+        sizes.insert(
+            "conversation".into(),
+            self.context.conversation_context.len(),
+        );
         sizes.insert("episode".into(), self.context.episode_context.len());
         sizes.insert("semantic".into(), self.context.semantic_context.len());
         sizes.insert("world".into(), self.context.world_context.len());

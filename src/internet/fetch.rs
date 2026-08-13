@@ -45,11 +45,7 @@ impl Fetcher {
         for attempt in 0..=self.max_retries {
             match self.attempt_fetch(url) {
                 Ok(content) => {
-                    tracing::debug!(
-                        "Fetch succeeded on attempt {} for {}",
-                        attempt + 1,
-                        url
-                    );
+                    tracing::debug!("Fetch succeeded on attempt {} for {}", attempt + 1, url);
                     return Ok(content);
                 }
                 Err(e) => {
@@ -59,12 +55,7 @@ impl Fetcher {
                             self.max_retries, e
                         )));
                     }
-                    tracing::warn!(
-                        "Fetch attempt {} failed for {}: {}",
-                        attempt + 1,
-                        url,
-                        e
-                    );
+                    tracing::warn!("Fetch attempt {} failed for {}: {}", attempt + 1, url, e);
                 }
             }
         }
@@ -73,7 +64,10 @@ impl Fetcher {
     }
 
     fn attempt_fetch(&self, url: &str) -> Result<String, CortexError> {
-        Ok(format!("<html><body>Simulated content from {}</body></html>", url))
+        Ok(format!(
+            "<html><body>Simulated content from {}</body></html>",
+            url
+        ))
     }
 
     fn validate_url(&self, url: &str) -> Result<(), CortexError> {
