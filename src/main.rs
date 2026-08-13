@@ -145,9 +145,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             let api_key =
                 std::env::var(&cfg.api.api_key_env).unwrap_or_else(|_| "cortex-default-key".into());
             let mut api_manager = cortex::api::ApiManager::new(&api_key);
+            let mut runtime = CortexRuntime::new(cfg)?;
+            runtime.boot()?;
             println!("CORTEX API server listening on {}", bind);
             println!("Press Ctrl+C to stop");
-            api_manager.start_synchronous_server(&bind)?;
+            api_manager.start_synchronous_server(&mut runtime, &bind)?;
+            runtime.shutdown()?;
         }
         Commands::Observe { text, config } => {
             let cfg = load_config(&config);

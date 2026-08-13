@@ -1,5 +1,6 @@
 use super::mutation::{MutationId, MutationKind, MutationLog, RecordParams};
 use crate::error::CortexError;
+use crate::types::state::CortexState;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TransactionState {
@@ -16,6 +17,7 @@ pub struct StateTransaction {
     pub description: String,
     pub pre_version: u64,
     mutations_applied: Vec<String>,
+    snapshot: Option<CortexState>,
 }
 
 impl StateTransaction {
@@ -27,6 +29,24 @@ impl StateTransaction {
             description: description.to_string(),
             pre_version,
             mutations_applied: Vec::new(),
+            snapshot: None,
+        }
+    }
+
+    pub fn begin_with_snapshot(
+        kind: MutationKind,
+        description: &str,
+        pre_version: u64,
+        state: &CortexState,
+    ) -> Self {
+        Self {
+            id: MutationId::next(),
+            kind,
+            state: TransactionState::Active,
+            description: description.to_string(),
+            pre_version,
+            mutations_applied: Vec::new(),
+            snapshot: Some(state.clone()),
         }
     }
 
@@ -50,8 +70,9 @@ impl StateTransaction {
         })
     }
 
-    pub fn rollback(self, log: &mut MutationLog, reason: &str) -> MutationId {
-        log.record(RecordParams {
+    pub fn rollback(self, log: &mut MutationLog, reason: &str) -> (MutationId, Option<CortexState>) {
+        let snapshot = self.snapshot;
+        let id = log.record(RecordParams {
             kind: self.kind,
             description: &format!("ROLLBACK: {} — {}", self.description, reason),
             subsystem: "cortex",
@@ -59,10 +80,19 @@ impl StateTransaction {
             post_version: self.pre_version,
             success: false,
             error: Some(reason.to_string()),
-        })
+        });
+        (id, snapshot)
     }
 
     pub fn mutations(&self) -> &[String] {
         &self.mutations_applied
+    }
+
+    pub fn has_snapshot(&self) -> bool {
+        self.snapshot.is_some()
+    }
+
+    pub fn mutation_count(&self) -> usize {
+        self.mutations_applied.len()
     }
 }

@@ -68,6 +68,18 @@ impl Router {
             requires_auth: true,
         });
         self.routes.push(Route {
+            method: "POST".into(),
+            path: "/v1/checkpoint".into(),
+            endpoint: "checkpoint".into(),
+            requires_auth: true,
+        });
+        self.routes.push(Route {
+            method: "GET".into(),
+            path: "/v1/inspect".into(),
+            endpoint: "inspect".into(),
+            requires_auth: true,
+        });
+        self.routes.push(Route {
             method: "GET".into(),
             path: "/health".into(),
             endpoint: "health".into(),

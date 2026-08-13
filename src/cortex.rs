@@ -5,9 +5,11 @@ use crate::error::CortexError;
 use crate::language::tokenizer::Tokenizer;
 use crate::language::vocabulary::Vocabulary;
 use crate::learning::stability::StabilityGuard;
+use crate::learning::LearningPipeline;
 use crate::memory::associative::AssociativeMemory;
 use crate::memory::consolidation::ConsolidationEngine;
 use crate::memory::episodic::EpisodicMemory;
+use crate::memory::retrieval::RetrievalEngine;
 use crate::memory::semantic::SemanticMemory;
 use crate::memory::working::WorkingMemory;
 use crate::neural::field::Field;
@@ -22,7 +24,8 @@ use crate::self_model::SelfModelManager;
 use crate::transaction::invariant::StateInvariant;
 use crate::transaction::mutation::{MutationKind, MutationLog, RecordParams};
 use crate::transaction::state_tx::StateTransaction;
-use crate::types::common::Timestamp;
+use crate::types::common::{ContextState, Timestamp};
+use crate::types::observation::PredictionError;
 use crate::types::state::{
     AlgorithmVersions, CortexState, LanguageState, LearningState, MemoryState, NeuralState,
     PlanningState, ProvenanceState, ReasoningState, SelfModel, StateMetadata, VerificationState,
@@ -48,6 +51,7 @@ pub struct CortexRuntime {
     pub reasoning_generator: HypothesisGenerator,
     pub policy_gate: PolicyGate,
     pub learning_stability: StabilityGuard,
+    pub learning_pipeline: LearningPipeline,
     pub persistence_checkpoint: CheckpointManager,
     pub format_handler: FormatHandler,
     pub consolidation: ConsolidationEngine,
@@ -55,6 +59,7 @@ pub struct CortexRuntime {
     pub self_model_manager: SelfModelManager,
     pub self_model: CapabilitySelfModel,
     pub diagnostics: Diagnostics,
+    pub retrieval_engine: RetrievalEngine,
     observation_count: u64,
 }
 
@@ -113,6 +118,10 @@ impl CortexRuntime {
         let policy_gate = PolicyGate::new();
         let learning_stability =
             StabilityGuard::new(config.learning.learning_rate, config.learning.plasticity);
+        let learning_pipeline = LearningPipeline::new(
+            config.learning.learning_rate,
+            config.learning.plasticity,
+        );
         let persistence_checkpoint = CheckpointManager::new(10);
         let format_handler = FormatHandler::new();
         let consolidation = ConsolidationEngine::new(config.learning.consolidation_interval);
@@ -122,6 +131,7 @@ impl CortexRuntime {
         let self_model = CapabilitySelfModel::new();
         let diagnostics = Diagnostics::new();
         let mutation_log = MutationLog::new(10_000);
+        let retrieval_engine = RetrievalEngine::new();
 
         Ok(Self {
             state: CortexState::default(),
@@ -140,6 +150,7 @@ impl CortexRuntime {
             reasoning_generator,
             policy_gate,
             learning_stability,
+            learning_pipeline,
             persistence_checkpoint,
             format_handler,
             consolidation,
@@ -147,6 +158,7 @@ impl CortexRuntime {
             self_model_manager,
             self_model,
             diagnostics,
+            retrieval_engine,
             observation_count: 0,
         })
     }
@@ -169,6 +181,38 @@ impl CortexRuntime {
 
         self.observation_count = 0;
         self.memory_working.clear();
+
+        // Try to recover from last valid checkpoint
+        if let Some(checkpoint) = self.persistence_checkpoint.find_latest_valid_checkpoint() {
+            tracing::info!(
+                checkpoint_id = ?checkpoint.id,
+                "Attempting recovery from checkpoint"
+            );
+            match self.persistence_checkpoint.load_checkpoint_from_disk(checkpoint.id) {
+                Ok(data) => match bincode::deserialize::<CortexState>(&data) {
+                    Ok(recovered_state) => {
+                        if recovered_state.metadata.architecture_version == ARCHITECTURE_VERSION {
+                            self.state = recovered_state;
+                            self.state_version += 1;
+                            tracing::info!("State recovered from checkpoint");
+                        } else {
+                            tracing::warn!("Checkpoint architecture version mismatch");
+                        }
+                    }
+                    Err(e) => {
+                        tracing::warn!(error = %e, "Failed to deserialize checkpoint");
+                    }
+                },
+                Err(e) => {
+                    tracing::warn!(error = %e, "Failed to load checkpoint from disk");
+                }
+            }
+        }
+
+        // Try to save current state as recovery point
+        if let Err(e) = self.save_state() {
+            tracing::warn!(error = %e, "Failed to save recovery state");
+        }
 
         if self.diagnostics.is_healthy() {
             self.transition_to(RuntimeState::Ready)?;
@@ -260,10 +304,24 @@ impl CortexRuntime {
             error: None,
         });
 
-        // Stage 4: Retrieve memories
-        let recent_episodes = self.memory_episodic.recent(5);
-        let context_strings: Vec<String> = recent_episodes
+        // Stage 4: Retrieve memories (scored by relevance)
+        let context = ContextState {
+            conversation_id: None,
+            episode_context: Vec::new(),
+            active_concepts: Vec::new(),
+            world_assumptions: self
+                .world_entity_manager
+                .entities
+                .iter()
+                .map(|e| e.id)
+                .collect(),
+            temporal_context: Default::default(),
+        };
+        let ranked = RetrievalEngine::rank_episodes(input, &self.memory_episodic.episodes, &context, &[]);
+        let context_strings: Vec<String> = ranked
             .iter()
+            .take(5)
+            .filter_map(|(idx, _)| self.memory_episodic.episodes.get(*idx))
             .map(|e| e.observation.text.clone())
             .collect();
         self.state.memory.episodic.episodes.clear();
@@ -372,10 +430,11 @@ impl CortexRuntime {
         };
 
         // Stage 7: Evaluate planning (optional)
-        if self.config.planning.enabled {
+        let plan_quality = if self.config.planning.enabled {
             let gate_result = self.policy_gate.evaluate("planning_evaluate");
             if gate_result.decision != PolicyDecision::Deny {
-                let _plan = crate::planning::plan::PlanBuilder::new().build(input);
+                let plan = crate::planning::plan::PlanBuilder::new().build(input);
+                let quality = crate::planning::evaluate_plan_quality(&plan);
                 self.state.planning.simulation_count += 1;
                 self.mutation_log.record(RecordParams {
                     kind: MutationKind::PlanningEvaluate,
@@ -386,23 +445,72 @@ impl CortexRuntime {
                     success: true,
                     error: None,
                 });
+                quality
+            } else {
+                0.0
             }
-        }
-
-        // Stage 8: Verify claims
-        let verified = if self.config.verification.enabled {
-            let top_confidence = hypotheses.first().map(|h| h.confidence).unwrap_or(0.0);
-            top_confidence >= self.config.verification.minimum_confidence
         } else {
-            true
+            0.0
         };
 
-        // Stage 9: Generate response
+        // Stage 8: Verify claims via verification pipeline
+        let (verified, verification_confidence) = if self.config.verification.enabled {
+            if let Some(top_hyp) = hypotheses.first() {
+                let claim = crate::types::state::KnowledgeClaim {
+                    id: crate::types::ids::ClaimId::from(self.state_version),
+                    proposition: crate::types::state::Proposition {
+                        subject: top_hyp.proposition.clone(),
+                        predicate: "suggests".into(),
+                        object: None,
+                        negated: false,
+                    },
+                    evidence: crate::types::evidence::EvidenceSet::new(),
+                    counter_evidence: crate::types::evidence::EvidenceSet::new(),
+                    status: crate::types::evidence::VerificationStatus::Unknown,
+                    confidence: crate::types::evidence::ConfidenceState {
+                        belief: top_hyp.confidence,
+                        evidence_strength: top_hyp.confidence * 0.8,
+                        source_quality: 0.5,
+                        consistency: 0.7,
+                        uncertainty: 1.0 - top_hyp.confidence,
+                        prediction_reliability: 0.0,
+                        verification_status: crate::types::evidence::VerificationStatus::Unknown,
+                    },
+                    claimed_at: Timestamp::now(),
+                    last_verified: None,
+                    verification_attempts: 0,
+                };
+                let result = self.verification_pipeline.verify_claim(&claim);
+                self.state.verification.confidence_threshold =
+                    self.config.verification.minimum_confidence;
+                (result.status == crate::types::evidence::VerificationStatus::Verified
+                    || result.status == crate::types::evidence::VerificationStatus::Supported,
+                    result.confidence)
+            } else {
+                (true, 0.0)
+            }
+        } else {
+            (true, 0.0)
+        };
+
+        // Stage 9: Generate response (informed by verification and planning)
         let response = if let Some(conclusion) = hypotheses.iter().find(|h| h.confidence > 0.3) {
-            format!(
-                "{} (confidence: {:.2})",
-                conclusion.proposition, conclusion.confidence
-            )
+            let plan_info = if plan_quality > 0.0 {
+                format!(" [plan: {:.2}]", plan_quality)
+            } else {
+                String::new()
+            };
+            if verified {
+                format!(
+                    "[verified {:.2}]{} {} (confidence: {:.2})",
+                    verification_confidence, plan_info, conclusion.proposition, conclusion.confidence
+                )
+            } else {
+                format!(
+                    "[provisional {:.2}]{} {} (confidence: {:.2})",
+                    verification_confidence, plan_info, conclusion.proposition, conclusion.confidence
+                )
+            }
         } else {
             format!("Processed: {}", input)
         };
@@ -436,24 +544,40 @@ impl CortexRuntime {
             self.state.self_model.uncertainty_level = 1.0 - assessment.overall;
         }
 
-        // Stage 11: Apply learning
+        // Stage 11: Apply learning (via LearningPipeline)
         if self.config.learning.enabled {
             let gate_result = self.policy_gate.evaluate("learning");
             if gate_result.decision == PolicyDecision::Allow {
-                let change = (importance * self.config.learning.learning_rate).abs();
-                if self.learning_stability.check_stability(change) {
+                let prediction_error = PredictionError {
+                    magnitude: (1.0 - verified as u8 as f32) * importance,
+                    dimensions: std::collections::HashMap::new(),
+                    timestamp: Timestamp::now(),
+                    prediction_id: None,
+                };
+                if let Some(signal) = self.learning_pipeline.process_prediction_error(
+                    &prediction_error,
+                    input,
+                ) {
                     self.state.learning.total_learning_events += 1;
                     self.state.learning.learning_rate = self.config.learning.learning_rate;
                     self.state.learning.plasticity_rate = self.config.learning.plasticity;
+                    self.state.learning.average_prediction_error =
+                        (self.state.learning.average_prediction_error
+                            + prediction_error.magnitude)
+                            / 2.0;
                     self.mutation_log.record(RecordParams {
                         kind: MutationKind::LearningApply,
-                        description: "learning applied",
+                        description: "learning applied via pipeline",
                         subsystem: "learning",
                         pre_version,
                         post_version: self.state_version,
                         success: true,
                         error: None,
                     });
+                    tracing::debug!(
+                        signal_magnitude = signal.magnitude,
+                        "Learning signal applied"
+                    );
                 }
             }
         }
@@ -463,10 +587,16 @@ impl CortexRuntime {
             && self.observation_count > 0
             && self.observation_count % self.config.persistence.checkpoint_interval == 0
         {
-            self.persistence_checkpoint.create_checkpoint(
+            let state_data = bincode::serialize(&self.state).map_err(|e| {
+                CortexError::SerializationError(format!("Failed to serialize state: {}", e))
+            })?;
+            let cp = self.persistence_checkpoint.create_checkpoint_with_data(
+                &state_data,
                 self.memory_episodic.episodes.len() as u64,
-                self.memory_episodic.next_id,
             );
+            if let Err(e) = self.persistence_checkpoint.save_checkpoint_to_disk(&cp, &state_data) {
+                tracing::warn!(error = %e, "Failed to save checkpoint to disk");
+            }
             self.state.metadata.checkpoint_count += 1;
             let _ = self.save_state();
             self.mutation_log.record(RecordParams {
@@ -637,10 +767,14 @@ impl Runtime for CortexRuntime {
             Ok(()) => tracing::info!("State saved to disk"),
             Err(e) => tracing::warn!(error = %e, "Failed to save state to disk"),
         }
-        self.persistence_checkpoint.create_checkpoint(
+        let state_data = bincode::serialize(&self.state).unwrap_or_default();
+        let cp = self.persistence_checkpoint.create_checkpoint_with_data(
+            &state_data,
             self.memory_episodic.episodes.len() as u64,
-            self.memory_episodic.next_id,
         );
+        if let Err(e) = self.persistence_checkpoint.save_checkpoint_to_disk(&cp, &state_data) {
+            tracing::warn!(error = %e, "Failed to save shutdown checkpoint to disk");
+        }
         self.state.metadata.checkpoint_count += 1;
         self.mutation_log.record(RecordParams {
             kind: MutationKind::CheckpointCreate,

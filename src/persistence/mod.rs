@@ -8,12 +8,6 @@ pub use migration::MigrationHandler;
 
 use crate::error::CortexError;
 
-pub trait PersistenceEngine {
-    fn save(&self, state: &[u8]) -> Result<(), CortexError>;
-    fn load(&self) -> Result<Vec<u8>, CortexError>;
-    fn checkpoint(&self) -> Result<u64, CortexError>;
-}
-
 pub struct PersistenceManager {
     pub format: FormatHandler,
     pub checkpoint_manager: CheckpointManager,

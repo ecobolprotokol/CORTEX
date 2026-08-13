@@ -10,6 +10,8 @@ pub enum CliCommand {
     Status { config: String },
     Init { config: String },
     Checkpoint { config: String },
+    Inspect { config: String, component: Option<String> },
+    Migrate { config: String },
     Help,
     Version,
 }
@@ -49,6 +51,11 @@ impl CliCommand {
             "status" => Ok(CliCommand::Status { config }),
             "init" => Ok(CliCommand::Init { config }),
             "checkpoint" => Ok(CliCommand::Checkpoint { config }),
+            "inspect" => {
+                let component = args.get(2).cloned();
+                Ok(CliCommand::Inspect { config, component })
+            }
+            "migrate" => Ok(CliCommand::Migrate { config }),
             "help" | "--help" | "-h" => Ok(CliCommand::Help),
             "version" | "--version" | "-v" => Ok(CliCommand::Version),
             cmd => Err(CortexError::InputError(format!("Unknown command: {}", cmd))),
@@ -70,6 +77,8 @@ pub fn dispatch(args: &[String]) -> Result<String, CortexError> {
                   status       Show system status\n  \
                   init         Initialize state\n  \
                   checkpoint   Create a checkpoint\n  \
+                  inspect      Inspect component state\n  \
+                  migrate      Check migration status\n  \
                   help         Show this help\n  \
                   version      Show version\n\n\
                 Options:\n  \
@@ -127,6 +136,44 @@ pub fn dispatch(args: &[String]) -> Result<String, CortexError> {
             let _ = rt.save_state();
             rt.shutdown()?;
             Ok("Checkpoint created".into())
+        }
+        CliCommand::Inspect { config, component } => {
+            let cfg = crate::config::CortexConfig::load(&config)
+                .unwrap_or_else(|_| crate::config::CortexConfig::default());
+            let mut rt = crate::cortex::CortexRuntime::new(cfg)?;
+            rt.boot()?;
+            let result = crate::api::handlers::handle_inspect_with_runtime(
+                &rt,
+                component.as_deref().unwrap_or("all"),
+            );
+            rt.shutdown()?;
+            result
+        }
+        CliCommand::Migrate { config } => {
+            let cfg = crate::config::CortexConfig::load(&config)
+                .unwrap_or_else(|_| crate::config::CortexConfig::default());
+            let handler = crate::persistence::migration::MigrationHandler::new();
+            let state_path = &cfg.persistence.state;
+            if std::path::Path::new(state_path).exists() {
+                let data = std::fs::read(state_path).map_err(|e| {
+                    CortexError::PersistenceError(format!("Failed to read state file: {}", e))
+                })?;
+                let current_version = handler.detect_version(&data).unwrap_or(0);
+                let available = handler.available_versions();
+                let latest = *available.last().unwrap_or(&1);
+                Ok(format!(
+                    "Migration check:\n  Current version: {}\n  Available versions: {:?}\n  Status: {}",
+                    current_version,
+                    available,
+                    if current_version >= latest {
+                        "Up to date"
+                    } else {
+                        "Migration available"
+                    }
+                ))
+            } else {
+                Ok("No state file found. Run 'cortex init' first.".into())
+            }
         }
         CliCommand::Run { .. } | CliCommand::Serve { .. } => Err(CortexError::RuntimeError(
             "Use the cortex binary for interactive run/serve modes".into(),

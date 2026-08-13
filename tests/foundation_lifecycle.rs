@@ -169,21 +169,31 @@ fn test_cli_dispatch_version() {
 #[test]
 fn test_api_manager_routing() {
     let mut api = cortex::api::ApiManager::new("test-key");
-    let result = api.handle_request("POST", "/v1/inference", None, Some("hello"));
+    let mut rt = CortexRuntime::new(CortexConfig::default()).unwrap();
+    rt.boot().unwrap();
+    let result = api.handle_request(&mut rt, "POST", "/v1/inference", None, Some("hello"));
     assert!(result.is_ok());
     assert!(!result.unwrap().is_empty());
+    rt.shutdown().unwrap();
 }
 
 #[test]
 fn test_api_manager_auth_rejection() {
     let mut api = cortex::api::ApiManager::new("secret-key");
-    let result = api.handle_request("POST", "/v1/inference", Some("wrong-key"), None);
+    let mut rt = CortexRuntime::new(CortexConfig::default()).unwrap();
+    rt.boot().unwrap();
+    let result = api.handle_request(&mut rt, "POST", "/v1/inference", Some("wrong-key"), None);
     assert!(result.is_err());
+    rt.shutdown().unwrap();
 }
 
 #[test]
 fn test_api_manager_status_endpoint() {
     let mut api = cortex::api::ApiManager::new("test-key");
-    let result = api.handle_request("GET", "/v1/status", None, None);
+    let mut rt = CortexRuntime::new(CortexConfig::default()).unwrap();
+    rt.boot().unwrap();
+    let result = api.handle_request(&mut rt, "GET", "/v1/status", None, None);
     assert!(result.is_ok());
+    assert!(!result.unwrap().is_empty());
+    rt.shutdown().unwrap();
 }

@@ -2,15 +2,9 @@ pub mod confidence;
 
 pub use confidence::{ConfidenceModel, VerificationResult};
 
-use crate::error::CortexError;
 use crate::types::evidence::{EvidenceSet, VerificationStatus};
 use crate::types::scalars::Scalar;
 use crate::types::state::KnowledgeClaim;
-
-pub trait VerificationEngine {
-    fn verify(&self, claim: &str) -> Result<VerificationResult, CortexError>;
-    fn minimum_confidence(&self) -> f32;
-}
 
 pub struct VerificationPipeline {
     confidence_model: ConfidenceModel,

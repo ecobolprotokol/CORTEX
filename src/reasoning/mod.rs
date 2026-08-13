@@ -6,14 +6,8 @@ pub use contradiction::{Contradiction, ContradictionDetector};
 pub use evidence::EvidenceEvaluator;
 pub use hypothesis::{Hypothesis, HypothesisGenerator, ReasoningResult, ReasoningType};
 
-use crate::error::CortexError;
 use crate::types::ids::HypothesisId;
 use crate::types::scalars::Scalar;
-
-pub trait ReasoningEngine {
-    fn evaluate(&mut self, input: &str) -> Result<ReasoningResult, CortexError>;
-    fn max_steps(&self) -> u32;
-}
 
 pub fn rank_hypotheses(hypotheses: &mut [Hypothesis]) {
     hypotheses.sort_by(|a, b| {

@@ -197,6 +197,107 @@ pub fn handle_checkpoint_with_runtime(runtime: &mut CortexRuntime) -> Result<Str
     ))
 }
 
+pub fn handle_verify_with_runtime(runtime: &mut CortexRuntime, claim: &str) -> Result<String, CortexError> {
+    if claim.is_empty() {
+        return Err(CortexError::InputError("Empty claim".into()));
+    }
+    let response = runtime.process(claim)?;
+    let top_confidence = runtime
+        .state
+        .reasoning
+        .active_hypotheses
+        .first()
+        .map(|h| h.confidence)
+        .unwrap_or(0.0);
+    Ok(format!(
+        "{{\"status\":\"ok\",\"claim\":\"{}\",\"response\":\"{}\",\"confidence\":{:.4},\"verified\":{},\"episodes\":{},\"version\":{}}}",
+        claim.replace('"', "\\\""),
+        response.replace('"', "\\\""),
+        top_confidence,
+        top_confidence >= runtime.config.verification.minimum_confidence,
+        runtime.state.metadata.episode_count,
+        runtime.state_version
+    ))
+}
+
+pub fn handle_learn_with_runtime(runtime: &mut CortexRuntime, experience: &str) -> Result<String, CortexError> {
+    if experience.is_empty() {
+        return Err(CortexError::InputError("Empty experience".into()));
+    }
+    let response = runtime.process(experience)?;
+    Ok(format!(
+        "{{\"status\":\"ok\",\"experience\":\"{}\",\"response\":\"{}\",\"learning_events\":{},\"episodes\":{},\"version\":{}}}",
+        experience.replace('"', "\\\""),
+        response.replace('"', "\\\""),
+        runtime.state.learning.total_learning_events,
+        runtime.state.metadata.episode_count,
+        runtime.state_version
+    ))
+}
+
+pub fn handle_inspect_with_runtime(runtime: &CortexRuntime, component: &str) -> Result<String, CortexError> {
+    match component {
+        "episodes" => Ok(format!(
+            "{{\"component\":\"episodes\",\"count\":{}}}",
+            runtime.state.metadata.episode_count
+        )),
+        "vocabulary" => Ok(format!(
+            "{{\"component\":\"vocabulary\",\"size\":{}}}",
+            runtime.language_vocabulary.size()
+        )),
+        "entities" => Ok(format!(
+            "{{\"component\":\"entities\",\"count\":{}}}",
+            runtime.state.world.entities.len()
+        )),
+        "learning" => Ok(format!(
+            "{{\"component\":\"learning\",\"events\":{},\"consolidations\":{}}}",
+            runtime.state.learning.total_learning_events,
+            runtime.state.learning.total_consolidation_events
+        )),
+        "state" => Ok(format!(
+            "{{\"component\":\"state\",\"version\":{},\"architecture\":{},\"schema\":{}}}",
+            runtime.state_version,
+            runtime.state.metadata.architecture_version,
+            runtime.state.metadata.schema_version
+        )),
+        "mutations" => Ok(format!(
+            "{{\"component\":\"mutations\",\"count\":{}}}",
+            runtime.mutation_log.records.len()
+        )),
+        "checkpoints" => Ok(format!(
+            "{{\"component\":\"checkpoints\",\"count\":{}}}",
+            runtime.state.metadata.checkpoint_count
+        )),
+        "neural" => Ok(format!(
+            "{{\"component\":\"neural\",\"active_cells\":{},\"active_columns\":{}}}",
+            runtime.state.neural.active_cells.len(),
+            runtime.state.neural.active_columns.len()
+        )),
+        "reasoning" => Ok(format!(
+            "{{\"component\":\"reasoning\",\"hypotheses\":{},\"budget_remaining\":{}}}",
+            runtime.state.reasoning.active_hypotheses.len(),
+            runtime.state.reasoning.budget_remaining
+        )),
+        "planning" => Ok(format!(
+            "{{\"component\":\"planning\",\"simulation_count\":{}}}",
+            runtime.state.planning.simulation_count
+        )),
+        "world" => Ok(format!(
+            "{{\"component\":\"world\",\"entities\":{}}}",
+            runtime.state.world.entities.len()
+        )),
+        "self_model" => Ok(format!(
+            "{{\"component\":\"self_model\",\"prediction_accuracy\":{:.4},\"uncertainty\":{:.4}}}",
+            runtime.state.self_model.prediction_accuracy,
+            runtime.state.self_model.uncertainty_level
+        )),
+        other => Err(CortexError::InputError(format!(
+            "Unknown component: {}. Available: episodes, vocabulary, entities, learning, state, mutations, checkpoints, neural, reasoning, planning, world, self_model",
+            other
+        ))),
+    }
+}
+
 impl Default for RequestHandler {
     fn default() -> Self {
         Self::new()

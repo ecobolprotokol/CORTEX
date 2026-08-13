@@ -6,17 +6,12 @@ pub use auth::Authenticator;
 pub use handlers::RequestHandler;
 pub use routes::Router;
 
+use crate::cortex::CortexRuntime;
 use crate::error::CortexError;
-
-pub trait ApiServer {
-    fn start(&self, bind: &str) -> Result<(), CortexError>;
-    fn stop(&self) -> Result<(), CortexError>;
-}
 
 pub struct ApiManager {
     pub router: Router,
     pub authenticator: Authenticator,
-    pub handler: RequestHandler,
     pub request_count: u64,
 }
 
@@ -25,13 +20,13 @@ impl ApiManager {
         Self {
             router: Router::new(),
             authenticator: Authenticator::new(api_key),
-            handler: RequestHandler::new(),
             request_count: 0,
         }
     }
 
     pub fn handle_request(
         &mut self,
+        runtime: &mut CortexRuntime,
         method: &str,
         path: &str,
         token: Option<&str>,
@@ -47,25 +42,30 @@ impl ApiManager {
         match endpoint.as_str() {
             "inference" => {
                 let input = body.unwrap_or("");
-                self.handler.handle_inference(input)
+                handlers::handle_inference_with_runtime(runtime, input)
             }
             "observe" => {
                 let obs = body.unwrap_or("");
-                self.handler.handle_observe(obs)
+                handlers::handle_observe_with_runtime(runtime, obs)
             }
             "query" => {
                 let q = body.unwrap_or("");
-                self.handler.handle_query(q)
+                handlers::handle_query_with_runtime(runtime, q)
             }
-            "status" => self.handler.handle_status(),
+            "status" => handlers::handle_status_with_runtime(runtime),
             "verify" => {
                 let claim = body.unwrap_or("");
-                self.handler.handle_verify(claim)
+                handlers::handle_verify_with_runtime(runtime, claim)
             }
             "learn" => {
                 let exp = body.unwrap_or("");
-                self.handler.handle_learn(exp)
+                handlers::handle_learn_with_runtime(runtime, exp)
             }
+            "checkpoint" => handlers::handle_checkpoint_with_runtime(runtime),
+            "health" => Ok(format!(
+                "{{\"status\":\"healthy\",\"version\":\"{}\"}}",
+                env!("CARGO_PKG_VERSION")
+            )),
             _ => Err(CortexError::RuntimeError(format!(
                 "Unknown endpoint: {}",
                 endpoint
@@ -77,7 +77,11 @@ impl ApiManager {
         self.request_count
     }
 
-    pub fn start_synchronous_server(&mut self, bind: &str) -> Result<(), CortexError> {
+    pub fn start_synchronous_server(
+        &mut self,
+        runtime: &mut CortexRuntime,
+        bind: &str,
+    ) -> Result<(), CortexError> {
         use std::io::{BufRead, BufReader, Write};
         use std::net::TcpListener;
 
@@ -100,17 +104,15 @@ impl ApiManager {
                     let reader = BufReader::new(&stream);
                     let mut writer = &stream;
 
-                    let mut _request_line = String::new();
                     let mut headers = Vec::new();
                     let mut content_length = 0usize;
                     let mut auth_token: Option<String> = None;
 
                     let mut lines = reader.lines();
-                    if let Some(Ok(first)) = lines.next() {
-                        _request_line = first;
-                    } else {
-                        continue;
-                    }
+                    let request_line = match lines.next() {
+                        Some(Ok(first)) => first,
+                        _ => continue,
+                    };
 
                     for line in lines {
                         match line {
@@ -134,13 +136,14 @@ impl ApiManager {
                     }
 
                     let body_str = String::from_utf8_lossy(&body).to_string();
-                    let parts: Vec<&str> = _request_line.split_whitespace().collect();
+                    let parts: Vec<&str> = request_line.split_whitespace().collect();
                     let method = parts.first().unwrap_or(&"");
                     let path = parts.get(1).unwrap_or(&"/");
 
                     tracing::debug!(peer = %peer, method = %method, path = %path, "Request received");
 
                     let response = match self.handle_request(
+                        runtime,
                         method,
                         path,
                         auth_token.as_deref(),
@@ -157,12 +160,13 @@ impl ApiManager {
                                 CortexError::InputError(_) => (400, format!("{}", e)),
                                 _ => (500, format!("{}", e)),
                             };
+                            let error_body = format!("{{\"error\":\"{}\"}}", msg.replace('"', "\\\""));
                             format!(
-                                "HTTP/1.1 {} {}\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{{\"error\":\"{}\"}}",
+                                "HTTP/1.1 {} {}\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
                                 status,
                                 if status == 403 { "Forbidden" } else if status == 400 { "Bad Request" } else { "Internal Server Error" },
-                                msg.len() + 12,
-                                msg.replace('"', "\\\"")
+                                error_body.len(),
+                                error_body
                             )
                         }
                     };

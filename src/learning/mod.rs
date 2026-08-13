@@ -8,15 +8,8 @@ pub use replay::ReplayBuffer;
 pub use signal::{LearningSignal, SignalGenerator};
 pub use stability::StabilityGuard;
 
-use crate::error::CortexError;
 use crate::types::observation::PredictionError;
 use crate::types::scalars::Scalar;
-
-pub trait LearningSystem {
-    fn record_experience(&mut self, experience: &str) -> Result<(), CortexError>;
-    fn apply_signal(&mut self, signal: &LearningSignal) -> Result<(), CortexError>;
-    fn learning_rate(&self) -> f32;
-}
 
 pub struct LearningPipeline {
     signal_generator: SignalGenerator,

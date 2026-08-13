@@ -8,8 +8,6 @@ pub mod working;
 
 use std::collections::HashMap;
 
-use crate::error::CortexError;
-use crate::types::common::ContextState;
 use crate::types::observation::Observation;
 
 pub struct MemoryRetrieval {
@@ -41,10 +39,4 @@ impl MemoryRetrieval {
     pub fn total_results(&self) -> usize {
         self.episodes.len() + self.knowledge.len() + self.procedures.len() + self.associations.len()
     }
-}
-
-pub trait MemorySystem {
-    fn store_episode(&mut self, episode: Observation) -> Result<(), CortexError>;
-    fn retrieve(&self, query: &str, context: &ContextState, max_results: usize) -> MemoryRetrieval;
-    fn consolidation_interval(&self) -> u64;
 }
