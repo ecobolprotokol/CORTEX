@@ -107,7 +107,6 @@ CORTEX/
 ├── Cargo.toml                            # Package manifest — dependencies, profiles, metadata
 ├── Cargo.lock                            # Locked dependency graph — reproducible builds
 ├── rust-toolchain.toml                   # Pinned Rust toolchain (DOC-06 §1.2)
-├── Makefile                              # Common development commands
 ├── .gitignore                            # Git ignore rules
 ├── .editorconfig                         # Editor configuration — indentation, charset
 │
@@ -539,7 +538,7 @@ The Final Architectural Baseline is considered **conformant** when ALL of the fo
 
 | # | Criterion | Validation |
 |---|---|---|
-| DOD-01 | Root structure exists (`README.md`, `LICENSE`, `CHANGELOG.md`, `VERSION`, `Cargo.toml`, `Makefile`, `.gitignore`, `.editorconfig`) | File existence check |
+| DOD-01 | Root structure exists (`README.md`, `LICENSE`, `CHANGELOG.md`, `VERSION`, `Cargo.toml`, `.gitignore`, `.editorconfig`) | File existence check |
 | DOD-02 | Rust source exists under `src/` with `main.rs` entry point | Package check |
 | DOD-03 | Documentation structure exists under `docs/` with DOC-01 through DOC-11 | Directory check |
 | DOD-04 | DOC-01 through DOC-11 are synchronized (same version) | Version check |

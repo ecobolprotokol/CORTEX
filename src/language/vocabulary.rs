@@ -1,0 +1,1 @@
+//! vocabulary – Language core component.

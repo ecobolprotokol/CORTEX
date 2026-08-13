@@ -1,0 +1,1 @@
+//! temporal – Neural core component.

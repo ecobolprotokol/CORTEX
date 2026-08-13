@@ -1,0 +1,1 @@
+//! syntax – Language core component.

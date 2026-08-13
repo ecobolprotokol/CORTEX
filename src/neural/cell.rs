@@ -1,0 +1,1 @@
+//! cell – Neural core component.

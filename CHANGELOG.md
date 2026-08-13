@@ -9,8 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Initial repository architecture implementation
-- Python package structure under `src/cortex/`
-- Documentation hierarchy under `docs/`
+- Rust source structure under `src/` with 71 modules
+- Documentation hierarchy under `docs/` (DOC-01 through DOC-11)
 - Test architecture with 9 categories
 - Schema definitions for `.cx`, API, and configuration
 - Configuration profiles (defaults, development, testing, production)
@@ -20,8 +20,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Usage examples
 - Migration artifacts
 - GitHub CI/CD workflows
-
-### Changed
-- Migrated from Rust/Cargo to Python/pyproject.toml architecture
-- Relocated documentation from root to `docs/`
-- Restructured tests from flat to hierarchical categories
+- Final Architectural Baseline documentation

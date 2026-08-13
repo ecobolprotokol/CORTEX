@@ -1,0 +1,1 @@
+//! consolidation – Memory system component.

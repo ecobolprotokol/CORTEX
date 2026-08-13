@@ -1,0 +1,49 @@
+[package]
+name = "cortex"
+version = "1.0.0"
+edition = "2021"
+rust-version = "1.75"
+
+[dependencies]
+# Serialization
+serde = { version = "1", features = ["derive"] }
+bincode = "1"
+
+# Compression
+zstd = "0.13"
+
+# Cryptography (integrity)
+blake3 = "1"
+
+# UUID
+uuid = { version = "1", features = ["v4"] }
+
+# Async runtime (I/O only)
+tokio = { version = "1", features = ["rt-multi-thread", "net", "fs", "time"] }
+
+# HTTP server
+hyper = { version = "1", features = ["server", "http1"] }
+
+# CLI
+clap = { version = "4", features = ["derive"] }
+
+# TOML parsing
+toml = "0.8"
+
+# Logging
+tracing = "0.1"
+tracing-subscriber = "0.3"
+
+[dev-dependencies]
+criterion = "0.5"
+tempfile = "3"
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+strip = true
+
+[[bench]]
+name = "cognitive_loop"
+harness = false

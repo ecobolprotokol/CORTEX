@@ -1,0 +1,1 @@
+//! decoder – Language core component.

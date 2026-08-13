@@ -1,0 +1,1 @@
+//! simulation – World model component.

@@ -1,0 +1,1 @@
+//! capability – Self model component.

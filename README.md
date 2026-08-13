@@ -5,20 +5,20 @@ A persistent, state-based, continually learning AI model.
 ## Quickstart
 
 ```bash
-# Install
-pip install -e .
+# Build
+cargo build --release
 
 # Run
-cortex run
+./target/release/cortex run
 
 # Observe
-cortex observe "input text"
+./target/release/cortex observe "input text"
 
 # Query
-cortex query "question"
+./target/release/cortex query "question"
 
 # Status
-cortex status
+./target/release/cortex status
 ```
 
 ## Documentation
@@ -38,17 +38,20 @@ cortex status
 ## Development
 
 ```bash
-# Setup
-make setup
+# Build
+cargo build
 
 # Test
-make test
+cargo test
 
 # Lint
-make lint
+cargo clippy -- -D warnings
 
-# Build
-make build
+# Format
+cargo fmt --check
+
+# Bench
+cargo bench
 ```
 
 ## License

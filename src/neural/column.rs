@@ -1,0 +1,1 @@
+//! column – Neural core component.

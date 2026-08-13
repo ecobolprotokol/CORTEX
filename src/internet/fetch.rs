@@ -1,0 +1,1 @@
+//! fetch – Internet interface component.

@@ -1,0 +1,1 @@
+//! contradiction – Reasoning engine component.

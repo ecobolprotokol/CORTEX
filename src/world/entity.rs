@@ -1,0 +1,1 @@
+//! entity – World model component.

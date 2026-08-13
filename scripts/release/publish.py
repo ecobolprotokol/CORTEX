@@ -1,1 +1,0 @@
-"""Release scripts for CORTEX."""

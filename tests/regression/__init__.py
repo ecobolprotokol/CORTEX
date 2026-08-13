@@ -1,1 +1,0 @@
-"""CORTEX regression tests."""

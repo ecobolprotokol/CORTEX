@@ -1,0 +1,1 @@
+//! auth – Embedded API component.

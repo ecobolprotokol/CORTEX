@@ -11,7 +11,7 @@ What you expected to happen.
 
 **Environment**
 - OS: [e.g., Ubuntu 22.04]
-- Python version: [e.g., 3.11]
+- Rust toolchain: [e.g., stable 1.75]
 - CORTEX version: [e.g., 1.0.0]
 
 **Additional context**

@@ -1,0 +1,1 @@
+//! causal – World model component.

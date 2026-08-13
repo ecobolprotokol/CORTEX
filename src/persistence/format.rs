@@ -1,0 +1,1 @@
+//! format – Persistence engine component.

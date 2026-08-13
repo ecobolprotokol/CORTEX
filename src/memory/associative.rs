@@ -1,0 +1,1 @@
+//! associative – Memory system component.
