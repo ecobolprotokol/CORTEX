@@ -1,19 +1,43 @@
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 
-use crate::types::common::{Duration, Timestamp};
-use crate::types::ids::{
-    ActionId, EpisodeId, EvidenceId, FieldId, MemoryId, SourceId,
-};
+use crate::types::common::{ContextState, Timestamp};
+use crate::types::evidence::{EvidenceSet, Provenance};
+use crate::types::ids::ActionId;
 use crate::types::scalars::Scalar;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Observation {
     pub text: String,
-    pub source: SourceId,
+    pub source: Provenance,
     pub timestamp: Timestamp,
-    pub context: Vec<MemoryId>,
+    pub context: ContextState,
     pub kind: ObservationKind,
     pub importance: Scalar,
+}
+
+impl Observation {
+    pub fn user_provided(text: &str) -> Self {
+        Self {
+            text: text.to_string(),
+            source: Provenance::user_provided(),
+            timestamp: Timestamp::now(),
+            context: ContextState::initial(),
+            kind: ObservationKind::UserInput,
+            importance: 0.5,
+        }
+    }
+
+    pub fn from_internet(text: &str, url: &str) -> Self {
+        Self {
+            text: text.to_string(),
+            source: Provenance::internet(url),
+            timestamp: Timestamp::now(),
+            context: ContextState::initial(),
+            kind: ObservationKind::Internet,
+            importance: 0.3,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -28,65 +52,110 @@ pub enum ObservationKind {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Experience {
-    pub episode: EpisodeId,
     pub observation: Observation,
-    pub actions: Vec<Action>,
-    pub outcome: Outcome,
-    pub predictions: Vec<Prediction>,
-    pub prediction_errors: Vec<PredictionError>,
+    pub internal_state: HashMap<String, Scalar>,
+    pub prediction: Option<Prediction>,
+    pub action: Option<Action>,
+    pub outcome: Option<Outcome>,
+    pub error: Option<PredictionError>,
+    pub attribution: Option<String>,
+    pub evidence: EvidenceSet,
+    pub provenance: Provenance,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Action {
     pub id: ActionId,
     pub kind: ActionKind,
-    pub target: FieldId,
-    pub parameters: Vec<Scalar>,
+    pub parameters: HashMap<String, ActionParameter>,
+    pub expected_outcome: Option<Outcome>,
+    pub risk: Scalar,
     pub timestamp: Timestamp,
+    pub provenance: Provenance,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum ActionKind {
-    Activate,
-    Deactivate,
-    ModifyWeight,
-    CreateLink,
-    RemoveLink,
-    Query,
-    Store,
-    Infer,
-    Plan,
+    Respond,
     Observe,
+    Query,
+    Learn,
+    Plan,
+    Verify,
+    Fetch,
+    Store,
+    Forget,
+    Consolidate,
+    Checkpoint,
+    NoOp,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum ActionParameter {
+    Text(String),
+    Number(Scalar),
+    Integer(i64),
+    Boolean(bool),
+    List(Vec<ActionParameter>),
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Outcome {
     pub success: bool,
-    pub reward: Scalar,
-    pub duration: Duration,
-    pub details: String,
+    pub description: String,
+    pub result: Option<String>,
+    pub timestamp: Timestamp,
+    pub confidence: Scalar,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Prediction {
     pub target: PredictionTarget,
-    pub predicted: Scalar,
+    pub predicted_state: Vec<Scalar>,
     pub confidence: Scalar,
     pub timestamp: Timestamp,
+    pub context: ContextState,
+    pub resolved: bool,
+    pub actual: Option<Vec<Scalar>>,
+    pub error: Option<PredictionError>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum PredictionTarget {
-    Reward { episode: EpisodeId },
-    Observation { source: SourceId },
-    Transition { from: FieldId, to: FieldId },
-    Completion { goal: FieldId },
+    NextToken,
+    NextState,
+    NextAction,
+    Outcome,
+    Transition,
+    Intent,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PredictionError {
-    pub prediction: Prediction,
-    pub actual: Scalar,
-    pub error_magnitude: Scalar,
-    pub evidence: Vec<EvidenceId>,
+    pub magnitude: Scalar,
+    pub dimensions: HashMap<String, Scalar>,
+    pub timestamp: Timestamp,
+    pub prediction_id: Option<u64>,
+}
+
+impl PredictionError {
+    pub fn compute(predicted: &[Scalar], actual: &[Scalar]) -> Self {
+        let magnitude = predicted
+            .iter()
+            .zip(actual.iter())
+            .map(|(p, a)| (p - a).powi(2))
+            .sum::<Scalar>()
+            .sqrt();
+
+        Self {
+            magnitude,
+            dimensions: HashMap::new(),
+            timestamp: Timestamp::now(),
+            prediction_id: None,
+        }
+    }
+
+    pub fn is_zero(&self) -> bool {
+        self.magnitude < crate::types::scalars::SCALAR_EPSILON
+    }
 }

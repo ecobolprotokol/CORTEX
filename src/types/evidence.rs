@@ -1,14 +1,17 @@
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 
 use crate::types::common::Timestamp;
-use crate::types::ids::{EvidenceId, ProvenanceId, SourceId};
+use crate::types::ids::{EpisodeId, EvidenceId, KnowledgeId, ProvenanceId, SourceId, SessionId};
+use crate::types::observation::Observation;
+use crate::types::scalars::Scalar;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Evidence {
     pub id: EvidenceId,
     pub source: ProvenanceId,
     pub content: EvidenceContent,
-    pub strength: f32,
+    pub strength: Scalar,
     pub polarity: EvidencePolarity,
     pub timestamp: Timestamp,
     pub related: Vec<EvidenceId>,
@@ -16,10 +19,12 @@ pub struct Evidence {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum EvidenceContent {
-    Observation(String),
-    Inference(String),
-    Testimony(String),
-    Measurement { value: f64, unit: String },
+    Text(String),
+    Observation(Observation),
+    KnowledgeRef(KnowledgeId),
+    EpisodeRef(EpisodeId),
+    Numeric(Scalar),
+    Composite(Vec<EvidenceContent>),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -36,50 +41,126 @@ pub struct EvidenceSet {
 
 impl EvidenceSet {
     pub fn new() -> Self {
-        Self::default()
+        Self { items: Vec::new() }
     }
 
-    pub fn supports(&self) -> Vec<&Evidence> {
+    pub fn add(&mut self, evidence: Evidence) {
+        self.items.push(evidence);
+    }
+
+    pub fn total_strength(&self) -> Scalar {
+        self.items.iter().map(|e| e.strength).sum::<Scalar>()
+            / self.items.len().max(1) as Scalar
+    }
+
+    pub fn supporting(&self) -> Vec<&Evidence> {
         self.items
             .iter()
             .filter(|e| e.polarity == EvidencePolarity::Supports)
             .collect()
     }
 
-    pub fn contradicts(&self) -> Vec<&Evidence> {
+    pub fn contradicting(&self) -> Vec<&Evidence> {
         self.items
             .iter()
             .filter(|e| e.polarity == EvidencePolarity::Contradicts)
             .collect()
     }
 
-    pub fn total_strength(&self) -> f32 {
-        self.items.iter().map(|e| e.strength).sum()
+    pub fn is_empty(&self) -> bool {
+        self.items.is_empty()
     }
 
-    pub fn net_strength(&self) -> f32 {
-        self.items
-            .iter()
-            .map(|e| match e.polarity {
-                EvidencePolarity::Supports => e.strength,
-                EvidencePolarity::Contradicts => -e.strength,
-                EvidencePolarity::Neutral => 0.0,
-            })
-            .sum()
+    pub fn len(&self) -> usize {
+        self.items.len()
+    }
+
+    pub fn merge(&self, other: &EvidenceSet) -> EvidenceSet {
+        let mut merged = self.clone();
+        merged.items.extend(other.items.clone());
+        merged
     }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Provenance {
     pub category: ProvenanceCategory,
-    pub source: SourceId,
+    pub source: Source,
     pub source_identity: SourceIdentity,
     pub timestamp: Timestamp,
-    pub retrieval_context: RetrievalContext,
+    pub retrieval_context: Option<RetrievalContext>,
     pub content_hash: [u8; 32],
     pub evidence: Vec<EvidenceId>,
     pub verification_status: VerificationStatus,
     pub confidence: ConfidenceState,
+}
+
+impl Provenance {
+    pub fn user_provided() -> Self {
+        Self {
+            category: ProvenanceCategory::UserProvided,
+            source: Source {
+                id: SourceId::new(1),
+                name: "user".into(),
+                kind: SourceKind::User,
+            },
+            source_identity: SourceIdentity {
+                identifier: "user".into(),
+                reliability: 0.8,
+                verification_count: 0,
+            },
+            timestamp: Timestamp::now(),
+            retrieval_context: None,
+            content_hash: [0u8; 32],
+            evidence: Vec::new(),
+            verification_status: VerificationStatus::Observed,
+            confidence: ConfidenceState::default(),
+        }
+    }
+
+    pub fn internet(url: &str) -> Self {
+        Self {
+            category: ProvenanceCategory::Internet,
+            source: Source {
+                id: SourceId::new(2),
+                name: url.to_string(),
+                kind: SourceKind::Internet,
+            },
+            source_identity: SourceIdentity {
+                identifier: url.to_string(),
+                reliability: 0.3,
+                verification_count: 0,
+            },
+            timestamp: Timestamp::now(),
+            retrieval_context: None,
+            content_hash: [0u8; 32],
+            evidence: Vec::new(),
+            verification_status: VerificationStatus::Unknown,
+            confidence: ConfidenceState::low(),
+        }
+    }
+
+    pub fn derived(parents: &[Provenance]) -> Self {
+        Self {
+            category: ProvenanceCategory::Derived,
+            source: Source {
+                id: SourceId::new(3),
+                name: "derived".into(),
+                kind: SourceKind::Derived,
+            },
+            source_identity: SourceIdentity {
+                identifier: "derived".into(),
+                reliability: 0.5,
+                verification_count: 0,
+            },
+            timestamp: Timestamp::now(),
+            retrieval_context: None,
+            content_hash: [0u8; 32],
+            evidence: parents.iter().flat_map(|p| p.evidence.clone()).collect(),
+            verification_status: VerificationStatus::Inferred,
+            confidence: ConfidenceState::default(),
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -96,48 +177,54 @@ pub enum ProvenanceCategory {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Source {
     pub id: SourceId,
-    pub kind: SourceKind,
     pub name: String,
-    pub identity: SourceIdentity,
+    pub kind: SourceKind,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum SourceKind {
     User,
-    Tool,
+    System,
     Internet,
+    Derived,
     Internal,
-    External,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SourceIdentity {
-    pub display_name: String,
-    pub trust_level: f32,
-    pub capabilities: Vec<String>,
+    pub identifier: String,
+    pub reliability: Scalar,
+    pub verification_count: u64,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RetrievalContext {
     pub query: String,
-    pub method: String,
     pub timestamp: Timestamp,
-    pub result_count: u32,
+    pub session_id: SessionId,
 }
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ConfidenceState {
-    pub direct: f32,
-    pub corroborated: f32,
-    pub staleness: f32,
+    pub belief: Scalar,
+    pub evidence_strength: Scalar,
+    pub source_quality: Scalar,
+    pub consistency: Scalar,
+    pub uncertainty: Scalar,
+    pub prediction_reliability: Scalar,
+    pub verification_status: VerificationStatus,
 }
 
 impl Default for ConfidenceState {
     fn default() -> Self {
         Self {
-            direct: 0.5,
-            corroborated: 0.0,
-            staleness: 0.0,
+            belief: 0.5,
+            evidence_strength: 0.0,
+            source_quality: 0.5,
+            consistency: 0.5,
+            uncertainty: 0.5,
+            prediction_reliability: 0.0,
+            verification_status: VerificationStatus::Unknown,
         }
     }
 }
@@ -145,49 +232,73 @@ impl Default for ConfidenceState {
 impl ConfidenceState {
     pub fn low() -> Self {
         Self {
-            direct: 0.2,
-            corroborated: 0.0,
-            staleness: 0.0,
+            belief: 0.1,
+            evidence_strength: 0.0,
+            source_quality: 0.1,
+            consistency: 0.1,
+            uncertainty: 0.9,
+            prediction_reliability: 0.0,
+            verification_status: VerificationStatus::Unknown,
         }
     }
 
     pub fn high() -> Self {
         Self {
-            direct: 0.9,
-            corroborated: 0.8,
-            staleness: 0.0,
+            belief: 0.9,
+            evidence_strength: 0.8,
+            source_quality: 0.9,
+            consistency: 0.9,
+            uncertainty: 0.1,
+            prediction_reliability: 0.8,
+            verification_status: VerificationStatus::Supported,
         }
     }
 
-    pub fn overall(&self) -> f32 {
-        let base = self.direct * 0.6 + self.corroborated * 0.4;
-        base * (1.0 - self.staleness)
+    pub fn overall(&self) -> Scalar {
+        (self.belief * 0.3)
+            + (self.evidence_strength * 0.25)
+            + (self.source_quality * 0.15)
+            + (self.consistency * 0.2)
+            + ((1.0 - self.uncertainty) * 0.1)
+    }
+
+    pub fn is_verified(&self) -> bool {
+        self.verification_status == VerificationStatus::Verified
     }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UncertaintyState {
-    pub epistemic: f32,
-    pub aleatoric: f32,
-    pub total: f32,
+    pub level: Scalar,
+    pub dimensions: HashMap<String, Scalar>,
+    pub reducible: bool,
+    pub updated_at: Timestamp,
+}
+
+impl Default for UncertaintyState {
+    fn default() -> Self {
+        Self {
+            level: 1.0,
+            dimensions: HashMap::new(),
+            reducible: true,
+            updated_at: Timestamp::now(),
+        }
+    }
 }
 
 impl UncertaintyState {
-    pub fn new(epistemic: f32, aleatoric: f32) -> Self {
-        let total = (epistemic.powi(2) + aleatoric.powi(2)).sqrt();
-        Self {
-            epistemic,
-            aleatoric,
-            total,
-        }
+    pub fn initial() -> Self {
+        Self::default()
     }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum VerificationStatus {
-    Unverified,
-    Pending,
+    Observed,
+    Inferred,
+    Supported,
+    Provisional,
     Verified,
-    Rejected,
-    Disputed,
+    Unknown,
+    Contradicted,
 }

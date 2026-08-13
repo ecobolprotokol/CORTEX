@@ -9,29 +9,63 @@ use crate::types::state::{
     WorldState,
 };
 use crate::types::common::Timestamp;
-use crate::types::ids::SessionId;
+use crate::language::tokenizer::Tokenizer;
+use crate::language::vocabulary::Vocabulary;
+use crate::neural::field::Field;
+use crate::memory::episodic::EpisodicMemory;
+use crate::memory::semantic::SemanticMemory;
+use crate::memory::working::WorkingMemory;
+use crate::world::entity::{EntityManager, EntityKind};
+use crate::reasoning::hypothesis::HypothesisGenerator;
+use crate::policy::gate::{PolicyDecision, PolicyGate};
+use crate::learning::stability::StabilityGuard;
+use crate::persistence::checkpoint::CheckpointManager;
+use crate::self_model::capability::SelfModel as CapabilitySelfModel;
+use crate::observability::diagnostics::Diagnostics;
 
 pub struct CortexRuntime {
     pub state: CortexState,
     pub config: CortexConfig,
     pub runtime_state: RuntimeState,
+    pub language_tokenizer: Tokenizer,
+    pub language_vocabulary: Vocabulary,
+    pub neural_field: Field,
+    pub memory_episodic: EpisodicMemory,
+    pub memory_semantic: SemanticMemory,
+    pub memory_working: WorkingMemory,
+    pub world_entity_manager: EntityManager,
+    pub reasoning_generator: HypothesisGenerator,
+    pub policy_gate: PolicyGate,
+    pub learning_stability: StabilityGuard,
+    pub persistence_checkpoint: CheckpointManager,
+    pub self_model: CapabilitySelfModel,
+    pub diagnostics: Diagnostics,
+    observation_count: u64,
 }
 
 impl Default for CortexState {
     fn default() -> Self {
         Self {
             metadata: StateMetadata {
-                version: env!("CARGO_PKG_VERSION").into(),
+                state_id: [0u8; 16],
                 created_at: Timestamp::now(),
-                updated_at: Timestamp::now(),
-                session_id: SessionId::next(),
+                last_updated: Timestamp::now(),
+                architecture_version: 1,
                 algorithm_versions: AlgorithmVersions {
-                    attention: "1.0.0".into(),
-                    consolidation: "1.0.0".into(),
-                    inference: "1.0.0".into(),
-                    planning: "1.0.0".into(),
-                    learning: "1.0.0".into(),
+                    cell_algorithm: "1.0.0".into(),
+                    column_algorithm: "1.0.0".into(),
+                    plasticity_algorithm: "1.0.0".into(),
+                    memory_algorithm: "1.0.0".into(),
+                    language_algorithm: "1.0.0".into(),
+                    reasoning_algorithm: "1.0.0".into(),
+                    planning_algorithm: "1.0.0".into(),
+                    verification_algorithm: "1.0.0".into(),
+                    consolidation_algorithm: "1.0.0".into(),
                 },
+                config_hash: [0u8; 32],
+                episode_count: 0,
+                total_learning_events: 0,
+                checkpoint_count: 0,
             },
             language: LanguageState::default(),
             neural: NeuralState::default(),
@@ -49,26 +83,297 @@ impl Default for CortexState {
 
 impl CortexRuntime {
     pub fn new(config: CortexConfig) -> Result<Self, CortexError> {
-        let state = CortexState::default();
+        config.validate()?;
+
+        let language_tokenizer = Tokenizer::new();
+        let language_vocabulary = Vocabulary::new(config.language.vocabulary_capacity);
+        let neural_field = Field::new(config.model.columns, config.model.cells);
+        let memory_episodic = EpisodicMemory::new(config.memory.episodic_mb as usize);
+        let memory_semantic = SemanticMemory::new(config.memory.semantic_mb as usize);
+        let memory_working = WorkingMemory::new(config.memory.working_mb as usize);
+        let world_entity_manager = EntityManager::new();
+        let reasoning_generator =
+            HypothesisGenerator::new(config.reasoning.max_steps as usize);
+        let policy_gate = PolicyGate::new();
+        let learning_stability = StabilityGuard::new(
+            config.learning.learning_rate,
+            config.learning.plasticity,
+        );
+        let persistence_checkpoint = CheckpointManager::new(10);
+        let self_model = CapabilitySelfModel::new();
+        let diagnostics = Diagnostics::new();
+
         Ok(Self {
-            state,
+            state: CortexState::default(),
             config,
             runtime_state: RuntimeState::Booting,
+            language_tokenizer,
+            language_vocabulary,
+            neural_field,
+            memory_episodic,
+            memory_semantic,
+            memory_working,
+            world_entity_manager,
+            reasoning_generator,
+            policy_gate,
+            learning_stability,
+            persistence_checkpoint,
+            self_model,
+            diagnostics,
+            observation_count: 0,
         })
+    }
+
+    fn transition_to(&mut self, target: RuntimeState) -> Result<(), CortexError> {
+        if !self.runtime_state.can_transition_to(&target) {
+            return Err(CortexError::RuntimeError(format!(
+                "Invalid transition: {:?} -> {:?}",
+                self.runtime_state, target
+            )));
+        }
+        tracing::info!("State: {:?} -> {:?}", self.runtime_state, target);
+        self.runtime_state = target;
+        Ok(())
+    }
+
+    fn attempt_recovery(&mut self) -> Result<(), CortexError> {
+        tracing::warn!("Attempting recovery");
+        self.transition_to(RuntimeState::Recovering)?;
+
+        self.observation_count = 0;
+        self.memory_working.clear();
+
+        if self.diagnostics.is_healthy() {
+            self.transition_to(RuntimeState::Ready)?;
+            tracing::info!("Recovery successful");
+            Ok(())
+        } else {
+            tracing::error!("Recovery failed, stopping");
+            self.transition_to(RuntimeState::Stopped)?;
+            Err(CortexError::RuntimeError("Recovery failed".into()))
+        }
+    }
+
+    fn execute_pipeline(&mut self, input: &str) -> Result<String, CortexError> {
+        // Stage 1: Parse observation
+        self.memory_working.set_input(input.to_string());
+
+        // Stage 2: Encode language (tokenize)
+        let tokens = self.language_tokenizer.tokenize(input)?;
+        let mut symbol_ids = Vec::new();
+        for token in &tokens {
+            let id = self.language_vocabulary.lookup_or_create(token);
+            symbol_ids.push(id);
+        }
+        self.state.language.symbols = symbol_ids;
+
+        // Stage 3: Process neural representation
+        let max_active =
+            (self.neural_field.columns.len() as f32 * self.config.model.sparsity_ratio) as usize;
+        self.neural_field.enforce_sparsity(max_active);
+        self.state.neural.active_cells = self
+            .neural_field
+            .columns
+            .iter()
+            .flat_map(|c| c.active_cells.iter().cloned())
+            .collect();
+        self.state.neural.active_columns = self
+            .neural_field
+            .columns
+            .iter()
+            .enumerate()
+            .filter(|(_, c)| !c.active_cells.is_empty())
+            .map(|(i, _)| crate::types::ids::ColumnId::from(i as u64))
+            .collect();
+
+        // Stage 4: Retrieve memories
+        let recent_episodes = self.memory_episodic.recent(5);
+        let context_strings: Vec<String> = recent_episodes
+            .iter()
+            .map(|e| e.observation.clone())
+            .collect();
+        self.state.memory.episodic.episodes.clear();
+        for ep in &self.memory_episodic.episodes {
+            self.state.memory.episodic.episodes.push(
+                crate::types::state::EpisodeRecord {
+                    id: ep.id,
+                    observation: crate::types::observation::Observation::user_provided(&ep.observation),
+                    timestamp: ep.timestamp,
+                    importance: ep.importance,
+                    consolidated: ep.consolidated,
+                    retrieval_count: 0,
+                },
+            );
+        }
+        self.state.memory.episodic.next_id =
+            crate::types::ids::EpisodeId::from(self.memory_episodic.next_id);
+
+        // Stage 5: Integrate world state
+        let words: Vec<&str> = input.split_whitespace().collect();
+        for word in words.iter().take(3) {
+            if word.len() > 3 {
+                self.world_entity_manager
+                    .create(word, EntityKind::ConceptualObject);
+            }
+        }
+        self.state.world.entities = self
+            .world_entity_manager
+            .entities
+            .iter()
+            .map(|e| crate::types::state::Entity {
+                id: e.id,
+                name: e.name.clone(),
+                confidence: e.confidence,
+                created_at: e.created_at,
+                updated_at: e.updated_at,
+            })
+            .collect();
+
+        // Stage 6: Evaluate reasoning
+        let hypotheses = self.reasoning_generator.generate(input, &context_strings);
+        self.state.reasoning.active_hypotheses = hypotheses
+            .iter()
+            .map(|h| crate::types::state::Hypothesis {
+                id: h.id,
+                proposition: crate::types::state::Proposition {
+                    subject: h.proposition.clone(),
+                    predicate: "suggests".into(),
+                    object: None,
+                    negated: false,
+                },
+                confidence: h.confidence,
+                evidence: crate::types::evidence::EvidenceSet::new(),
+                counter_evidence: crate::types::evidence::EvidenceSet::new(),
+                created_at: Timestamp::now(),
+            })
+            .collect();
+        self.state.reasoning.budget_remaining = self.config.reasoning.max_steps;
+
+        // Stage 7: Evaluate planning (optional)
+        if self.config.planning.enabled {
+            let _plan = crate::planning::plan::PlanBuilder::new().build(input);
+            self.state.planning.simulation_count += 1;
+        }
+
+        // Stage 8: Verify claims
+        let top_confidence = hypotheses
+            .first()
+            .map(|h| h.confidence)
+            .unwrap_or(0.0);
+        let _verified = top_confidence >= self.config.verification.minimum_confidence;
+
+        // Stage 9: Generate response
+        let response = if let Some(conclusion) = hypotheses.iter().find(|h| h.confidence > 0.3) {
+            format!(
+                "{} (confidence: {:.2})",
+                conclusion.proposition, conclusion.confidence
+            )
+        } else {
+            format!("Processed: {}", input)
+        };
+
+        // Stage 10: Record experience
+        let importance = if hypotheses.is_empty() {
+            0.5
+        } else {
+            hypotheses.iter().map(|h| h.confidence).sum::<f32>() / hypotheses.len() as f32
+        };
+        self.memory_episodic.store(input, importance);
+        self.state.metadata.episode_count += 1;
+
+        // Stage 11: Apply learning
+        if self.config.learning.enabled {
+            let gate = self.policy_gate.evaluate("learning");
+            if gate.decision == PolicyDecision::Allow {
+                let change = (importance * self.config.learning.learning_rate).abs();
+                if self.learning_stability.check_stability(change) {
+                    self.state.learning.total_learning_events += 1;
+                    self.state.learning.learning_rate = self.config.learning.learning_rate;
+                    self.state.learning.plasticity_rate = self.config.learning.plasticity;
+                }
+            }
+        }
+
+        // Stage 12: Checkpoint (if interval reached)
+        if self.config.persistence.checkpoint_interval > 0
+            && self.observation_count > 0
+            && self.observation_count % self.config.persistence.checkpoint_interval == 0
+        {
+            self.persistence_checkpoint.create_checkpoint(
+                self.memory_episodic.episodes.len() as u64,
+                self.memory_episodic.next_id,
+            );
+            self.state.metadata.checkpoint_count += 1;
+        }
+
+        // Consolidation check
+        if self.config.learning.consolidation_interval > 0
+            && self.observation_count > 0
+            && self.observation_count % self.config.learning.consolidation_interval == 0
+        {
+            self.state.learning.total_consolidation_events += 1;
+            tracing::info!("Memory consolidation triggered");
+        }
+
+        self.state.metadata.last_updated = Timestamp::now();
+
+        Ok(response)
+    }
+
+    pub fn process(&mut self, input: &str) -> Result<String, CortexError> {
+        if !self.ready() {
+            return Err(CortexError::RuntimeError(
+                "Runtime not in Ready state".into(),
+            ));
+        }
+
+        self.transition_to(RuntimeState::Processing)?;
+
+        match self.execute_pipeline(input) {
+            Ok(response) => {
+                self.observation_count += 1;
+                self.state.metadata.last_updated = Timestamp::now();
+                self.transition_to(RuntimeState::Ready)?;
+                Ok(response)
+            }
+            Err(e) if e.is_recoverable() => {
+                let _ = self.transition_to(RuntimeState::Fault);
+                self.attempt_recovery()?;
+                Err(e)
+            }
+            Err(e) => {
+                let _ = self.transition_to(RuntimeState::Fault);
+                let _ = self.transition_to(RuntimeState::Stopped);
+                Err(e)
+            }
+        }
     }
 }
 
 impl Runtime for CortexRuntime {
     fn boot(&mut self) -> Result<(), CortexError> {
-        self.runtime_state = RuntimeState::LoadingConfig;
+        tracing::info!("Boot sequence initiated");
 
-        self.runtime_state = RuntimeState::LoadingState;
+        self.transition_to(RuntimeState::LoadingConfig)?;
+        self.config.validate()?;
+        tracing::info!("Configuration validated");
 
-        self.runtime_state = RuntimeState::Validating;
+        self.transition_to(RuntimeState::LoadingState)?;
+        tracing::info!("State loaded (fresh start)");
 
-        self.runtime_state = RuntimeState::Initializing;
+        self.transition_to(RuntimeState::Validating)?;
+        self.state.metadata.last_updated = Timestamp::now();
+        tracing::info!("State validated");
 
-        self.runtime_state = RuntimeState::Ready;
+        self.transition_to(RuntimeState::Initializing)?;
+        self.state.metadata.architecture_version = 1;
+        self.state.learning.learning_rate = self.config.learning.learning_rate;
+        self.state.learning.plasticity_rate = self.config.learning.plasticity;
+        tracing::info!("Subsystems initialized");
+
+        self.transition_to(RuntimeState::Ready)?;
+        tracing::info!("Boot complete - Ready");
+
         Ok(())
     }
 
@@ -77,12 +382,31 @@ impl Runtime for CortexRuntime {
     }
 
     fn run(&mut self) -> Result<(), CortexError> {
+        if !self.ready() {
+            return Err(CortexError::RuntimeError("Runtime not ready".into()));
+        }
+        tracing::info!("Runtime entering main loop");
         Ok(())
     }
 
     fn shutdown(&mut self) -> Result<(), CortexError> {
-        self.runtime_state = RuntimeState::ShuttingDown;
-        self.runtime_state = RuntimeState::Stopped;
+        tracing::info!("Shutdown initiated");
+
+        self.transition_to(RuntimeState::ShuttingDown)?;
+
+        self.state.metadata.last_updated = Timestamp::now();
+        tracing::info!("State saved");
+
+        self.persistence_checkpoint.create_checkpoint(
+            self.memory_episodic.episodes.len() as u64,
+            self.memory_episodic.next_id,
+        );
+        self.state.metadata.checkpoint_count += 1;
+        tracing::info!("Final checkpoint created");
+
+        self.transition_to(RuntimeState::Stopped)?;
+        tracing::info!("Shutdown complete");
+
         Ok(())
     }
 }

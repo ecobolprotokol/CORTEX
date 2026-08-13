@@ -21,10 +21,12 @@ impl ConfidenceModel {
     pub fn verify(&self, claim: &str, evidence_strength: Scalar) -> VerificationResult {
         let status = if evidence_strength >= self.minimum_confidence {
             VerificationStatus::Verified
+        } else if evidence_strength > 0.5 {
+            VerificationStatus::Supported
         } else if evidence_strength > 0.0 {
-            VerificationStatus::Pending
+            VerificationStatus::Provisional
         } else {
-            VerificationStatus::Unverified
+            VerificationStatus::Unknown
         };
 
         VerificationResult {

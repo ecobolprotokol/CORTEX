@@ -5,11 +5,15 @@ static COUNTER: AtomicU64 = AtomicU64::new(1);
 
 macro_rules! define_id {
     ($name:ident) => {
-        #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+        #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
         pub struct $name(u64);
 
         impl $name {
             pub const NULL: Self = Self(0);
+
+            pub fn new(value: u64) -> Self {
+                Self(value)
+            }
 
             pub fn next() -> Self {
                 Self(COUNTER.fetch_add(1, Ordering::Relaxed))
@@ -17,6 +21,10 @@ macro_rules! define_id {
 
             pub fn raw(self) -> u64 {
                 self.0
+            }
+
+            pub fn is_null(&self) -> bool {
+                self.0 == 0
             }
         }
 
@@ -67,3 +75,16 @@ define_id!(ProvenanceId);
 
 define_id!(CheckpointId);
 define_id!(SessionId);
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub enum InternalId {
+    Cell(CellId),
+    Column(ColumnId),
+    Episode(EpisodeId),
+    Concept(ConceptId),
+    Entity(EntityId),
+    Procedure(ProcedureId),
+    Association(AssociationId),
+    Hypothesis(HypothesisId),
+    Symbol(SymbolId),
+}
