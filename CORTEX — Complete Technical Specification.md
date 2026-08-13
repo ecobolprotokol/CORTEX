@@ -1,41 +1,46 @@
-CORTEX — Complete Technical Specification
+# CORTEX — Complete Technical Specification
 
-Status: Final Architectural Baseline
-Architectural Role: End-to-End System Contract
-Project Type: Native Continual-Learning AI Model
-Implementation Language: Rust
-Execution Model: Single Process
-Deployment Model: Single Binary
-Persistent Cognitive State: .cx
-Configuration: cortex.toml
-External AI Model: None
-External Database: None
-Vector Database: None
-Agent Framework: None
-Cognitive Substrate: Native CORTEX Algorithms
-Language Substrate: Native CORTEX Language Core
-Primary Target: Linux x86_64
-Compute Model: CPU-first
-Learning Model: Online / Continual / State-Based
-Autonomy Model: Policy-Bounded
-Finality: Architectural baseline and end-to-end target
+**Status:** Final Architectural Baseline  
+**Role:** End-to-End System Contract  
+**Version:** 1.0.0  
 
+| Property | Value |
+|---|---|
+| Project Type | Native Continual-Learning AI Model |
+| Implementation Language | Rust |
+| Execution Model | Single Process |
+| Deployment Model | Single Binary |
+| Persistent Cognitive State | `.cx` |
+| Configuration | `cortex.toml` |
+| External AI Model | None |
+| External Database | None |
+| Vector Database | None |
+| Agent Framework | None |
+| Cognitive Substrate | Native CORTEX Algorithms |
+| Language Substrate | Native CORTEX Language Core |
+| Primary Target | Linux x86_64 |
+| Compute Model | CPU-first |
+| Learning Model | Online / Continual / State-Based |
+| Autonomy Model | Policy-Bounded |
 
 ---
 
-1. System Definition
+## 1. System Definition
 
-CORTEX is a persistent, state-based, continually learning AI model implemented entirely as a native Rust system.
+CORTEX is a persistent, state-based, continually learning AI model implemented entirely as a native Rust system. CORTEX is not an orchestration layer around another AI model. The cognitive substrate, language processing, memory, world modeling, reasoning, planning, verification, learning, self-model, persistence, and policy enforcement belong to CORTEX itself.
 
-CORTEX is not an orchestration layer around another AI model. The cognitive substrate, language processing, memory, world modeling, reasoning, planning, verification, learning, self-model, persistence, and policy enforcement belong to CORTEX itself.
+### 1.1. Component Topology
 
-The complete system is defined as:
-
+```
 CORTEX
-│
-├── Language Core
-├── Neural Core
+├── Language Core (CLX)
+├── Neural Core (CNS)
 ├── Memory System
+│   ├── Working Memory
+│   ├── Episodic Memory
+│   ├── Semantic Memory
+│   ├── Procedural Memory
+│   └── Associative Memory
 ├── World Model
 ├── Reasoning Engine
 ├── Planning Engine
@@ -49,9 +54,11 @@ CORTEX
 ├── Runtime
 ├── CLI
 └── Embedded API
+```
 
-The fundamental cognitive transformation is:
+### 1.2. Fundamental Cognitive Transformation
 
+```
 Observation
     ↓
 Language / Perceptual Encoding
@@ -85,303 +92,274 @@ Learning
 Consolidation
     ↓
 Persistent Cognitive State
+```
 
 The persistent state is continuously transformed rather than periodically replaced by a separately trained model.
 
+---
+
+## 2. Architectural Principles
+
+CORTEX adheres to the following principles:
+
+| # | Principle |
+|---|---|
+| 1 | Single executable |
+| 2 | Single process |
+| 3 | Single configuration |
+| 4 | Single persistent cognitive state |
+| 5 | Native Rust implementation |
+| 6 | Native cognitive algorithms |
+| 7 | Native Language Core |
+| 8 | No external AI model |
+| 9 | No external database |
+| 10 | No vector database |
+| 11 | No agent framework |
+| 12 | Continual learning |
+| 13 | Persistent memory |
+| 14 | Persistent world model |
+| 15 | Persistent learned language state |
+| 16 | Inspectable cognitive state |
+| 17 | Replaceable algorithm implementations |
+| 18 | Versioned state |
+| 19 | Provenance-aware knowledge |
+| 20 | Resource-bounded execution |
+| 21 | Policy-bounded autonomy |
+| 22 | Fail-closed security behavior |
+| 23 | Deterministic infrastructure where practical |
+| 24 | CPU-first execution |
+| 25 | No mandatory external runtime |
+| 26 | End-to-end operation after deployment |
 
 ---
 
-2. Architectural Principles
+## 3. Architectural Boundary
 
-CORTEX SHALL follow these principles.
+### 3.1. Internal Components (CORTEX itself)
 
-#	Principle
+- Language representation
+- Neural representation
+- Memory
+- World model
+- Reasoning
+- Planning
+- Verification
+- Learning
+- Consolidation
+- Self-model
+- Policy
+- Persistence
+- Runtime
+- API
+- CLI
 
-1	Single executable
-2	Single process
-3	Single configuration
-4	Single persistent cognitive state
-5	Native Rust implementation
-6	Native cognitive algorithms
-7	Native Language Core
-8	No external AI model
-9	No external database
-10	No vector database
-11	No agent framework
-12	Continual learning
-13	Persistent memory
-14	Persistent world model
-15	Persistent learned language state
-16	Inspectable cognitive state
-17	Replaceable algorithm implementations
-18	Versioned state
-19	Provenance-aware knowledge
-20	Resource-bounded execution
-21	Policy-bounded autonomy
-22	Fail-closed security behavior
-23	Deterministic infrastructure where practical
-24	CPU-first execution
-25	No mandatory external runtime
-26	End-to-end operation after deployment
+### 3.2. External Infrastructure (permitted)
 
+- Operating system
+- Filesystem
+- Network
+- TCP/IP
+- Time
+- Process scheduling
 
+### 3.3. External Libraries (permitted for infrastructure)
 
----
+- Serialization
+- Compression
+- Cryptography
+- Networking
+- OS interaction
 
-3. Architectural Boundary
-
-The following components are considered part of CORTEX itself:
-
-Language representation
-Neural representation
-Memory
-World model
-Reasoning
-Planning
-Verification
-Learning
-Consolidation
-Self-model
-Policy
-Persistence
-Runtime
-API
-CLI
-
-External infrastructure may provide:
-
-Operating system
-Filesystem
-Network
-TCP/IP
-Time
-Process scheduling
-
-External libraries may be used for infrastructure concerns such as:
-
-serialization
-compression
-cryptography
-networking
-OS interaction
-
-but they SHALL NOT constitute the cognitive substrate.
-
+External libraries SHALL NOT constitute the cognitive substrate.
 
 ---
 
-4. Single-Binary Requirement
+## 4. Single-Binary Requirement
 
-The production artifact is:
+The production artifact is the `cortex` binary. It contains the complete runtime. A deployment SHALL NOT require a separate model server, inference server, database server, vector database, embedding server, agent runtime, knowledge graph server, external reasoning engine, or external memory service.
 
-cortex
+### 4.1. Intended Deployment Structure
 
-The binary SHALL contain the complete runtime.
-
-A deployment SHALL NOT require:
-
-separate model server
-separate inference server
-database server
-vector database
-embedding server
-agent runtime
-knowledge graph server
-external reasoning engine
-external memory service
-
-The intended deployment structure is:
-
+```
 /opt/cortex/
-│
-├── cortex
-├── cortex.toml
-└── cortex.cx
+├── cortex          # executable
+├── cortex.toml     # configuration
+└── cortex.cx       # persistent cognitive state (auto-created on first boot)
+```
 
 Optional:
 
+```
 /opt/cortex/
-│
 ├── cortex
 ├── cortex.toml
 ├── cortex.cx
-└── checkpoints/
+└── checkpoints/    # periodic checkpoint snapshots
+```
 
+### 4.2. Deployment Contract
 
----
-
-5. End-to-End Runtime
-
-CORTEX SHALL expose a unified runtime pipeline:
-
-Input
- ↓
-Input Classification
- ↓
-Language Encoding
- ↓
-Context Construction
- ↓
-Neural Representation
- ↓
-Memory Retrieval
- ↓
-World Model Integration
- ↓
-Hypothesis Formation
- ↓
-Reasoning
- ↓
-Planning if required
- ↓
-Verification
- ↓
-Response / Action Selection
- ↓
-Language Generation
- ↓
-Output
- ↓
-Experience Recording
- ↓
-Prediction Evaluation
- ↓
-Error Attribution
- ↓
-Continual Learning
- ↓
-Consolidation
- ↓
-Persistence
-
-Not every request must execute every subsystem at maximum depth.
-
-The runtime selects the minimum cognitive path required by the request while preserving the architectural interfaces between subsystems.
-
+A valid deployment consists of `cortex`, `cortex.toml`, and `cortex.cx` (auto-created on first boot). No external model artifact, external database, or separate service is mandatory.
 
 ---
 
-6. CORTEX Cognitive State
+## 5. Configuration
+
+The canonical configuration file is `cortex.toml`. It defines how CORTEX operates. The `.cx` file defines what CORTEX has learned and remembers. This distinction is fundamental and immutable.
+
+### 5.1. Configuration Schema
+
+```toml
+[model]
+cells = 4096          # uint, minimum 256
+columns = 64          # uint, minimum 16
+dimension = 256       # uint, minimum 64
+precision = "f32"     # "f32" | "f16" | "bf16"
+
+[language]
+enabled = true                    # bool
+vocabulary_capacity = 65536       # uint, minimum 256
+context_window = 4096             # uint, minimum 64
+generation_limit = 1024           # uint, minimum 32
+learning = true                   # bool
+
+[memory]
+working_mb = 128      # uint, minimum 16
+episodic_mb = 512     # uint, minimum 32
+semantic_mb = 512     # uint, minimum 32
+procedural_mb = 256   # uint, minimum 16
+associative_mb = 256  # uint, minimum 16
+
+[learning]
+enabled = true                   # bool
+learning_rate = 0.001            # float, (0, 1]
+plasticity = 0.01               # float, [0, 1]
+replay = true                    # bool
+consolidation_interval = 1000   # uint, minimum 1
+
+[world]
+enabled = true               # bool
+prediction_horizon = 8       # uint, minimum 1
+
+[reasoning]
+enabled = true    # bool
+max_steps = 32   # uint, minimum 1
+
+[planning]
+enabled = true      # bool
+max_depth = 8      # uint, minimum 1
+max_branches = 16  # uint, minimum 1
+
+[verification]
+enabled = true                # bool
+minimum_confidence = 0.80     # float, [0, 1]
+
+[internet]
+enabled = true                # bool
+timeout_seconds = 15          # uint, minimum 1
+max_response_mb = 4           # uint, minimum 1
+
+[policy]
+learning = true              # bool
+internet_learning = true     # bool
+self_modification = false    # bool
+policy_modification = false  # bool
+runtime_modification = false # bool
+
+[api]
+enabled = true                       # bool
+bind = "127.0.0.1:8080"             # string, socket address
+api_key_env = "CORTEX_API_KEY"      # string, env var name
+
+[persistence]
+state = "cortex.cx"            # string, file path
+checkpoint_interval = 1000     # uint, minimum 1
+```
+
+### 5.2. Configuration Validation
+
+At startup: parse → schema validation → range validation → dependency validation → policy validation → runtime initialization. Invalid configuration SHALL prevent startup.
+
+### 5.3. Configuration Immutability Boundary
+
+Configuration controls architecture limits, resource limits, policy defaults, runtime behavior, persistence, API, and learning parameters. Learning SHALL NOT silently rewrite `cortex.toml`. Runtime state belongs in `.cx`. Administrative configuration belongs in `cortex.toml`. Secrets belong in environment variables or an equivalent external secret mechanism.
+
+---
+
+## 6. Cognitive State
+
+### 6.1. State Definition
 
 The complete persistent cognitive state is:
 
-Cₜ = {
-    language_state,
-    neural_state,
-    working_memory,
-    episodic_memory,
-    semantic_memory,
-    procedural_memory,
-    associative_memory,
-    world_state,
-    reasoning_state,
-    planning_state,
-    verification_state,
-    learning_state,
-    self_state,
-    provenance_state,
-    runtime_metadata
+```rust
+struct CortexState {
+    language: LanguageState,
+    neural: NeuralState,
+    memory: MemoryState,
+    world: WorldState,
+    reasoning: ReasoningState,
+    planning: PlanningState,
+    verification: VerificationState,
+    learning: LearningState,
+    self_model: SelfModel,
+    provenance: ProvenanceState,
+    metadata: StateMetadata,
 }
+```
 
-The state transition function is:
+### 6.2. State Transition Function
 
-Cₜ₊₁ = F(Cₜ, Oₜ, Eₜ, Pₜ)
+```
+C(t+1) = F(C(t), O(t), E(t), P(t))
+```
 
-where:
-
-Cₜ = current cognitive state
-Oₜ = observation
-Eₜ = experience / feedback / prediction error
-Pₜ = active policy
+Where:
+- `C(t)` = current cognitive state
+- `O(t)` = observation
+- `E(t)` = experience / feedback / prediction error
+- `P(t)` = active policy
 
 The policy is an external constraint on adaptation, not an ordinary learned memory.
 
-
 ---
 
-7. Language Core
+## 7. Language Core (CLX)
 
-The Language Core is named:
+CLX — CORTEX Language Core — is the native language-processing substrate of CORTEX. It handles text ingestion, symbol recognition, tokenization, vocabulary management, lexical representation, syntax representation, semantic representation, context modeling, language prediction, meaning construction, response planning, language realization, and text generation. CLX SHALL NOT depend on an external LLM.
 
-CLX — CORTEX Language Core
+### 7.1. Architecture
 
-CLX is the native language-processing substrate of CORTEX.
-
-It is responsible for:
-
-text ingestion
-symbol recognition
-tokenization
-vocabulary management
-lexical representation
-syntax representation
-semantic representation
-context modeling
-language prediction
-meaning construction
-response planning
-language realization
-text generation
-
-The Language Core SHALL NOT depend on an external LLM.
-
-
----
-
-8. Language Core Architecture
-
+```
 LANGUAGE CORE
-                         │
-              ┌──────────┴──────────┐
-              │                     │
-         INPUT PATH            OUTPUT PATH
-              │                     │
-        normalization         response meaning
-              │                     │
-         segmentation          response planning
-              │                     │
-       symbol encoding         lexical selection
-              │                     │
-        token sequence         syntax generation
-              │                     │
-        lexical state          semantic validation
-              │                     │
-       syntax analysis         decoding
-              │                     │
-      semantic analysis             │
-              │                     │
-        context model               │
-              └──────────┬──────────┘
-                         │
-                  COGNITIVE STATE
+                     │
+          ┌──────────┴──────────┐
+          │                     │
+     INPUT PATH            OUTPUT PATH
+          │                     │
+    normalization         response meaning
+          │                     │
+     segmentation          response planning
+          │                     │
+   symbol encoding         lexical selection
+          │                     │
+    token sequence         syntax generation
+          │                     │
+     lexical state         semantic validation
+          │                     │
+    syntax analysis         decoding
+          │                     │
+   semantic analysis             │
+          │                     │
+     context model               │
+          └──────────┬──────────┘
+                     │
+              COGNITIVE STATE
+```
 
+### 7.2. Language State
 
----
-
-9. Language Representation
-
-A language input SHALL be represented at multiple levels.
-
-Raw Text
- ↓
-Character / Symbol
- ↓
-Token
- ↓
-Lexical Unit
- ↓
-Phrase / Structure
- ↓
-Concept
- ↓
-Relation
- ↓
-Semantic State
- ↓
-Cognitive Representation
-
-A conceptual structure is:
-
+```rust
 struct LanguageState {
     symbols: SymbolSequence,
     tokens: TokenSequence,
@@ -394,14 +372,33 @@ struct LanguageState {
     intent: IntentHypotheses,
     confidence: ConfidenceState,
 }
+```
 
+### 7.3. Representation Hierarchy
 
----
+```
+Raw Text
+  ↓
+Character / Symbol
+  ↓
+Token
+  ↓
+Lexical Unit
+  ↓
+Phrase / Structure
+  ↓
+Concept
+  ↓
+Relation
+  ↓
+Semantic State
+  ↓
+Cognitive Representation
+```
 
-10. Symbol System
+### 7.4. Symbol System
 
-CORTEX SHALL maintain a native symbol representation.
-
+```rust
 struct Symbol {
     id: u32,
     kind: SymbolKind,
@@ -411,30 +408,27 @@ struct Symbol {
     associations: AssociationSet,
 }
 
-Supported symbol classes may include:
-
-character
-subword
-word
-concept
-entity
-relation
-operator
-punctuation
-structural marker
-special token
+enum SymbolKind {
+    Character,
+    Subword,
+    Word,
+    Concept,
+    Entity,
+    Relation,
+    Operator,
+    Punctuation,
+    StructuralMarker,
+    SpecialToken,
+}
+```
 
 The representation SHALL be extensible without requiring a complete model rebuild.
 
+### 7.5. Dynamic Vocabulary
 
----
+The vocabulary supports continual expansion. Unknown input follows:
 
-11. Dynamic Vocabulary
-
-The vocabulary SHALL support continual expansion.
-
-Unknown input:
-
+```
 Unknown Symbol
       ↓
 Context Observation
@@ -448,170 +442,87 @@ Semantic Hypothesis
 Evidence
       ↓
 Vocabulary Update
+```
 
-A new symbol SHALL NOT automatically be considered semantically understood.
+Vocabulary membership and semantic understanding are separate states. A new symbol SHALL NOT automatically be considered semantically understood.
 
-Vocabulary membership and semantic understanding are separate states.
+### 7.6. Lexical Learning
 
+Lexical associations are learned from: co-occurrence, sequence, context, repetition, user feedback, verified information, prediction error, and semantic association. The system maintains confidence and provenance for learned lexical meanings.
 
----
+### 7.7. Syntax System
 
-12. Lexical Learning
+Syntax is represented internally as relationships rather than only token positions. Example: "Ali gives the book to Budi" produces:
 
-Lexical associations may be learned from:
+```
+ACTION:    GIVE
+AGENT:     ALI
+OBJECT:    BOOK
+RECIPIENT: BUDI
+```
 
-co-occurrence
-sequence
-context
-repetition
-user feedback
-verified information
-prediction error
-semantic association
+The syntax subsystem supports: dependency, ordering, roles, nesting, scope, agreement, and structural context.
 
-The system SHALL maintain confidence and provenance for learned lexical meanings.
+### 7.8. Semantic System
 
+Semantic representation maps linguistic structures into concepts and relations. Example: "Water boils at approximately 100°C at standard atmospheric pressure" produces:
 
----
+```
+ENTITY:     water
+PROPERTY:   boiling_temperature
+VALUE:      approximately 100°C
+CONDITION:  standard atmospheric pressure
+```
 
-13. Syntax System
+Semantic representations are connected to semantic memory, world model, reasoning, verification, and language generation.
 
-Syntax is represented internally as relationships rather than only token positions.
+### 7.9. Context Model
 
-Example:
+CORTEX maintains hierarchical context:
 
-"Ali gives the book to Budi."
+| Level | Scope |
+|---|---|
+| Symbol Context | Individual token/symbol level |
+| Sentence Context | Single utterance |
+| Conversation Context | Current interaction session |
+| Episode Context | Related historical experiences |
+| Semantic Context | Active conceptual frame |
+| World Context | Current world-state assumptions |
+| Long-Term Context | Persistent background state |
 
-may be represented as:
+Context influences interpretation, memory retrieval, prediction, reasoning, generation, and confidence.
 
-ACTION:
-    GIVE
+### 7.10. Intent Representation
 
-AGENT:
-    ALI
+Input intent is represented as hypotheses rather than absolute classification when ambiguity exists:
 
-OBJECT:
-    BOOK
-
-RECIPIENT:
-    BUDI
-
-The syntax subsystem SHALL support:
-
-dependency
-ordering
-roles
-nesting
-scope
-agreement
-structural context
-
-
----
-
-14. Semantic System
-
-Semantic representation maps linguistic structures into concepts and relations.
-
-Example:
-
-"Water boils at approximately 100°C at standard atmospheric pressure."
-
-may produce:
-
-ENTITY:
-    water
-
-PROPERTY:
-    boiling_temperature
-
-VALUE:
-    approximately 100°C
-
-CONDITION:
-    standard atmospheric pressure
-
-Semantic representations SHALL be connected to:
-
-semantic memory
-world model
-reasoning
-verification
-language generation
-
-
----
-
-15. Context Model
-
-CORTEX SHALL maintain hierarchical context:
-
-Symbol Context
-Sentence Context
-Conversation Context
-Episode Context
-Semantic Context
-World Context
-Long-Term Context
-
-Context SHALL influence:
-
-interpretation
-memory retrieval
-prediction
-reasoning
-generation
-confidence
-
-
----
-
-16. Intent Representation
-
-Input intent SHALL be represented as hypotheses rather than an absolute classification when ambiguity exists.
-
-Example:
-
-IntentHypothesis {
-    intent,
-    evidence,
-    confidence,
-    alternatives,
+```rust
+struct IntentHypothesis {
+    intent: Intent,
+    evidence: EvidenceSet,
+    confidence: Scalar,
+    alternatives: Vec<IntentHypothesis>,
 }
 
-Possible intent categories include:
+enum Intent {
+    Question,
+    Instruction,
+    Statement,
+    Correction,
+    Feedback,
+    RequestForAction,
+    RequestForReasoning,
+    RequestForGeneration,
+    Observation,
+    Conversation,
+}
+```
 
-question
-instruction
-statement
-correction
-feedback
-request_for_action
-request_for_reasoning
-request_for_generation
-observation
-conversation
+### 7.11. Language Prediction
 
+CORTEX predicts candidate continuations and meanings. Prediction scoring combines:
 
----
-
-17. Language Prediction
-
-CORTEX SHALL predict candidate continuations and meanings.
-
-Prediction scoring may combine:
-
-lexical probability
-temporal context
-semantic coherence
-world consistency
-memory relevance
-verification state
-confidence
-policy constraints
-
-Conceptually:
-
+```
 Score(candidate) =
     LanguageScore
   + ContextScore
@@ -621,51 +532,57 @@ Score(candidate) =
   + VerificationScore
   - ContradictionPenalty
   - RiskPenalty
+```
 
+### 7.12. Language Generation
 
----
+Generation proceeds from internal meaning toward language:
 
-18. Language Generation
-
-Generation SHALL proceed from internal meaning toward language.
-
+```
 Cognitive Result
- ↓
+  ↓
 Response Intent
- ↓
+  ↓
 Meaning Representation
- ↓
+  ↓
 Response Structure
- ↓
+  ↓
 Candidate Expressions
- ↓
+  ↓
 Semantic Validation
- ↓
+  ↓
 Syntax Realization
- ↓
+  ↓
 Token Selection
- ↓
+  ↓
 Output
+```
 
-This separates:
+This separates what CORTEX intends to communicate from how CORTEX expresses it.
 
-what CORTEX intends to communicate
+### 7.13. CLX Interface Contract
 
-from:
-
-how CORTEX expresses it
-
+```rust
+trait LanguageCore {
+    fn encode(&self, input: &str, context: &ContextState) -> Result<LanguageState>;
+    fn decode(&self, state: &LanguageState, meaning: &MeaningRepresentation) -> Result<String>;
+    fn predict(&self, state: &LanguageState) -> Result<Vec<CandidateContinuation>>;
+    fn generate(&self, meaning: &VerifiedResult) -> Result<GeneratedResponse>;
+    fn update(&mut self, learning_signal: &LearningSignal) -> Result<()>;
+    fn vocabulary_size(&self) -> usize;
+    fn context_window_size(&self) -> usize;
+}
+```
 
 ---
 
-19. Neural Core
+## 8. Neural Core (CNS)
 
-The native neural substrate is:
+CNS — CORTEX Neural Substrate — is the native neural processing substrate. It transforms language and perceptual representations into sparse, temporally-aware neural representations and generates predictions.
 
-CNS — CORTEX Neural Substrate
+### 8.1. Architecture
 
-Architecture:
-
+```
 Input Representation
         ↓
 Cell Field
@@ -681,43 +598,40 @@ Prediction
 Prediction Error
         ↓
 Plasticity
+```
 
+### 8.2. Cell
 
----
+Cell is the fundamental computational unit:
 
-20. Cell
-
-Cell is the fundamental computational unit.
-
+```rust
 struct Cell {
     id: CellId,
-    state: State,
+    state: CellState,
     activation: Scalar,
-    context: Context,
-    prediction: Prediction,
+    context: ContextVector,
+    prediction: PredictionVector,
     confidence: Scalar,
     plasticity: Scalar,
     connections: Connections,
 }
 
-Cell operations:
+enum CellState {
+    Resting,
+    Active,
+    Inhibited,
+    Learning,
+    Predicting,
+}
+```
 
-receive
-activate
-inhibit
-associate
-predict
-adapt
-decay
-reset
+Cell operations: receive, activate, inhibit, associate, predict, adapt, decay, reset.
 
+### 8.3. Column
 
----
+Columns organize cells into local computational structures:
 
-21. Column
-
-Columns organize cells into local computational structures.
-
+```rust
 struct Column {
     id: ColumnId,
     cells: CellSet,
@@ -727,170 +641,118 @@ struct Column {
     competition: CompetitionState,
     routing: RoutingState,
 }
+```
 
-Processing:
+Column processing: Input → Cell activation → Competition → Sparse selection → Column representation.
 
-Input
- ↓
-Cell activation
- ↓
-Competition
- ↓
-Sparse selection
- ↓
-Column representation
+### 8.4. Neural Field
 
+Columns are grouped into fields:
 
----
+```rust
+struct Field {
+    id: FieldId,
+    columns: ColumnSet,
+    global_context: ContextVector,
+    local_context: ContextVector,
+    routing: RoutingState,
+    competition: CompetitionState,
+    temporal_state: TemporalState,
+    prediction_state: PredictionState,
+}
+```
 
-22. Neural Field
+Fields represent different learned structures (e.g., language, concepts, temporal patterns, world states, procedures).
 
-Columns are grouped into fields.
+### 8.5. Sparse Representation
 
-Field
-│
-├── Columns
-├── Global Context
-├── Local Context
-├── Routing
-├── Competition
-├── Temporal State
-└── Prediction State
+CORTEX uses sparse activation as its baseline representation strategy. For a field of 4096 cells, only a bounded subset may be active simultaneously. Sparsity controls memory efficiency, computational efficiency, representation separation, and interference reduction.
 
-Fields may represent different learned structures.
+Sparsity bound: `active_cells = min(configured_max_active, field_size * sparsity_ratio)` where `sparsity_ratio` is derived from configuration and defaults to approximately 0.05.
 
-Examples:
-
-language
-concepts
-temporal patterns
-world states
-procedures
-
-
----
-
-23. Sparse Representation
-
-CORTEX SHALL use sparse activation as its baseline representation strategy.
-
-For:
-
-4096 cells
-
-only a bounded subset may be active simultaneously.
-
-Sparsity controls:
-
-memory efficiency
-computational efficiency
-representation separation
-interference reduction
-
-
----
-
-24. Temporal Representation
-
-CORTEX SHALL represent temporal state.
+### 8.6. Temporal Representation
 
 Given:
 
-X(t-2)
-X(t-1)
-X(t)
+```
+X(t-2), X(t-1), X(t)
+```
 
-the system produces a temporal representation:
+CNS produces temporal representation `T(t)` encoding sequence, transition, recurrence, context, event order, and temporal dependency.
 
-T(t)
+### 8.7. Neural Prediction
 
-which can encode:
+Neural prediction is a first-class operation:
 
-sequence
-transition
-recurrence
-context
-event order
-temporal dependency
-
-
----
-
-25. Neural Prediction
-
-Neural prediction is a first-class operation.
-
+```
 Current State
- ↓
+  ↓
 Context
- ↓
+  ↓
 Active Representation
- ↓
+  ↓
 Predicted Next State
+```
 
-The prediction becomes a principal learning signal when compared with subsequent observation.
+The prediction becomes the principal learning signal when compared with subsequent observation.
 
-
----
-
-26. Plasticity
+### 8.8. Plasticity
 
 The baseline local plasticity mechanism is:
 
+```
 ΔW = η × A × C × E × V
+```
 
-where:
+Where:
+- `η` = learning rate
+- `A` = activation relationship
+- `C` = context factor
+- `E` = prediction error
+- `V` = evidence/confidence
 
-η = learning rate
-A = activation relationship
-C = context factor
-E = prediction error
-V = evidence/confidence
+All updates are bounded. No single observation may arbitrarily destabilize the complete neural state.
 
-Actual implementation SHALL bound all updates.
+### 8.9. CNS Interface Contract
 
-No single observation may arbitrarily destabilize the complete neural state.
-
-
----
-
-27. Memory Architecture
-
-CORTEX SHALL maintain:
-
-Working Memory
-Episodic Memory
-Semantic Memory
-Procedural Memory
-Associative Memory
-
-Memory is a cognitive subsystem rather than an external database.
-
+```rust
+trait NeuralCore {
+    fn process(&self, input: &LanguageState, context: &ContextState) -> Result<NeuralRepresentation>;
+    fn predict(&self, state: &NeuralState) -> Result<Prediction>;
+    fn compute_error(&self, predicted: &Prediction, actual: &Observation) -> Result<PredictionError>;
+    fn adapt(&mut self, error: &PredictionError, signal: &LearningSignal) -> Result<()>;
+    fn field_count(&self) -> usize;
+    fn active_cells(&self) -> usize;
+    fn active_columns(&self) -> usize;
+}
+```
 
 ---
 
-28. Working Memory
+## 9. Memory System
 
-Working memory contains:
+CORTEX maintains five memory subsystems. Memory is a cognitive subsystem rather than an external database.
 
-current input
-current conversation context
-active concepts
-active hypotheses
-current goals
-temporary reasoning state
-current world-state assumptions
-generation state
+### 9.1. Working Memory
 
-Working memory is bounded.
+Working memory contains: current input, current conversation context, active concepts, active hypotheses, current goals, temporary reasoning state, current world-state assumptions, and generation state. Working memory is bounded by `memory.working_mb`.
 
+```rust
+struct WorkingMemory {
+    input: Option<CurrentInput>,
+    conversation_context: ConversationContext,
+    active_concepts: ConceptSet,
+    active_hypotheses: HypothesisSet,
+    goals: GoalSet,
+    reasoning_state: Option<ReasoningSnapshot>,
+    world_assumptions: WorldStateSnapshot,
+    generation_state: Option<GenerationState>,
+}
+```
 
----
+### 9.2. Episodic Memory
 
-29. Episodic Memory
-
-Episode:
-
+```rust
 struct Episode {
     id: EpisodeId,
     observation: Observation,
@@ -904,16 +766,13 @@ struct Episode {
     source: Provenance,
     importance: Scalar,
 }
+```
 
-Episodes preserve experience.
+Episodes preserve experience. Bounded by `memory.episodic_mb`.
 
+### 9.3. Semantic Memory
 
----
-
-30. Semantic Memory
-
-Semantic memory stores generalized knowledge.
-
+```rust
 struct Knowledge {
     concept: ConceptId,
     properties: PropertySet,
@@ -922,88 +781,80 @@ struct Knowledge {
     confidence: ConfidenceState,
     provenance: ProvenanceSet,
 }
+```
 
-Semantic knowledge SHALL be revisable.
+Semantic knowledge is revisable. Bounded by `memory.semantic_mb`.
 
+### 9.4. Procedural Memory
 
----
+```rust
+struct Procedure {
+    id: ProcedureId,
+    condition: Condition,
+    steps: Vec<Action>,
+    expected_outcome: Outcome,
+    success_count: u64,
+    failure_count: u64,
+    confidence: Scalar,
+    context_requirements: ContextRequirements,
+    risk: RiskAssessment,
+    provenance: Provenance,
+}
+```
 
-31. Procedural Memory
+Bounded by `memory.procedural_mb`.
 
-Procedural memory stores learned procedures:
+### 9.5. Associative Memory
 
-Condition
-    ↓
-Procedure
-    ↓
-Expected Outcome
+Associative memory represents relationships among internal structures:
 
-A procedure SHALL have:
+```rust
+struct Association {
+    id: AssociationId,
+    source: InternalId,
+    target: InternalId,
+    kind: AssociationKind,
+    strength: Scalar,
+    confidence: Scalar,
+    context: ContextState,
+    provenance: Provenance,
+}
 
-success statistics
-failure statistics
-confidence
-context requirements
-risk
-provenance
+enum AssociationKind {
+    Semantic,
+    Temporal,
+    Contextual,
+    Causal,
+    Episodic,
+    Procedural,
+}
+```
 
+Retrieval score considers: semantic relevance, context relevance, temporal relevance, association strength, importance, prediction relevance, confidence, and recency.
 
----
+### 9.6. Memory Retrieval
 
-32. Associative Memory
-
-Associative memory represents relationships among internal structures.
-
-Concept
-│
-├── semantic
-├── temporal
-├── contextual
-├── causal
-├── episodic
-└── procedural
-
-Retrieval score SHALL consider more than simple similarity.
-
-Possible factors:
-
-semantic relevance
-context relevance
-temporal relevance
-association strength
-importance
-prediction relevance
-confidence
-recency
-
-
----
-
-33. Memory Retrieval
-
-Memory retrieval:
-
+```
 Query
- ↓
+  ↓
 Context Analysis
- ↓
+  ↓
 Candidate Retrieval
- ↓
+  ↓
 Relevance Scoring
- ↓
+  ↓
 Confidence Filtering
- ↓
+  ↓
 Contradiction Detection
- ↓
+  ↓
 Ranked Memory Set
+```
 
-Retrieved memories SHALL preserve provenance and confidence.
+Retrieved memories preserve provenance and confidence.
 
+### 9.7. Memory Consolidation
 
----
-
-34. Memory Consolidation
-
+```
 Working Memory
       ↓
 Episode Formation
@@ -1017,76 +868,60 @@ Evidence Evaluation
 Consolidation
       ↓
 Long-Term Memory
+```
 
-Consolidation may:
+Consolidation may: merge, compress, strengthen, generalize, decay, forget.
 
-merge
-compress
-strengthen
-generalize
-decay
-forget
+### 9.8. Forgetting
 
+Forgetting is controlled rather than arbitrary. Candidate forgetting factors: low importance, low retrieval frequency, low confidence, redundancy, age, memory pressure, contradiction. High-value knowledge receives stronger retention.
 
----
+### 9.9. Memory Interface Contract
 
-35. Forgetting
-
-Forgetting SHALL be controlled rather than arbitrary.
-
-Candidate forgetting factors:
-
-low importance
-low retrieval frequency
-low confidence
-redundancy
-age
-memory pressure
-contradiction
-
-High-value knowledge SHALL receive stronger retention.
-
+```rust
+trait MemorySystem {
+    fn store(&mut self, episode: Episode) -> Result<()>;
+    fn retrieve(&self, query: &MemoryQuery, context: &ContextState) -> Result<RankedMemorySet>;
+    fn consolidate(&mut self) -> Result<ConsolidationResult>;
+    fn forget(&mut self, policy: &ForgettingPolicy) -> Result<ForgettingResult>;
+    fn working_memory(&self) -> &WorkingMemory;
+    fn working_memory_mut(&mut self) -> &mut WorkingMemory;
+    fn episode_count(&self) -> usize;
+    fn knowledge_count(&self) -> usize;
+    fn memory_usage(&self) -> MemoryUsage;
+}
+```
 
 ---
 
-36. World Model
+## 10. World Model
 
-The World Model represents CORTEX's current internal model of external reality.
+The World Model represents CORTEX's current internal model of external reality. It is explicitly distinguished from raw memory.
 
-WorldModel
-│
-├── Entities
-├── Properties
-├── States
-├── Relations
-├── Events
-├── Transitions
-├── Temporal Patterns
-├── Causal Hypotheses
-└── Uncertainty
+### 10.1. World Model Structure
 
-The world model is explicitly distinguished from raw memory.
+```rust
+struct WorldModel {
+    entities: EntitySet,
+    properties: PropertyMap,
+    states: StateMap,
+    relations: RelationSet,
+    events: EventSet,
+    transitions: TransitionSet,
+    temporal_patterns: TemporalPatternSet,
+    causal_hypotheses: CausalHypothesisSet,
+    uncertainty: UncertaintyState,
+}
+```
 
+### 10.2. Entity Model
 
----
+Entities may represent: person, object, place, organization, conceptual object, event, system, process.
 
-37. Entity Model
-
-Entities may represent:
-
-person
-object
-place
-organization
-conceptual object
-event
-system
-process
-
-Conceptual structure:
-
+```rust
 struct Entity {
     id: EntityId,
+    kind: EntityKind,
     identity: IdentityState,
     properties: PropertySet,
     state: EntityState,
@@ -1095,63 +930,49 @@ struct Entity {
     provenance: ProvenanceSet,
 }
 
-
----
-
-38. State Model
-
-A world state is:
-
-WorldState {
-    entities
-    relations
-    active_events
-    temporal_context
-    uncertainty
+enum EntityKind {
+    Person,
+    Object,
+    Place,
+    Organization,
+    ConceptualObject,
+    Event,
+    System,
+    Process,
 }
+```
+
+### 10.3. World State
+
+```rust
+struct WorldState {
+    entities: EntitySet,
+    relations: RelationSet,
+    active_events: EventSet,
+    temporal_context: TemporalContext,
+    uncertainty: UncertaintyState,
+}
+```
 
 World state changes over time.
 
+### 10.4. Transition Model
 
----
-
-39. Transition Model
-
-CORTEX SHALL model transitions:
-
+```
 S(t) + A(t)
     ↓
 Transition Model
     ↓
 Predicted S(t+1)
+```
 
-Actual observation:
+Actual observation: `Actual S(t+1)`. Comparison yields prediction error.
 
-Actual S(t+1)
+### 10.5. Causal Hypotheses
 
-Comparison:
+CORTEX distinguishes correlation, association, temporal relationship, causal hypothesis, and verified causal relationship:
 
-Prediction Error
-
-
----
-
-40. Causal Hypotheses
-
-CORTEX SHALL distinguish:
-
-correlation
-association
-temporal relationship
-causal hypothesis
-verified causal relationship
-
-A causal relationship:
-
-A → B
-
-is initially represented as:
-
+```rust
 struct CausalHypothesis {
     cause: ConceptId,
     effect: ConceptId,
@@ -1160,54 +981,66 @@ struct CausalHypothesis {
     contradictions: EvidenceSet,
     conditions: ConditionSet,
 }
+```
 
+### 10.6. Counterfactual Model
 
----
+CORTEX supports hypothetical world trajectories. A counterfactual result carries uncertainty:
 
-41. Counterfactual Model
-
-CORTEX SHALL support hypothetical world trajectories.
-
+```
 Current World State
        │
        ├── Actual trajectory
        │
        └── Hypothetical trajectory
+```
 
-A counterfactual result SHALL carry uncertainty.
+### 10.7. World Model Interface Contract
 
+```rust
+trait WorldModelInterface {
+    fn integrate(&mut self, representation: &NeuralRepresentation, memories: &MemoryRetrieval) -> Result<WorldState>;
+    fn predict_transition(&self, state: &WorldState, action: &Action) -> Result<PredictedState>;
+    fn observe(&mut self, observation: &Observation, provenance: &Provenance) -> Result<()>;
+    fn simulate(&self, state: &WorldState, actions: &[Action]) -> Result<SimulatedTrajectory>;
+    fn entity_count(&self) -> usize;
+    fn relation_count(&self) -> usize;
+}
+```
 
 ---
 
-42. Reasoning Engine
+## 11. Reasoning Engine
 
 The reasoning system is based on a Hypothesis Workspace.
 
+### 11.1. Reasoning Pipeline
+
+```
 Observation
- ↓
+  ↓
 Problem Representation
- ↓
+  ↓
 Memory Retrieval
- ↓
+  ↓
 Hypothesis Generation
- ↓
+  ↓
 Evidence Evaluation
- ↓
+  ↓
 World Simulation
- ↓
+  ↓
 Counter-Evidence Search
- ↓
+  ↓
 Contradiction Detection
- ↓
+  ↓
 Hypothesis Ranking
- ↓
+  ↓
 Conclusion
+```
 
+### 11.2. Hypothesis State
 
----
-
-43. Hypothesis State
-
+```rust
 struct Hypothesis {
     id: HypothesisId,
     proposition: Proposition,
@@ -1218,92 +1051,59 @@ struct Hypothesis {
     contradictions: ContradictionSet,
     provenance: ProvenanceSet,
 }
+```
 
+### 11.3. Reasoning Types
 
----
+CORTEX supports: deductive reasoning, inductive reasoning, abductive reasoning, analogical reasoning, temporal reasoning, causal reasoning, counterfactual reasoning, constraint reasoning, and consistency reasoning. No reasoning result automatically becomes verified knowledge.
 
-44. Reasoning Types
+### 11.4. Contradiction Handling
 
-CORTEX SHALL support:
+When knowledge A conflicts with knowledge B, CORTEX retains the conflict until resolved. The system evaluates: source quality, recency, independent confirmation, logical consistency, context, and verification status.
 
-deductive reasoning
-inductive reasoning
-abductive reasoning
-analogical reasoning
-temporal reasoning
-causal reasoning
-counterfactual reasoning
-constraint reasoning
-consistency reasoning
+### 11.5. Reasoning Interface Contract
 
-No reasoning result automatically becomes verified knowledge.
-
-
----
-
-45. Contradiction Handling
-
-When:
-
-Knowledge A
-
-conflicts with:
-
-Knowledge B
-
-CORTEX SHALL retain the conflict until resolved.
-
-A
-│
-├── evidence
-├── confidence
-└── provenance
-
-B
-│
-├── evidence
-├── confidence
-└── provenance
-
-The system evaluates:
-
-source quality
-recency
-independent confirmation
-logical consistency
-context
-verification status
-
+```rust
+trait ReasoningEngine {
+    fn evaluate(&self, representation: &NeuralRepresentation, memories: &MemoryRetrieval, world: &WorldState) -> Result<ReasoningResult>;
+    fn generate_hypotheses(&self, problem: &ProblemRepresentation) -> Result<Vec<Hypothesis>>;
+    fn evaluate_hypothesis(&self, hypothesis: &Hypothesis, evidence: &EvidenceSet) -> Result<HypothesisEvaluation>;
+    fn detect_contradictions(&self, claims: &[KnowledgeClaim]) -> Result<Vec<Contradiction>>;
+    fn bounded_conclusion(&self, hypotheses: &[Hypothesis], budget: &ComputeBudget) -> Result<BoundedConclusion>;
+}
+```
 
 ---
 
-46. Planning Engine
+## 12. Planning Engine
 
 Planning operates on the world model.
 
+### 12.1. Planning Pipeline
+
+```
 Current State
- ↓
+  ↓
 Goal
- ↓
+  ↓
 Candidate Actions
- ↓
+  ↓
 World Simulation
- ↓
+  ↓
 Predicted Outcomes
- ↓
+  ↓
 Risk Evaluation
- ↓
+  ↓
 Utility Evaluation
- ↓
+  ↓
 Plan Ranking
- ↓
+  ↓
 Selected Plan
+```
 
+### 12.2. Plan Representation
 
----
-
-47. Plan Representation
-
+```rust
 struct Plan {
     goal: Goal,
     steps: Vec<Action>,
@@ -1313,91 +1113,99 @@ struct Plan {
     uncertainty: Scalar,
     confidence: Scalar,
 }
+```
 
-Planning SHALL be resource-bounded.
+Planning SHALL be resource-bounded by `planning.max_depth` and `planning.max_branches`.
 
+### 12.3. Planning Interface Contract
+
+```rust
+trait PlanningEngine {
+    fn evaluate(&self, reasoning: &ReasoningResult, world: &WorldState) -> Result<Option<Plan>>;
+    fn simulate_plan(&self, plan: &Plan, world: &WorldState) -> Result<SimulatedOutcome>;
+    fn evaluate_risk(&self, plan: &Plan, world: &WorldState) -> Result<RiskAssessment>;
+}
+```
 
 ---
 
-48. Verification Engine
+## 13. Verification Engine
 
-Verification separates:
+Verification separates observed, inferred, supported, provisional, verified, unknown, and contradicted.
 
-observed
-inferred
-supported
-provisional
-verified
-unknown
-contradicted
+### 13.1. Verification Pipeline
 
-Verification pipeline:
-
+```
 Claim
- ↓
+  ↓
 Evidence Retrieval
- ↓
+  ↓
 Source Evaluation
- ↓
+  ↓
 Consistency Analysis
- ↓
+  ↓
 Independent Evidence
- ↓
+  ↓
 Contradiction Analysis
- ↓
+  ↓
 Confidence Update
- ↓
+  ↓
 Verification Status
+```
 
+### 13.2. Verification Status
+
+```rust
+enum VerificationStatus {
+    Observed,
+    Inferred,
+    Supported,
+    Provisional,
+    Verified,
+    Unknown,
+    Contradicted,
+}
+```
+
+### 13.3. Verification Is Not Confidence
+
+Confidence and verification are separate. A claim may have high confidence without `verified = true` because verification requires defined evidence conditions.
+
+### 13.4. Confidence Model
+
+CORTEX tracks multiple dimensions:
+
+```rust
+struct ConfidenceState {
+    belief: Scalar,
+    evidence_strength: Scalar,
+    source_quality: Scalar,
+    consistency: Scalar,
+    uncertainty: Scalar,
+    prediction_reliability: Scalar,
+    verification_status: VerificationStatus,
+}
+```
+
+### 13.5. Verification Interface Contract
+
+```rust
+trait VerificationEngine {
+    fn evaluate(&self, reasoning: &ReasoningResult) -> Result<VerifiedResult>;
+    fn verify_claim(&self, claim: &KnowledgeClaim, evidence: &EvidenceSet) -> Result<VerificationResult>;
+    fn confidence_dimensions(&self, claim: &KnowledgeClaim) -> Result<ConfidenceState>;
+}
+```
 
 ---
 
-49. Verification Is Not Confidence
+## 14. Continual Learning System
 
-Confidence and verification are separate.
+CORTEX learns from experience without requiring complete retraining.
 
-A claim may have:
+### 14.1. Learning Hierarchy
 
-high confidence
-
-without:
-
-verified = true
-
-because verification requires defined evidence conditions.
-
-
----
-
-50. Confidence Model
-
-CORTEX SHALL track multiple dimensions:
-
-belief
-evidence strength
-source quality
-consistency
-uncertainty
-prediction reliability
-verification status
-
-Example:
-
-belief       = 0.82
-evidence     = 0.74
-consistency  = 0.91
-source       = 0.63
-uncertainty  = 0.21
-
-
----
-
-51. Continual Learning
-
-CORTEX SHALL learn from experience without requiring complete retraining.
-
-Learning hierarchy:
-
+```
 FAST
 │
 ├── Working state
@@ -1416,246 +1224,140 @@ SLOW
 ├── Neural adaptation
 ├── Language adaptation
 └── Long-term consolidation
+```
 
+### 14.2. Learning Sources
 
----
+CORTEX may learn from: conversation, user-provided information, environment observations, internet information, feedback, prediction errors, verified information, successful procedures, and failed procedures. Learning is filtered through attribution and policy.
 
-52. Learning Sources
+### 14.3. Prediction Error
 
-CORTEX may learn from:
+The principal learning signal:
 
-conversation
-user-provided information
-environment observations
-internet information
-feedback
-prediction errors
-verified information
-successful procedures
-failed procedures
-
-Learning SHALL be filtered through attribution and policy.
-
-
----
-
-53. Prediction Error
-
-The principal learning signal is:
-
+```
 Prediction
- ↓
+  ↓
 Observation
- ↓
+  ↓
 Difference
- ↓
+  ↓
 Prediction Error
+```
 
-Prediction error SHALL then be attributed.
+### 14.4. Error Attribution
 
-Possible causes:
-
-incorrect representation
-incorrect memory
-incorrect language interpretation
-incorrect world model
-incorrect hypothesis
-incorrect procedure
-unexpected environment
-insufficient context
-observation error
-
-
----
-
-54. Error Attribution
-
-Conceptually:
-
+```
 Prediction Error
       ↓
  ┌────┼────┬────┬────┬────┐
  ▼    ▼    ▼    ▼    ▼    ▼
 Input Memory World Reasoning Procedure Environment
 Error Error  Error   Error     Error     Error
+```
 
 The attribution mechanism determines which subsystem receives the learning signal.
 
+### 14.5. Replay
 
----
-
-55. Replay
-
-Replay reconstructs selected experiences:
-
+```
 Episode
- ↓
+  ↓
 Context Reconstruction
- ↓
+  ↓
 Prediction
- ↓
+  ↓
 Counterfactual Evaluation
- ↓
+  ↓
 Error Analysis
- ↓
+  ↓
 Learning
+```
 
-Replay priority is based on:
+Replay priority is based on: prediction error, novelty, importance, uncertainty, recurrence, and learning value.
 
-prediction error
-novelty
-importance
-uncertainty
-recurrence
-learning value
+### 14.6. Consolidation
 
-
----
-
-56. Consolidation
-
-Consolidation transforms short-lived adaptation into stable state.
-
+```
 Experience
- ↓
+  ↓
 Episode
- ↓
+  ↓
 Pattern
- ↓
+  ↓
 Generalization
- ↓
+  ↓
 Knowledge Candidate
- ↓
+  ↓
 Evidence Evaluation
- ↓
+  ↓
 Consolidation
+```
 
-Consolidation SHALL avoid allowing a single anomalous event to dominate long-term state.
+Consolidation avoids allowing a single anomalous event to dominate long-term state.
 
+### 14.7. Language Continual Learning
 
----
+The Language Core learns: new symbols, new vocabulary, new semantic associations, new syntactic patterns, new terminology, new domain concepts, new discourse patterns. Language learning uses the same persistent learning infrastructure as the rest of CORTEX.
 
-57. Language Continual Learning
+### 14.8. Learning Interface Contract
 
-The Language Core SHALL learn:
-
-new symbols
-new vocabulary
-new semantic associations
-new syntactic patterns
-new terminology
-new domain concepts
-new discourse patterns
-
-Language learning uses the same persistent learning infrastructure as the rest of CORTEX.
-
-
----
-
-58. Internet Interface
-
-The Internet Interface treats external information as observation.
-
-URL / Request
- ↓
-Policy Gate
- ↓
-Network Access
- ↓
-Response
- ↓
-Parsing
- ↓
-Content Extraction
- ↓
-Provenance
- ↓
-Evidence
- ↓
-Verification
- ↓
-Memory
- ↓
-World Model
- ↓
-Learning
-
-Internet information SHALL NOT automatically be treated as ground truth.
-
+```rust
+trait LearningSystem {
+    fn record(&mut self, experience: &Experience) -> Result<LearningSignal>;
+    fn attribute_error(&self, error: &PredictionError) -> Result<ErrorAttribution>;
+    fn apply_signal(&mut self, signal: &LearningSignal, policy: &PolicyState) -> Result<LearningResult>;
+    fn replay(&mut self, episodes: &[Episode], budget: &ComputeBudget) -> Result<ReplayResult>;
+    fn consolidation_candidates(&self) -> Result<Vec<ConsolidationCandidate>>;
+    fn learning_events(&self) -> u64;
+}
+```
 
 ---
 
-59. Provenance
+## 15. Self Model
 
-Every externally derived knowledge item SHALL retain:
+The Self Model describes CORTEX's own operational state. It is a computational representation. It SHALL NOT be interpreted by the architecture as proof of consciousness or subjective experience.
 
-source
-source identity
-timestamp
-retrieval context
-content identity
-evidence
-verification status
-confidence
+### 15.1. Self Model Structure
 
-Provenance categories:
+```rust
+struct SelfModel {
+    capabilities: CapabilitySet,
+    limitations: LimitationSet,
+    prediction_accuracy: Scalar,
+    uncertainty: UncertaintyState,
+    memory_health: MemoryHealth,
+    language_capability: LanguageCapability,
+    reasoning_performance: ReasoningPerformance,
+    resource_state: ResourceState,
+    learning_statistics: LearningStatistics,
+    historical_performance: HistoricalPerformance,
+}
+```
 
-OBSERVED
-USER_PROVIDED
-INTERNET
-DERIVED
-INFERRED
-REPLAYED
-VERIFIED
+### 15.2. Capability Estimation
 
+CORTEX maintains estimates of: language accuracy, prediction accuracy, verification reliability, planning success, memory retrieval success, reasoning consistency, and resource availability. These estimates influence confidence and planning.
 
----
+### 15.3. Self Model Interface Contract
 
-60. Self Model
-
-The Self Model describes CORTEX's own operational state.
-
-SelfModel
-│
-├── capabilities
-├── limitations
-├── prediction accuracy
-├── uncertainty
-├── memory health
-├── language capability
-├── reasoning performance
-├── resource state
-├── learning statistics
-└── historical performance
-
-The Self Model is a computational representation.
-
-It SHALL NOT be interpreted by the architecture as proof of consciousness or subjective experience.
-
+```rust
+trait SelfModelInterface {
+    fn estimate_capability(&self, capability: Capability) -> Result<CapabilityEstimate>;
+    fn health_status(&self) -> Result<HealthStatus>;
+    fn update(&mut self, metrics: &PerformanceMetrics) -> Result<()>;
+}
+```
 
 ---
 
-61. Capability Estimation
-
-CORTEX SHALL maintain estimates such as:
-
-language accuracy
-prediction accuracy
-verification reliability
-planning success
-memory retrieval success
-reasoning consistency
-resource availability
-
-These estimates influence confidence and planning.
-
-
----
-
-62. Policy / Risk Gate
+## 16. Policy / Risk Gate
 
 All potentially consequential operations pass through the Policy / Risk Gate.
 
+### 16.1. Gate Pipeline
+
+```
 Proposed Operation
        ↓
 Operation Classification
@@ -1667,133 +1369,198 @@ Policy Evaluation
 ┌──────┼──────┐
 ▼      ▼      ▼
 ALLOW  LIMIT  DENY
+```
 
+### 16.2. Risk Model
 
----
+Risk considers: potential impact, uncertainty, confidence, reversibility, scope, resource consumption, policy constraints, and external side effects. Risk evaluation is separate from task reasoning.
 
-63. Risk Model
+### 16.3. Default Policy
 
-Risk SHALL consider:
-
-potential impact
-uncertainty
-confidence
-reversibility
-scope
-resource consumption
-policy constraints
-external side effects
-
-Risk evaluation is separate from task reasoning.
-
-
----
-
-64. Policy Boundary
-
-Default policy:
-
+```toml
 [policy]
 learning = true
 internet_learning = true
 self_modification = false
 policy_modification = false
 runtime_modification = false
+```
 
-Learning may modify:
+Learning may modify: memory, knowledge, world model, language state, learned parameters. Learning SHALL NOT modify: root policy, authorization boundary, security credentials, runtime executable, policy enforcement code — unless an explicitly authorized external administrative operation permits it.
 
-memory
-knowledge
-world model
-language state
-learned parameters
+### 16.4. Self-Modification Levels
 
-Learning SHALL NOT modify:
-
-root policy
-authorization boundary
-security credentials
-runtime executable
-policy enforcement code
-
-unless an explicitly authorized external administrative operation permits it.
-
-
----
-
-65. Self-Modification Levels
-
-Level 1 — Cognitive State Adaptation
-
-Allowed:
-
-memory
-language state
-world model
-learned parameters
-procedures
-associations
-
-Level 2 — Algorithm Adaptation
-
-Restricted:
-
-learning algorithm
-reasoning algorithm
-language algorithm
-runtime algorithm
-
-Level 3 — Security / Policy Modification
-
-Restricted at the highest level:
-
-policy
-authorization
-risk boundary
-security enforcement
+| Level | Scope | Default |
+|---|---|---|
+| 1 — Cognitive State Adaptation | memory, language state, world model, learned parameters, procedures, associations | Allowed |
+| 2 — Algorithm Adaptation | learning algorithm, reasoning algorithm, language algorithm, runtime algorithm | Restricted |
+| 3 — Security / Policy Modification | policy, authorization, risk boundary, security enforcement | Restricted (highest) |
 
 Normal continual learning SHALL NOT modify Level 3.
 
+### 16.5. Policy Interface Contract
+
+```rust
+trait PolicyEngine {
+    fn evaluate(&self, operation: &ProposedOperation) -> Result<PolicyDecision>;
+    fn risk_estimate(&self, operation: &ProposedOperation) -> Result<RiskEstimate>;
+    fn is_allowed(&self, operation: &ProposedOperation) -> bool;
+}
+
+enum PolicyDecision {
+    Allowed,
+    Limited { constraints: OperationConstraints },
+    Denied { reason: DenialReason },
+}
+```
 
 ---
 
-66. Persistence Engine
+## 17. Internet Interface
 
-CORTEX persistence is implemented through .cx.
+The Internet Interface treats external information as observation.
 
+### 17.1. Internet Pipeline
+
+```
+URL / Request
+  ↓
+Policy Gate
+  ↓
+Network Access
+  ↓
+Response
+  ↓
+Parsing
+  ↓
+Content Extraction
+  ↓
+Provenance
+  ↓
+Evidence
+  ↓
+Verification
+  ↓
+Memory
+  ↓
+World Model
+  ↓
+Learning
+```
+
+Internet information SHALL NOT automatically be treated as ground truth.
+
+### 17.2. Internet Safety Boundary
+
+```
+Intent
+  ↓
+Proposed Network Operation
+  ↓
+Risk Assessment
+  ↓
+Policy
+  ↓
+Network
+```
+
+Network results return as observations:
+
+```
+Network Result
+  ↓
+Evidence
+  ↓
+Verification
+  ↓
+Memory
+```
+
+### 17.3. Internet Interface Contract
+
+```rust
+trait InternetInterface {
+    fn fetch(&self, request: &NetworkRequest, policy: &PolicyState) -> Result<NetworkObservation>;
+    fn parse(&self, response: &NetworkResponse) -> Result<ExtractedContent>;
+    fn to_observation(&self, content: &ExtractedContent, provenance: &Provenance) -> Result<Observation>;
+}
+```
+
+---
+
+## 18. Persistence Engine
+
+CORTEX persistence is implemented through the `.cx` binary format.
+
+### 18.1. Save Path
+
+```
 Runtime State
- ↓
+  ↓
 Serialization
- ↓
+  ↓
 Integrity Calculation
- ↓
+  ↓
 Atomic Write
- ↓
+  ↓
 cortex.cx
+```
 
-Loading:
+### 18.2. Load Path
 
+```
 cortex.cx
- ↓
+  ↓
 Integrity Check
- ↓
+  ↓
 Version Check
- ↓
+  ↓
 Migration if required
- ↓
+  ↓
 State Validation
- ↓
+  ↓
 Runtime Reconstruction
+```
 
+### 18.3. Atomic Persistence
+
+State writes use an atomic strategy:
+
+```
+Current State
+  ↓
+Write Temporary State
+  ↓
+Flush
+  ↓
+Verify
+  ↓
+Atomic Replace
+```
+
+A failed write SHALL NOT silently destroy the last valid state.
+
+### 18.4. Persistence Interface Contract
+
+```rust
+trait PersistenceEngine {
+    fn save(&self, state: &CortexState, path: &Path) -> Result<SaveResult>;
+    fn load(&self, path: &Path) -> Result<CortexState>;
+    fn maybe_checkpoint(&self, state: &CortexState, interval: u64) -> Result<Option<CheckpointId>>;
+    fn validate(&self, path: &Path) -> Result<ValidationResult>;
+    fn recover(&self, checkpoints: &[Path]) -> Result<CortexState>;
+}
+```
 
 ---
 
-67. .cx State Format
+## 19. `.cx` State Format
 
-The .cx format SHALL be a binary, versioned, section-oriented cognitive state container.
+The `.cx` format is a binary, versioned, section-oriented cognitive state container.
 
-Structure:
+### 19.1. Format Structure
 
+```
 CORTEX.CX
 │
 ├── HEADER
@@ -1817,165 +1584,323 @@ CORTEX.CX
 ├── PROVENANCE
 ├── CHECKPOINT_METADATA
 └── INTEGRITY
+```
 
+### 19.2. Section Header
 
----
+Each section contains:
 
-68. .cx Section Header
+| Field | Type | Description |
+|---|---|---|
+| TYPE | u16 | Section type identifier |
+| VERSION | u16 | Section format version |
+| FLAGS | u32 | Section flags |
+| OFFSET | u64 | Byte offset to data |
+| LENGTH | u64 | Byte length of data |
+| CHECKSUM | u128 | Integrity checksum of data |
+| DATA | bytes | Serialized section data |
 
-Each section SHALL contain:
+This enables partial loading, validation, migration, recovery, and checkpointing.
 
-TYPE
-VERSION
-FLAGS
-OFFSET
-LENGTH
-CHECKSUM
-DATA
+### 19.3. File Header
 
-This enables:
+The header identifies: format magic, format version, architecture version, algorithm version, configuration hash, state identifier, creation timestamp, last checkpoint, and integrity metadata.
 
-partial loading
-validation
-migration
-recovery
-checkpointing
+```rust
+struct CxHeader {
+    magic: [u8; 8],           // b"CORTEX\0\0"
+    format_version: u32,
+    architecture_version: u32,
+    algorithm_version: u32,
+    config_hash: [u8; 32],    // SHA-256 of cortex.toml
+    state_id: Uuid,
+    created_at: Timestamp,
+    last_checkpoint: Timestamp,
+    integrity: IntegrityMetadata,
+}
+```
 
+### 19.4. State Versioning
 
----
+Migration: old state → version detection → compatibility check → migration → validation → new state. Migration SHALL preserve semantic state whenever technically possible.
 
-69. .cx Header
+### 19.5. Algorithm Versioning
 
-The header SHALL identify:
+`.cx` records: cell_algorithm, column_algorithm, plasticity_algorithm, memory_algorithm, language_algorithm, reasoning_algorithm, planning_algorithm, verification_algorithm, consolidation_algorithm. Changing an algorithm SHALL create a detectable architectural state transition.
 
-format magic
-format version
-architecture version
-algorithm version
-configuration hash
-state identifier
-creation timestamp
-last checkpoint
-integrity metadata
+### 19.6. Integrity
 
+CORTEX verifies persistent state before loading: checksum/integrity verification → structural validation → semantic validation → load. Invalid critical state SHALL trigger STOP or recovery from valid checkpoint rather than silent continuation.
 
----
+### 19.7. Checkpointing
 
-70. State Versioning
-
-Example:
-
-CX-1
-CX-2
-CX-3
-
-Migration:
-
-Old State
- ↓
-Version Detection
- ↓
-Compatibility Check
- ↓
-Migration
- ↓
-Validation
- ↓
-New State
-
-Migration SHALL preserve semantic state whenever technically possible.
-
+Checkpoint metadata includes: state version, algorithm version, configuration hash, timestamp, episode count, learning state, and integrity information.
 
 ---
 
-71. Algorithm Versioning
+## 20. Provenance
 
-.cx SHALL record:
+Every externally derived knowledge item retains: source, source identity, timestamp, retrieval context, content identity, evidence, verification status, and confidence.
 
-cell_algorithm
-column_algorithm
-plasticity_algorithm
-memory_algorithm
-language_algorithm
-reasoning_algorithm
-planning_algorithm
-verification_algorithm
-consolidation_algorithm
+```rust
+enum ProvenanceCategory {
+    Observed,
+    UserProvided,
+    Internet,
+    Derived,
+    Inferred,
+    Replayed,
+    Verified,
+}
 
-Changing an algorithm SHALL create a detectable architectural state transition.
-
+struct Provenance {
+    category: ProvenanceCategory,
+    source: Source,
+    source_identity: SourceIdentity,
+    timestamp: Timestamp,
+    retrieval_context: Option<RetrievalContext>,
+    content_hash: [u8; 32],
+    evidence: EvidenceSet,
+    verification_status: VerificationStatus,
+    confidence: ConfidenceState,
+}
+```
 
 ---
 
-72. Integrity
+## 21. Runtime
 
-CORTEX SHALL verify persistent state before loading.
+### 21.1. Runtime State Machine
 
-.cX
- ↓
-Checksum / Integrity Verification
- ↓
-Structural Validation
- ↓
-Semantic Validation
- ↓
-Load
+```
+BOOT
+  ↓
+LOAD_CONFIGURATION
+  ↓
+LOAD_STATE
+  ↓
+VALIDATE
+  ↓
+INITIALIZE
+  ↓
+READY
+  ↓
+PROCESSING
+  ↓
+LEARNING
+  ↓
+CONSOLIDATING
+  ↓
+CHECKPOINTING
+  ↓
+READY
+```
 
-Invalid critical state SHALL trigger:
+Failure path:
 
-STOP
+```
+ANY STATE
+   ↓
+FAULT
+   ↓
+RECOVERY
+   ↓
+READY
+```
 
 or:
 
-RECOVERY FROM VALID CHECKPOINT
+```
+FAULT
+  ↓
+SAFE STOP
+```
 
-rather than silent continuation.
+### 21.2. First Boot
 
+If `cortex.cx` does not exist:
+
+```
+Read cortex.toml
+  ↓
+Validate configuration
+  ↓
+Initialize Language Core
+  ↓
+Initialize Vocabulary
+  ↓
+Initialize Neural Core
+  ↓
+Initialize Memory
+  ↓
+Initialize World Model
+  ↓
+Initialize Reasoning
+  ↓
+Initialize Planning
+  ↓
+Initialize Verification
+  ↓
+Initialize Learning
+  ↓
+Initialize Self Model
+  ↓
+Initialize Policy
+  ↓
+Create initial cognitive state
+  ↓
+Persist cortex.cx
+  ↓
+Start runtime
+  ↓
+READY
+```
+
+The system is operational without an externally supplied trained model. The initial state may have limited knowledge and language competence; capability is expected to grow through the defined learning mechanisms.
+
+### 21.3. Runtime Modes
+
+```bash
+cortex run           # normal cognitive runtime
+cortex serve         # embedded API interface
+cortex observe       # observation-only mode
+cortex experience    # experience ingestion mode
+cortex learn         # learning-focused mode
+cortex query         # query-only mode
+cortex inspect       # state inspection
+cortex verify        # verification mode
+cortex checkpoint    # manual checkpoint
+cortex status        # status display
+```
+
+### 21.4. Main Cognitive Operation
+
+```rust
+fn process(input: Input) -> Result<Response> {
+    let observation = observe(input)?;
+    let language_state = language.encode(observation)?;
+    let representation = neural.process(language_state)?;
+    let memories = memory.retrieve(&representation)?;
+    let world_state = world.integrate(&representation, &memories)?;
+    let reasoning_state = reasoning.evaluate(&representation, &memories, &world_state)?;
+    let plan = planning.evaluate(&reasoning_state, &world_state)?;
+    let verified = verification.evaluate(&reasoning_state)?;
+    let response = language.generate(&verified)?;
+    learning.record(observation, response, world_state, reasoning_state)?;
+    persistence.maybe_checkpoint()?;
+    Ok(response)
+}
+```
+
+This is an architectural contract rather than a requirement that the implementation use exactly this function structure.
+
+### 21.5. Cognitive Feedback Loop
+
+```
+Response
+  ↓
+Outcome
+  ↓
+Observation
+  ↓
+Prediction Comparison
+  ↓
+Prediction Error
+  ↓
+Attribution
+  ↓
+Learning Signal
+```
+
+The outcome may come from: user feedback, subsequent observation, environment, verification, later evidence, or task result.
+
+### 21.6. Experience Representation
+
+```rust
+struct Experience {
+    observation: Observation,
+    internal_state: StateSnapshot,
+    prediction: Prediction,
+    action: Option<Action>,
+    outcome: Option<Outcome>,
+    error: PredictionError,
+    attribution: ErrorAttribution,
+    evidence: EvidenceSet,
+    provenance: Provenance,
+}
+```
+
+### 21.7. Complete Cognitive Loop
+
+```
+┌──────────────────────────────────────────────────────┐
+│                    OBSERVATION                       │
+└────────────────────────┬─────────────────────────────┘
+                         ↓
+                  LANGUAGE ENCODING
+                         ↓
+                   REPRESENTATION
+                         ↓
+                   NEURAL PROCESS
+                         ↓
+                   MEMORY RETRIEVAL
+                         ↓
+                   WORLD INTEGRATION
+                         ↓
+                      PREDICTION
+                         ↓
+                      REASONING
+                         ↓
+                      PLANNING
+                         ↓
+                    VERIFICATION
+                         ↓
+                 RESPONSE / ACTION
+                         ↓
+                    ENVIRONMENT
+                         ↓
+                    OBSERVATION
+                         ↓
+                 PREDICTION ERROR
+                         ↓
+                  ERROR ATTRIBUTION
+                         ↓
+                       LEARNING
+                         ↓
+                      REPLAY
+                         ↓
+                   CONSOLIDATION
+                         ↓
+                    PERSISTENCE
+                         │
+                         └───────────────↺
+```
+
+### 21.8. Runtime Interface Contract
+
+```rust
+trait Runtime {
+    fn boot(config: CortexConfig) -> Result<Self>;
+    fn ready(&self) -> bool;
+    fn process(&mut self, input: Input) -> Result<Response>;
+    fn observe(&mut self, observation: Observation) -> Result<()>;
+    fn experience(&mut self, experience: Experience) -> Result<()>;
+    fn query(&self, query: CognitiveQuery) -> Result<CognitiveResponse>;
+    fn checkpoint(&self) -> Result<CheckpointId>;
+    fn status(&self) -> Result<RuntimeStatus>;
+    fn shutdown(&mut self) -> Result<()>;
+}
+```
 
 ---
 
-73. Atomic Persistence
+## 22. Resource Management
 
-State writes SHALL use an atomic strategy.
+CORTEX operates under explicit resource budgets.
 
-Conceptual:
+### 22.1. RAM Budget
 
-Current State
- ↓
-Write Temporary State
- ↓
-Flush
- ↓
-Verify
- ↓
-Atomic Replace
-
-A failed write SHALL NOT silently destroy the last valid state.
-
-
----
-
-74. Checkpointing
-
-Checkpointing captures a consistent cognitive state.
-
-Checkpoint metadata includes:
-
-state version
-algorithm version
-configuration hash
-timestamp
-episode count
-learning state
-integrity information
-
-
----
-
-75. Resource Management
-
-CORTEX SHALL operate under explicit resource budgets.
-
+```
 RAM
 │
 ├── Language Core
@@ -1988,242 +1913,104 @@ RAM
 ├── World Model
 ├── Reasoning
 └── Runtime Cache
+```
 
-When memory pressure increases:
+When memory pressure increases: compress → consolidate → evict → forget. The system SHALL NOT assume unlimited memory.
 
-compress
- ↓
-consolidate
- ↓
-evict
- ↓
-forget
+### 22.2. Compute Budget
 
-The system SHALL NOT assume unlimited memory.
+Reasoning and planning have bounded execution. Configuration:
 
-
----
-
-76. Compute Budget
-
-Reasoning and planning SHALL have bounded execution.
-
-Configuration:
-
-max reasoning steps
-max planning depth
-max planning branches
-max simulation steps
-max language generation length
-max memory retrieval count
-max replay count
+```rust
+struct ComputeBudget {
+    max_reasoning_steps: u32,      // from reasoning.max_steps
+    max_planning_depth: u32,       // from planning.max_depth
+    max_planning_branches: u32,    // from planning.max_branches
+    max_simulation_steps: u32,     // derived from world.prediction_horizon
+    max_generation_length: u32,    // from language.generation_limit
+    max_memory_retrieval: u32,     // derived from memory config
+    max_replay_count: u32,         // derived from learning config
+}
+```
 
 A cognitive operation that reaches its budget SHALL terminate with an explicit bounded result rather than consuming unlimited resources.
 
+### 22.3. Resource-Aware Cognition
+
+High uncertainty + high reasoning cost + low available compute may result in bounded reasoning, lower plan depth, and explicit uncertainty rather than unbounded execution.
 
 ---
 
-77. Concurrency Model
+## 23. Concurrency Model
 
-The system SHALL remain a single process.
-
-Internal concurrency may be used for:
-
-I/O
-network access
-background persistence
-replay
-maintenance
-non-conflicting computation
-
-Cognitive state mutation SHALL use explicit synchronization or an ownership-based state transition model.
-
-The architecture SHALL prevent concurrent updates from corrupting .cx state.
-
+The system remains a single process. Internal concurrency may be used for: I/O, network access, background persistence, replay, maintenance, and non-conflicting computation. Cognitive state mutation uses explicit synchronization or an ownership-based state transition model. The architecture prevents concurrent updates from corrupting `.cx` state.
 
 ---
 
-78. Runtime State Machine
+## 24. API
 
-BOOT
- ↓
-LOAD_CONFIGURATION
- ↓
-LOAD_STATE
- ↓
-VALIDATE
- ↓
-INITIALIZE
- ↓
-READY
- ↓
-PROCESSING
- ↓
-LEARNING
- ↓
-CONSOLIDATING
- ↓
-CHECKPOINTING
- ↓
-READY
+### 24.1. Endpoints
 
-Failure:
+| Method | Path | Description |
+|---|---|---|
+| POST | `/v1/inference` | Process input and return response |
+| POST | `/v1/observe` | Submit observation without response |
+| POST | `/v1/experience` | Submit explicit learning experience |
+| POST | `/v1/learn` | Trigger learning operation |
+| POST | `/v1/query` | Query memory, world model, knowledge |
+| GET | `/v1/status` | Runtime status |
+| POST | `/v1/checkpoint` | Manual checkpoint |
 
-ANY STATE
-   ↓
-FAULT
-   ↓
-RECOVERY
-   ↓
-READY
+### 24.2. Inference API
 
-or:
-
-FAULT
- ↓
-SAFE STOP
-
-
----
-
-79. First Boot
-
-If cortex.cx does not exist:
-
-Read cortex.toml
- ↓
-Validate configuration
- ↓
-Initialize Language Core
- ↓
-Initialize Vocabulary
- ↓
-Initialize Neural Core
- ↓
-Initialize Memory
- ↓
-Initialize World Model
- ↓
-Initialize Reasoning
- ↓
-Initialize Planning
- ↓
-Initialize Verification
- ↓
-Initialize Learning
- ↓
-Initialize Self Model
- ↓
-Initialize Policy
- ↓
-Create initial cognitive state
- ↓
-Persist cortex.cx
- ↓
-Start runtime
- ↓
-READY
-
-The system SHALL be operational without an externally supplied trained model.
-
-The initial state may have limited knowledge and language competence; capability is expected to grow through the defined learning mechanisms.
-
-
----
-
-80. Runtime Modes
-
-The executable SHALL support:
-
-run
-serve
-observe
-experience
-learn
-query
-inspect
-verify
-checkpoint
-status
-
-Example:
-
-cortex run
-
-starts the normal cognitive runtime.
-
-cortex serve
-
-starts the embedded API interface.
-
-cortex inspect
-
-provides state inspection.
-
-
----
-
-81. API
-
-The embedded API SHALL provide:
-
-POST /v1/inference
-POST /v1/observe
-POST /v1/experience
-POST /v1/learn
-POST /v1/query
-GET  /v1/status
-POST /v1/checkpoint
-
-
----
-
-82. Inference API
-
-Request:
-
+```http
 POST /v1/inference
 Authorization: Bearer <API_KEY>
 Content-Type: application/json
 
 {
-  "input": "Explain what gravity is."
+  "input": "Explain what gravity is.",
+  "context": {},
+  "options": {
+    "max_tokens": 1024,
+    "verify": true
+  }
 }
+```
 
 Response:
 
+```json
 {
   "output": "...",
   "confidence": 0.84,
   "verification_status": "SUPPORTED",
   "state_updated": true
 }
+```
 
+### 24.3. Observation API
 
----
-
-83. Observation API
-
+```http
 POST /v1/observe
-
-Example:
+Authorization: Bearer <API_KEY>
+Content-Type: application/json
 
 {
   "observation": "...",
   "source": "user",
   "context": {}
 }
+```
 
 The observation enters the cognitive pipeline without necessarily requiring an immediate response.
 
+### 24.4. Experience API
 
----
-
-84. Experience API
-
+```http
 POST /v1/experience
-
-Example:
+Authorization: Bearer <API_KEY>
+Content-Type: application/json
 
 {
   "observation": "...",
@@ -2232,35 +2019,36 @@ Example:
   "feedback": "...",
   "source": "user"
 }
+```
 
 This supplies an explicit learning experience.
 
+### 24.5. Query API
 
----
-
-85. Query API
-
+```http
 POST /v1/query
+Authorization: Bearer <API_KEY>
+Content-Type: application/json
 
-May query:
+{
+  "target": "memory",
+  "query": "...",
+  "parameters": {}
+}
+```
 
-memory
-world model
-knowledge
-episodes
-procedures
-verification state
-self model
+May query: memory, world model, knowledge, episodes, procedures, verification state, self model.
 
+### 24.6. Status API
 
----
-
-86. Status API
-
+```http
 GET /v1/status
+Authorization: Bearer <API_KEY>
+```
 
-Returns bounded observability information:
+Response:
 
+```json
 {
   "status": "ready",
   "uptime": 1234,
@@ -2271,364 +2059,445 @@ Returns bounded observability information:
   "world_model_size": 0,
   "language_vocabulary_size": 0
 }
+```
 
+### 24.7. API Authentication
 
----
+Authentication uses `CORTEX_API_KEY` environment variable. Configuration:
 
-87. API Authentication
-
-API authentication uses:
-
-CORTEX_API_KEY=...
-
-Configuration:
-
+```toml
 [api]
 enabled = true
 bind = "127.0.0.1:8080"
 api_key_env = "CORTEX_API_KEY"
+```
 
-The API key SHALL NOT be persisted inside .cx.
+The API key SHALL NOT be persisted inside `.cx`.
 
+### 24.8. API Safety Boundary
 
----
+External API requests SHALL NOT directly mutate arbitrary internal memory structures. Instead:
 
-88. Configuration
+```
+API Request
+  ↓
+Validated Command
+  ↓
+Policy
+  ↓
+Cognitive Operation
+  ↓
+State Transition
+```
 
-The canonical configuration is:
-
-[model]
-cells = 4096
-columns = 64
-dimension = 256
-precision = "f32"
-
-[language]
-enabled = true
-vocabulary_capacity = 65536
-context_window = 4096
-generation_limit = 1024
-learning = true
-
-[memory]
-working_mb = 128
-episodic_mb = 512
-semantic_mb = 512
-procedural_mb = 256
-associative_mb = 256
-
-[learning]
-enabled = true
-learning_rate = 0.001
-plasticity = 0.01
-replay = true
-consolidation_interval = 1000
-
-[world]
-enabled = true
-prediction_horizon = 8
-
-[reasoning]
-enabled = true
-max_steps = 32
-
-[planning]
-enabled = true
-max_depth = 8
-max_branches = 16
-
-[verification]
-enabled = true
-minimum_confidence = 0.80
-
-[internet]
-enabled = true
-timeout_seconds = 15
-max_response_mb = 4
-
-[policy]
-learning = true
-internet_learning = true
-self_modification = false
-policy_modification = false
-runtime_modification = false
-
-[api]
-enabled = true
-bind = "127.0.0.1:8080"
-api_key_env = "CORTEX_API_KEY"
-
-[persistence]
-state = "cortex.cx"
-checkpoint_interval = 1000
-
+This preserves state invariants.
 
 ---
 
-89. Configuration Immutability Boundary
+## 25. CLI
 
-Configuration controls:
+### 25.1. Commands
 
-architecture limits
-resource limits
-policy defaults
-runtime behavior
-persistence
-API
-learning parameters
-
-Learning SHALL NOT silently rewrite cortex.toml.
-
-Runtime state belongs in .cx.
-
-Administrative configuration belongs in cortex.toml.
-
-Secrets belong in environment variables or an equivalent external secret mechanism.
-
+```bash
+cortex run                  # Start normal cognitive runtime
+cortex serve                # Start embedded API server
+cortex observe <text>       # Submit observation
+cortex experience <json>    # Submit experience
+cortex learn                # Trigger learning cycle
+cortex query <text>         # Query cognitive state
+cortex inspect              # Inspect state
+cortex verify <claim>       # Verify claim
+cortex checkpoint           # Create checkpoint
+cortex status               # Show status
+cortex init                 # Initialize new state
+cortex migrate              # Migrate state format
+```
 
 ---
 
-90. Knowledge Lifecycle
+## 26. Knowledge Lifecycle
 
-Knowledge follows:
-
+```
 Observation
- ↓
+  ↓
 Representation
- ↓
+  ↓
 Candidate Memory
- ↓
+  ↓
 Evidence
- ↓
+  ↓
 Verification
- ↓
+  ↓
 Generalization
- ↓
+  ↓
 Semantic Knowledge
- ↓
+  ↓
 World Model
- ↓
+  ↓
 Prediction
- ↓
+  ↓
 New Observation
- ↓
+  ↓
 Belief Update
+```
 
-Knowledge is therefore dynamic.
-
-
----
-
-91. Learning Stability
-
-CORTEX SHALL prevent catastrophic state changes through:
-
-bounded updates
-confidence weighting
-evidence weighting
-experience replay
-consolidation thresholds
-memory protection
-policy constraints
-contradiction detection
-
-No individual observation should automatically rewrite the complete cognitive architecture.
-
+Knowledge is dynamic.
 
 ---
 
-92. Knowledge Conflict
+## 27. Learning Stability
 
-Conflicting information SHALL remain represented as competing hypotheses until resolved.
+CORTEX prevents catastrophic state changes through: bounded updates, confidence weighting, evidence weighting, experience replay, consolidation thresholds, memory protection, policy constraints, and contradiction detection. No individual observation should automatically rewrite the complete cognitive architecture.
 
-Example:
+### 27.1. Knowledge Conflict
 
-Claim A
-confidence = 0.81
+Conflicting information remains represented as competing hypotheses until resolved:
 
-Claim B
-confidence = 0.57
+```
+Claim A: confidence = 0.81
+Claim B: confidence = 0.57
+```
 
 The system may prefer A while preserving B as contradictory evidence.
 
+---
+
+## 28. Separation of Concerns
+
+### 28.1. Knowledge and Language Separation
+
+CORTEX distinguishes knowing a word from understanding a concept, and understanding a concept from having verified knowledge about the concept. This prevents vocabulary expansion from being mistaken for cognitive learning.
+
+### 28.2. Reasoning and Generation Separation
+
+The architecture separates reasoning result from language expression. A language-generation error does not necessarily imply a reasoning error. A correct-looking sentence does not prove correct reasoning.
+
+### 28.3. Verification and Generation Separation
+
+The system supports: generate → verify → revise → generate again when required. This enables response correction before output.
+
+### 28.4. Planning and Policy Separation
+
+Planning generates candidate actions. Policy determines whether those actions are permitted. The planner cannot bypass the policy layer.
+
+### 28.5. Self Model and Policy Separation
+
+The Self Model may estimate "I am uncertain" computationally. It does not gain authority to change policy merely because it estimates a different capability.
+
+### 28.6. Policy as a Non-Learned Boundary
+
+Policy is represented separately from learned knowledge. The learned model cannot redefine the gate simply by generating a different internal belief.
 
 ---
 
-93. Self-Assessment
+## 29. Failure Handling
 
-CORTEX SHALL evaluate its own performance using measurable operational signals.
+### 29.1. Error Taxonomy
 
-Examples:
+```rust
+enum ErrorKind {
+    InputError,
+    EncodingError,
+    LanguageError,
+    MemoryError,
+    WorldModelError,
+    ReasoningError,
+    PlanningError,
+    VerificationError,
+    LearningError,
+    PersistenceError,
+    PolicyError,
+    ResourceError,
+    NetworkError,
+    RuntimeError,
+}
+```
 
-prediction accuracy
-retrieval accuracy
-reasoning consistency
-verification success
-planning success
-language prediction accuracy
-feedback consistency
-memory stability
-resource pressure
+This taxonomy feeds diagnostics and learning attribution.
 
-Self-assessment modifies confidence estimates, not root policy.
+### 29.2. Failure Categories
 
+CORTEX distinguishes: recoverable error, cognitive error, input error, network error, state corruption, configuration error, policy violation, resource exhaustion, and fatal runtime error.
 
----
+### 29.3. Failure Response
 
-94. Internal Observability
+| Error | Response |
+|---|---|
+| Network failure | Record failed observation, continue |
+| Corrupt `.cx` | Validate checkpoint, recover |
+| Invalid policy | Restricted mode |
 
-Internal subsystem state SHALL be inspectable through controlled interfaces.
-
-Possible inspection:
-
-language statistics
-memory statistics
-world-model statistics
-learning statistics
-prediction error
-reasoning statistics
-verification statistics
-resource statistics
-
-Sensitive internal structures SHALL not automatically become publicly writable.
-
-
----
-
-95. Failure Handling
-
-CORTEX SHALL distinguish:
-
-recoverable error
-cognitive error
-input error
-network error
-state corruption
-configuration error
-policy violation
-resource exhaustion
-fatal runtime error
-
-Examples:
-
-network failure
-    ↓
-record failed observation
-    ↓
-continue
-
-corrupt .cx
-    ↓
-validate checkpoint
-    ↓
-recover
-
-invalid policy
-    ↓
-restricted mode
-
-
----
-
-96. Safe State Recovery
+### 29.4. Safe State Recovery
 
 Recovery priority:
 
-Current Valid State
-        ↓
-Latest Valid Checkpoint
-        ↓
-Previous Valid Checkpoint
-        ↓
-Initial State
-        ↓
-Safe Stop
+1. Current Valid State
+2. Latest Valid Checkpoint
+3. Previous Valid Checkpoint
+4. Initial State
+5. Safe Stop
 
 A corrupt state SHALL never be silently treated as valid.
 
+---
+
+## 30. State Invariants
+
+The runtime preserves:
+
+- Valid memory references
+- Valid neural topology
+- Valid vocabulary references
+- Valid world-model relationships
+- Valid provenance
+- Valid algorithm versions
+- Valid policy state
+- Valid `.cx` structure
+
+Any invalid transition SHALL fail before persistence.
+
+### 30.1. Memory Invariants
+
+Memory entries have: identity, type, content, confidence, timestamp, provenance, and retention metadata. Semantic memory SHALL NOT contain unverifiable claims without their verification status.
+
+### 30.2. World Model Invariants
+
+Every world-model assertion has: source, confidence, temporal context, and verification state. The system distinguishes: world observation, world hypothesis, world inference, and world prediction.
+
+### 30.3. Reasoning Invariants
+
+Reasoning retains: premises, hypotheses, evidence, counter-evidence, dependencies, confidence, and conclusion. This prevents a conclusion from becoming detached from its basis.
+
+### 30.4. Verification Invariants
+
+Verification SHALL never silently upgrade UNKNOWN to VERIFIED without satisfying the configured evidence conditions.
+
+### 30.5. Learning Invariants
+
+Learning SHALL be: bounded, attributable, policy-respecting, resource-limit-respecting, provenance-preserving, and change-recording.
 
 ---
 
-97. Reproducibility
+## 31. Persistent Learning
 
-CORTEX SHALL record:
+After restart:
 
-random seed
-architecture version
-algorithm versions
-configuration hash
-state version
-runtime version
+```
+Previous Cognitive State
+        ↓
+Load cortex.cx
+        ↓
+Restore Language State
+        ↓
+Restore Neural State
+        ↓
+Restore Memory
+        ↓
+Restore World Model
+        ↓
+Restore Learning State
+        ↓
+Continue
+```
 
-This allows experiments to identify why two runs diverged.
+CORTEX SHALL NOT reset to an empty model unless explicitly instructed to initialize a new state.
 
+### 31.1. Cognitive State Growth
 
----
+State may grow through: new vocabulary, new concepts, new relations, new episodes, new procedures, new world states, new hypotheses, new learned associations. Resource limits determine when state is compressed or forgotten.
 
-98. Determinism
+### 31.2. Model Identity
 
-Where practical, the following SHALL be deterministic under identical conditions:
+A CORTEX instance is identified by: state identifier, architecture version, algorithm version, and configuration identity. The `.cx` state is the persistent identity-bearing computational state of the instance.
 
-state serialization
-configuration interpretation
-algorithm selection
-memory indexing
-verification rules
-policy decisions
-checkpoint structure
+### 31.3. Architectural Change Boundary
 
-Learning may remain stochastic if explicitly configured.
-
-
----
-
-99. Algorithm Replacement
-
-CORTEX SHALL expose algorithm boundaries internally.
-
-Example:
-
-CellAlgorithm
-ColumnAlgorithm
-PlasticityAlgorithm
-MemoryRetrievalAlgorithm
-ReasoningAlgorithm
-PlanningAlgorithm
-VerificationAlgorithm
-LanguageAlgorithm
-ConsolidationAlgorithm
-
-Implementations can therefore change without requiring architectural replacement of the entire system.
-
+Changing algorithm, representation, memory format, language representation, or neural topology requires an explicit architecture or algorithm version transition. The state format makes such transitions detectable.
 
 ---
 
-100. Algorithm Contract
+## 32. Operational Lifecycle
 
-Each algorithm SHALL define:
+### 32.1. Operational Sequence
 
-input state
-output state
-parameters
-resource bounds
-error conditions
-version
-determinism characteristics
-state compatibility
+```
+Install binary
+      ↓
+Provide cortex.toml
+      ↓
+Provide API key if API enabled
+      ↓
+Run cortex
+      ↓
+Initialize / load cortex.cx
+      ↓
+READY
+      ↓
+Accept language input
+      ↓
+Process
+      ↓
+Respond
+      ↓
+Learn
+      ↓
+Persist
+```
 
+### 32.2. Shutdown
+
+Graceful shutdown:
+
+```
+STOP ACCEPTING NEW WORK
+  ↓
+FINISH SAFE OPERATIONS
+  ↓
+CONSOLIDATE IF REQUIRED
+  ↓
+CHECKPOINT
+  ↓
+FLUSH
+  ↓
+VERIFY
+  ↓
+EXIT
+```
+
+Emergency shutdown may skip non-critical consolidation but SHALL attempt to preserve the last valid state.
+
+### 32.3. Restart
+
+```
+Load Configuration
+  ↓
+Load .cx
+  ↓
+Verify Integrity
+  ↓
+Restore State
+  ↓
+Restore Algorithm Versions
+  ↓
+Restore Learning State
+  ↓
+Restore Memory
+  ↓
+Restore World Model
+  ↓
+READY
+```
 
 ---
 
-101. Repository Architecture
+## 33. Observability
 
+### 33.1. Runtime Observability
+
+CORTEX exposes: status, uptime, memory utilization, neural utilization, language vocabulary size, episode count, knowledge count, world-model size, prediction error, learning status, consolidation status, and checkpoint status.
+
+### 33.2. Internal Observability
+
+Internal subsystem state is inspectable through controlled interfaces. Possible inspection: language statistics, memory statistics, world-model statistics, learning statistics, prediction error, reasoning statistics, verification statistics, and resource statistics. Sensitive internal structures SHALL NOT automatically become publicly writable.
+
+### 33.3. Cognitive Metrics
+
+Core metrics: prediction error, memory retrieval success, knowledge stability, verification confidence, reasoning consistency, planning success, language prediction quality, learning rate, forgetting rate, and consolidation rate. These metrics become part of the Self Model.
+
+### 33.4. State Statistics
+
+CORTEX can calculate: active cells, active columns, vocabulary size, memory occupancy, episode count, semantic concept count, procedural count, world entities, world relations, hypothesis count, verification count, and learning events.
+
+### 33.5. Diagnostic State
+
+The runtime maintains bounded diagnostics: last errors, error frequency, subsystem source, severity, recovery action, and timestamp. Diagnostics SHALL NOT become uncontrolled persistent memory.
+
+---
+
+## 34. Reproducibility
+
+CORTEX records: random seed, architecture version, algorithm versions, configuration hash, state version, and runtime version. This allows experiments to identify why two runs diverged.
+
+Where practical, the following are deterministic under identical conditions: state serialization, configuration interpretation, algorithm selection, memory indexing, verification rules, policy decisions, and checkpoint structure. Learning may remain stochastic if explicitly configured.
+
+---
+
+## 35. Algorithm Replacement
+
+### 35.1. Algorithm Boundaries
+
+CORTEX exposes internal algorithm boundaries:
+
+- `CellAlgorithm`
+- `ColumnAlgorithm`
+- `PlasticityAlgorithm`
+- `MemoryRetrievalAlgorithm`
+- `ReasoningAlgorithm`
+- `PlanningAlgorithm`
+- `VerificationAlgorithm`
+- `LanguageAlgorithm`
+- `ConsolidationAlgorithm`
+
+Implementations can change without requiring architectural replacement of the entire system.
+
+### 35.2. Algorithm Contract
+
+Each algorithm defines: input state, output state, parameters, resource bounds, error conditions, version, determinism characteristics, and state compatibility.
+
+---
+
+## 36. Security Boundary
+
+### 36.1. Security-Sensitive Resources
+
+- API keys
+- Policy configuration
+- Runtime executable
+- Filesystem access
+- Network access
+- Persistent state
+
+These SHALL NOT be controlled solely by learned model output.
+
+### 36.2. API Secret Handling
+
+Secrets remain external to cognitive state: Environment → Runtime → Authentication. NOT: Secret → Memory → `.cx`.
+
+### 36.3. Persistent State Security
+
+`.cx` integrity is verified. Where configured, state may additionally use authenticated integrity, encryption, and access control without changing the cognitive architecture.
+
+---
+
+## 37. Testing Contract
+
+### 37.1. Test Coverage Requirements
+
+Testing SHALL cover: cell computation, column computation, temporal processing, language encoding, language generation, vocabulary learning, memory retrieval, memory consolidation, world transitions, reasoning, counterfactuals, planning, verification, learning stability, replay, persistence, corruption recovery, policy enforcement, API authentication, resource limits, and configuration validation.
+
+### 37.2. Persistence Testing
+
+The following invariant SHALL hold: `Save(State)` → `Load(State)` must produce a semantically equivalent cognitive state within defined serialization tolerances.
+
+### 37.3. Learning Testing
+
+Learning tests verify bounded behavior. Testing measures: learning direction, stability, retention, interference, and error reduction where applicable.
+
+### 37.4. Regression Testing
+
+Changing an algorithm SHALL test: state compatibility, memory compatibility, language behavior, reasoning behavior, verification behavior, learning stability, and `.cx` migration.
+
+---
+
+## 38. Repository Architecture
+
+```
 cortex/
-│
 ├── Cargo.toml
 ├── Cargo.lock
 ├── rust-toolchain.toml
 │
 ├── src/
-│   │
 │   ├── main.rs
 │   ├── cortex.rs
 │   ├── config.rs
@@ -2678,57 +2547,56 @@ cortex/
 ├── cortex.toml
 ├── cortex.cx
 └── README.md
+```
 
+### 38.1. Module Responsibility Contract
 
----
-
-102. Module Responsibility Contract
-
-Module	Responsibility
-
-language.rs	Language Core orchestration
-tokenizer.rs	Symbol and token encoding
-vocabulary.rs	Dynamic vocabulary
-syntax.rs	Syntax representation
-semantics.rs	Semantic representation
-language_model.rs	Language prediction
-decoder.rs	Language realization
-neural.rs	Neural substrate
-cell.rs	Cell computation
-column.rs	Column computation
-field.rs	Neural field
-memory.rs	Memory orchestration
-working_memory.rs	Active state
-episodic_memory.rs	Experiences
-semantic_memory.rs	Knowledge
-procedural_memory.rs	Procedures
-associative_memory.rs	Associations
-world.rs	World model
-reasoning.rs	Hypothesis reasoning
-planning.rs	Planning
-verification.rs	Evidence verification
-learning.rs	Continual learning
-plasticity.rs	Neural adaptation
-replay.rs	Experience replay
-consolidation.rs	Long-term adaptation
-self_model.rs	Capability model
-internet.rs	External observation
-policy.rs	Risk and policy enforcement
-format.rs	.cx format
-persistence.rs	State persistence
-checkpoint.rs	Checkpoint lifecycle
-api.rs	Embedded API
-runtime.rs	Runtime lifecycle
-cortex.rs	Global orchestration
-
-
+| Module | Responsibility |
+|---|---|
+| `cortex.rs` | Global orchestration |
+| `config.rs` | Configuration parsing and validation |
+| `error.rs` | Error taxonomy and handling |
+| `runtime.rs` | Runtime lifecycle management |
+| `language.rs` | Language Core orchestration |
+| `tokenizer.rs` | Symbol and token encoding |
+| `vocabulary.rs` | Dynamic vocabulary management |
+| `syntax.rs` | Syntax representation |
+| `semantics.rs` | Semantic representation |
+| `language_model.rs` | Language prediction |
+| `decoder.rs` | Language realization |
+| `neural.rs` | Neural substrate orchestration |
+| `cell.rs` | Cell computation |
+| `column.rs` | Column computation |
+| `field.rs` | Neural field management |
+| `memory.rs` | Memory orchestration |
+| `working_memory.rs` | Active state management |
+| `episodic_memory.rs` | Experience storage |
+| `semantic_memory.rs` | Knowledge storage |
+| `procedural_memory.rs` | Procedure storage |
+| `associative_memory.rs` | Association management |
+| `world.rs` | World model |
+| `reasoning.rs` | Hypothesis reasoning |
+| `planning.rs` | Goal-directed planning |
+| `verification.rs` | Evidence verification |
+| `learning.rs` | Continual learning orchestration |
+| `plasticity.rs` | Neural adaptation |
+| `replay.rs` | Experience replay |
+| `consolidation.rs` | Long-term adaptation |
+| `self_model.rs` | Capability model |
+| `internet.rs` | External observation |
+| `policy.rs` | Risk and policy enforcement |
+| `format.rs` | `.cx` format handling |
+| `persistence.rs` | State persistence |
+| `checkpoint.rs` | Checkpoint lifecycle |
+| `api.rs` | Embedded API |
 
 ---
 
-103. Core Rust Data Model
+## 39. Core Data Model
 
-The major state object is conceptually:
+### 39.1. Top-Level Structures
 
+```rust
 struct CortexState {
     language: LanguageState,
     neural: NeuralState,
@@ -2743,1101 +2611,117 @@ struct CortexState {
     metadata: StateMetadata,
 }
 
-The runtime:
-
 struct CortexRuntime {
     state: CortexState,
     policy: PolicyEngine,
     persistence: PersistenceEngine,
     configuration: CortexConfig,
 }
+```
 
+### 39.2. Memory State
 
----
-
-104. Main Cognitive Operation
-
-Conceptually:
-
-fn process(input: Input) -> Result<Response> {
-    let observation = observe(input)?;
-
-    let language_state = language.encode(observation)?;
-
-    let representation = neural.process(language_state)?;
-
-    let memories = memory.retrieve(&representation)?;
-
-    let world_state = world.integrate(&representation, &memories)?;
-
-    let reasoning_state =
-        reasoning.evaluate(&representation, &memories, &world_state)?;
-
-    let plan =
-        planning.evaluate(&reasoning_state, &world_state)?;
-
-    let verified =
-        verification.evaluate(&reasoning_state)?;
-
-    let response =
-        language.generate(&verified)?;
-
-    learning.record(
-        observation,
-        response,
-        world_state,
-        reasoning_state,
-    )?;
-
-    persistence.maybe_checkpoint()?;
-
-    Ok(response)
+```rust
+struct MemoryState {
+    working: WorkingMemory,
+    episodic: EpisodicMemory,
+    semantic: SemanticMemory,
+    procedural: ProceduralMemory,
+    associative: AssociativeMemory,
 }
 
-This is an architectural contract rather than a requirement that the implementation use exactly this function structure.
+struct EpisodicMemory {
+    episodes: Vec<Episode>,
+    capacity: usize,
+    eviction_policy: EvictionPolicy,
+}
 
+struct SemanticMemory {
+    knowledge: Vec<Knowledge>,
+    capacity: usize,
+    eviction_policy: EvictionPolicy,
+}
 
----
+struct ProceduralMemory {
+    procedures: Vec<Procedure>,
+    capacity: usize,
+    eviction_policy: EvictionPolicy,
+}
 
-105. Cognitive Feedback Loop
+struct AssociativeMemory {
+    associations: Vec<Association>,
+    capacity: usize,
+    index: AssociationIndex,
+}
+```
 
-After output:
+### 39.3. Neural State
 
-Response
- ↓
-Outcome
- ↓
-Observation
- ↓
-Prediction Comparison
- ↓
-Prediction Error
- ↓
-Attribution
- ↓
-Learning Signal
+```rust
+struct NeuralState {
+    fields: Vec<Field>,
+    active_cells: HashSet<CellId>,
+    active_columns: HashSet<ColumnId>,
+    temporal_buffer: TemporalBuffer,
+    prediction_state: PredictionState,
+}
 
-The outcome may come from:
+struct Field {
+    id: FieldId,
+    columns: Vec<Column>,
+    global_context: ContextVector,
+    local_context: ContextVector,
+    routing: RoutingState,
+    competition: CompetitionState,
+    temporal_state: TemporalState,
+    prediction_state: PredictionState,
+}
 
-user feedback
-subsequent observation
-environment
-verification
-later evidence
-task result
-
-
----
-
-106. Experience Representation
-
-struct Experience {
-    observation: Observation,
-    internal_state: StateSnapshot,
+struct Column {
+    id: ColumnId,
+    cells: Vec<Cell>,
+    activation: Scalar,
     prediction: Prediction,
-    action: Option<Action>,
-    outcome: Option<Outcome>,
-    error: PredictionError,
-    attribution: ErrorAttribution,
-    evidence: EvidenceSet,
-    provenance: Provenance,
+    competition: CompetitionState,
 }
 
+struct Cell {
+    id: CellId,
+    state: CellState,
+    activation: Scalar,
+    weight: WeightVector,
+    context: ContextVector,
+    prediction: PredictionVector,
+    confidence: Scalar,
+    plasticity: Scalar,
+}
+```
+
+### 39.4. Learning State
+
+```rust
+struct LearningState {
+    total_learning_events: u64,
+    total_replay_events: u64,
+    total_consolidation_events: u64,
+    average_prediction_error: Scalar,
+    learning_rate: Scalar,
+    plasticity_rate: Scalar,
+    consolidation_threshold: Scalar,
+}
+```
 
 ---
 
-107. Policy as a Non-Learned Boundary
+## 40. Final Architectural Contract
 
-Policy SHALL be represented separately from learned knowledge.
+CORTEX is defined as:
 
-Learned State
-      │
-      ▼
-Decision Proposal
-      │
-      ▼
-Policy Gate
-      │
-      ▼
-Allowed Operation
+A native Rust, single-binary, persistent, continually learning AI model whose cognitive state consists of a native Language Core, Neural Core, Memory System, World Model, Reasoning Engine, Planning Engine, Verification Engine, Learning System, Consolidation System, Self Model, Policy/Risk Gate, and persistent `.cx` state.
 
-The learned model cannot redefine the gate simply by generating a different internal belief.
+### 40.1. Fundamental Architecture
 
-
----
-
-108. Internet Safety Boundary
-
-Internet operations SHALL be represented as explicit actions.
-
-Intent
- ↓
-Proposed Network Operation
- ↓
-Risk Assessment
- ↓
-Policy
- ↓
-Network
-
-Network results return as observations:
-
-Network Result
- ↓
-Evidence
- ↓
-Verification
- ↓
-Memory
-
-
----
-
-109. API Safety Boundary
-
-External API requests SHALL NOT directly mutate arbitrary internal memory structures.
-
-Instead:
-
-API Request
- ↓
-Validated Command
- ↓
-Policy
- ↓
-Cognitive Operation
- ↓
-State Transition
-
-This preserves state invariants.
-
-
----
-
-110. State Invariants
-
-The runtime SHALL preserve:
-
-valid memory references
-valid neural topology
-valid vocabulary references
-valid world-model relationships
-valid provenance
-valid algorithm versions
-valid policy state
-valid `.cx` structure
-
-Any invalid transition SHALL fail before persistence.
-
-
----
-
-111. Memory Invariants
-
-Memory entries SHALL have:
-
-identity
-type
-content
-confidence
-timestamp
-provenance
-retention metadata
-
-Semantic memory SHALL NOT contain unverifiable claims without their verification status.
-
-
----
-
-112. World Model Invariants
-
-Every world-model assertion SHALL have:
-
-source
-confidence
-temporal context
-verification state
-
-The system SHALL distinguish:
-
-world observation
-world hypothesis
-world inference
-world prediction
-
-
----
-
-113. Reasoning Invariants
-
-Reasoning SHALL retain:
-
-premises
-hypotheses
-evidence
-counter-evidence
-dependencies
-confidence
-conclusion
-
-This prevents a conclusion from becoming detached from its basis.
-
-
----
-
-114. Verification Invariants
-
-Verification SHALL never silently upgrade:
-
-UNKNOWN
-
-to:
-
-VERIFIED
-
-without satisfying the configured evidence conditions.
-
-
----
-
-115. Learning Invariants
-
-Learning SHALL:
-
-be bounded
-be attributable
-respect policy
-respect resource limits
-preserve provenance
-record significant changes
-
-
----
-
-116. Persistent Learning
-
-After restart:
-
-Previous Cognitive State
-        ↓
-Load cortex.cx
-        ↓
-Restore Language State
-        ↓
-Restore Neural State
-        ↓
-Restore Memory
-        ↓
-Restore World Model
-        ↓
-Restore Learning State
-        ↓
-Continue
-
-CORTEX SHALL not reset to an empty model unless explicitly instructed to initialize a new state.
-
-
----
-
-117. Cognitive State Growth
-
-State may grow through:
-
-new vocabulary
-new concepts
-new relations
-new episodes
-new procedures
-new world states
-new hypotheses
-new learned associations
-
-Resource limits determine when state is compressed or forgotten.
-
-
----
-
-118. Model Identity
-
-A CORTEX instance is identified by:
-
-state identifier
-architecture version
-algorithm version
-configuration identity
-
-The .cx state is therefore the persistent identity-bearing computational state of the instance.
-
-Changing algorithms does not necessarily create a new cognitive instance if state migration preserves continuity.
-
-
----
-
-119. Architectural Change Boundary
-
-Changing:
-
-algorithm
-representation
-memory format
-language representation
-neural topology
-
-requires an explicit architecture or algorithm version transition.
-
-The state format SHALL make such transitions detectable.
-
-
----
-
-120. Deployment Contract
-
-A valid deployment consists of:
-
-cortex
-cortex.toml
-cortex.cx
-
-where cortex.cx may be automatically created during first boot.
-
-No external model artifact is mandatory.
-
-No external database is mandatory.
-
-No separate service is mandatory.
-
-
----
-
-121. Operational Contract
-
-The intended operational sequence is:
-
-Install binary
-      ↓
-Provide cortex.toml
-      ↓
-Provide API key if API enabled
-      ↓
-Run cortex
-      ↓
-Initialize / load cortex.cx
-      ↓
-READY
-      ↓
-Accept language input
-      ↓
-Process
-      ↓
-Respond
-      ↓
-Learn
-      ↓
-Persist
-
-
----
-
-122. Initial Configuration and Cognitive State
-
-The configuration defines the computational boundary.
-
-The .cx file defines the learned cognitive state.
-
-Therefore:
-
-cortex.toml
-=
-HOW CORTEX OPERATES
-
-while:
-
-cortex.cx
-=
-WHAT CORTEX HAS LEARNED / REMEMBERS
-
-This distinction SHALL remain fundamental.
-
-
----
-
-123. No External Training Requirement
-
-CORTEX SHALL NOT require a conventional static training dataset to maintain continual operation.
-
-Its learning source is:
-
-experience
-observation
-interaction
-feedback
-prediction error
-verified information
-
-The initial state provides computational primitives and language-processing structures.
-
-Subsequent knowledge acquisition is state-based.
-
-
----
-
-124. Learning Without Rebuilding the Model
-
-The intended mechanism is:
-
-Current State
- ↓
-Experience
- ↓
-Prediction
- ↓
-Error
- ↓
-Attribution
- ↓
-Local Adaptation
- ↓
-Memory Update
- ↓
-World Model Update
- ↓
-Language Update
- ↓
-Consolidation
-
-A complete offline retraining cycle is not required for ordinary learning.
-
-
----
-
-125. Cognitive Growth
-
-CORTEX can change along several dimensions:
-
-Vocabulary
-Semantic knowledge
-Procedural knowledge
-Associations
-World model
-Prediction capability
-Reasoning heuristics
-Language behavior
-Memory organization
-Confidence calibration
-
-These changes occur inside the persistent state boundary.
-
-
----
-
-126. Language and Cognition Integration
-
-Language SHALL NOT be an isolated subsystem.
-
-The complete relationship is:
-
-Language
-   ↕
-Concepts
-   ↕
-Memory
-   ↕
-World Model
-   ↕
-Reasoning
-   ↕
-Planning
-   ↕
-Verification
-   ↕
-Language
-
-This allows language to act as an interface to the underlying cognitive state rather than being the entirety of the model.
-
-
----
-
-127. Knowledge and Language Separation
-
-CORTEX SHALL distinguish:
-
-knowing a word
-
-from:
-
-understanding a concept
-
-and:
-
-understanding a concept
-
-from:
-
-having verified knowledge about the concept
-
-This prevents vocabulary expansion from being mistaken for cognitive learning.
-
-
----
-
-128. Reasoning and Generation Separation
-
-The architecture SHALL separate:
-
-reasoning result
-
-from:
-
-language expression
-
-Therefore a language-generation error does not necessarily imply a reasoning error.
-
-Likewise, a correct-looking sentence does not prove correct reasoning.
-
-
----
-
-129. Verification and Generation Separation
-
-The system SHALL support:
-
-generate
- ↓
-verify
- ↓
-revise
- ↓
-generate again
-
-when required.
-
-This enables response correction before output.
-
-
----
-
-130. Planning and Policy Separation
-
-Planning generates candidate actions.
-
-Policy determines whether those actions are permitted.
-
-Planner
- ↓
-Candidate Action
- ↓
-Risk Gate
- ↓
-ALLOW / LIMIT / DENY
-
-The planner cannot bypass the policy layer.
-
-
----
-
-131. Self Model and Policy Separation
-
-The Self Model may estimate:
-
-"I am uncertain"
-
-computationally.
-
-It does not gain authority to change policy merely because it estimates a different capability.
-
-
----
-
-132. Resource-Aware Cognition
-
-CORTEX SHALL consider available resources when planning cognitive operations.
-
-Example:
-
-high uncertainty
-+
-high reasoning cost
-+
-low available compute
-
-may result in:
-
-bounded reasoning
-lower plan depth
-explicit uncertainty
-
-rather than unbounded execution.
-
-
----
-
-133. Error Taxonomy
-
-CORTEX SHALL maintain a structured error taxonomy:
-
-INPUT_ERROR
-ENCODING_ERROR
-LANGUAGE_ERROR
-MEMORY_ERROR
-WORLD_MODEL_ERROR
-REASONING_ERROR
-PLANNING_ERROR
-VERIFICATION_ERROR
-LEARNING_ERROR
-PERSISTENCE_ERROR
-POLICY_ERROR
-RESOURCE_ERROR
-NETWORK_ERROR
-RUNTIME_ERROR
-
-This taxonomy feeds diagnostics and learning attribution.
-
-
----
-
-134. Diagnostic State
-
-The runtime SHALL maintain bounded diagnostics:
-
-last errors
-error frequency
-subsystem source
-severity
-recovery action
-timestamp
-
-Diagnostics SHALL not become uncontrolled persistent memory.
-
-
----
-
-135. Testing Contract
-
-Testing SHALL cover:
-
-Cell computation
-Column computation
-Temporal processing
-Language encoding
-Language generation
-Vocabulary learning
-Memory retrieval
-Memory consolidation
-World transitions
-Reasoning
-Counterfactuals
-Planning
-Verification
-Learning stability
-Replay
-Persistence
-Corruption recovery
-Policy enforcement
-API authentication
-Resource limits
-Configuration validation
-
-
----
-
-136. Persistence Testing
-
-The following invariant SHALL hold:
-
-Save(State)
- ↓
-Load(State)
-
-must produce a semantically equivalent cognitive state within defined serialization tolerances.
-
-
----
-
-137. Learning Testing
-
-Learning tests SHALL verify bounded behavior.
-
-Example:
-
-Input
- ↓
-Prediction
- ↓
-Observation
- ↓
-Learning
-
-must produce an expected bounded state transition.
-
-Testing SHALL measure:
-
-learning direction
-stability
-retention
-interference
-error reduction
-
-where applicable.
-
-
----
-
-138. Regression Testing
-
-Changing an algorithm SHALL test:
-
-state compatibility
-memory compatibility
-language behavior
-reasoning behavior
-verification behavior
-learning stability
-`.cx` migration
-
-
----
-
-139. Security Boundary
-
-Security-sensitive resources include:
-
-API keys
-policy configuration
-runtime executable
-filesystem access
-network access
-persistent state
-
-These SHALL not be controlled solely by learned model output.
-
-
----
-
-140. API Secret Handling
-
-Secrets SHALL remain external to cognitive state.
-
-Environment
-    ↓
-Runtime
-    ↓
-Authentication
-
-not:
-
-Secret
- ↓
-Memory
- ↓
-.cX
-
-
----
-
-141. Persistent State Security
-
-.cx integrity SHALL be verified.
-
-Where configured, state may additionally use:
-
-authenticated integrity
-encryption
-access control
-
-without changing the cognitive architecture.
-
-
----
-
-142. Configuration Validation
-
-At startup:
-
-cortex.toml
- ↓
-Parse
- ↓
-Schema Validation
- ↓
-Range Validation
- ↓
-Dependency Validation
- ↓
-Policy Validation
- ↓
-Runtime Initialization
-
-Invalid configuration SHALL prevent unsafe startup.
-
-
----
-
-143. Runtime Observability
-
-CORTEX SHALL expose:
-
-status
-uptime
-memory utilization
-neural utilization
-language vocabulary size
-episode count
-knowledge count
-world-model size
-prediction error
-learning status
-consolidation status
-checkpoint status
-
-
----
-
-144. Cognitive Metrics
-
-Core metrics include:
-
-prediction error
-memory retrieval success
-knowledge stability
-verification confidence
-reasoning consistency
-planning success
-language prediction quality
-learning rate
-forgetting rate
-consolidation rate
-
-These metrics become part of the Self Model.
-
-
----
-
-145. State Statistics
-
-CORTEX SHALL be able to calculate:
-
-active cells
-active columns
-vocabulary size
-memory occupancy
-episode count
-semantic concept count
-procedural count
-world entities
-world relations
-hypothesis count
-verification count
-learning events
-
-
----
-
-146. Shutdown
-
-Graceful shutdown:
-
-STOP ACCEPTING NEW WORK
- ↓
-FINISH SAFE OPERATIONS
- ↓
-CONSOLIDATE IF REQUIRED
- ↓
-CHECKPOINT
- ↓
-FLUSH
- ↓
-VERIFY
- ↓
-EXIT
-
-An emergency shutdown may skip non-critical consolidation but SHALL attempt to preserve the last valid state.
-
-
----
-
-147. Restart
-
-Restart SHALL perform:
-
-Load Configuration
- ↓
-Load `.cx`
- ↓
-Verify Integrity
- ↓
-Restore State
- ↓
-Restore Algorithm Versions
- ↓
-Restore Learning State
- ↓
-Restore Memory
- ↓
-Restore World Model
- ↓
-READY
-
-
----
-
-148. Complete Cognitive Loop
-
-The complete CORTEX loop is:
-
-┌──────────────────────────────────────────────────────┐
-│                    OBSERVATION                       │
-└────────────────────────┬─────────────────────────────┘
-                         ↓
-                  LANGUAGE ENCODING
-                         ↓
-                   REPRESENTATION
-                         ↓
-                   NEURAL PROCESS
-                         ↓
-                   MEMORY RETRIEVAL
-                         ↓
-                   WORLD INTEGRATION
-                         ↓
-                      PREDICTION
-                         ↓
-                      REASONING
-                         ↓
-                      PLANNING
-                         ↓
-                    VERIFICATION
-                         ↓
-                 RESPONSE / ACTION
-                         ↓
-                    ENVIRONMENT
-                         ↓
-                    OBSERVATION
-                         ↓
-                 PREDICTION ERROR
-                         ↓
-                  ERROR ATTRIBUTION
-                         ↓
-                       LEARNING
-                         ↓
-                      REPLAY
-                         ↓
-                   CONSOLIDATION
-                         ↓
-                    PERSISTENCE
-                         │
-                         └───────────────↺
-
-
----
-
-149. Final System Architecture
-
-┌──────────────────────────────────────────────────────────────┐
-│                            CORTEX                            │
-│                                                              │
-│  ┌────────────────────────────────────────────────────────┐  │
-│  │                  CORTEX LANGUAGE CORE                  │  │
-│  │                                                        │  │
-│  │ Symbol → Token → Syntax → Semantics → Context         │  │
-│  │                         ↓                              │  │
-│  │              Language Prediction / Generation         │  │
-│  └──────────────────────────┬─────────────────────────────┘  │
-│                             │                                │
-│  ┌──────────────────────────▼─────────────────────────────┐  │
-│  │                 CORTEX NEURAL CORE                    │  │
-│  │                                                        │  │
-│  │ Cell → Column → Field → Temporal State → Prediction   │  │
-│  │                         ↓                              │  │
-│  │                    Plasticity                         │  │
-│  └──────────────────────────┬─────────────────────────────┘  │
-│                             │                                │
-│          ┌──────────────────┼──────────────────┐             │
-│          │                  │                  │             │
-│          ▼                  ▼                  ▼             │
-│       MEMORY           WORLD MODEL        SELF MODEL        │
-│          │                  │                  │             │
-│          └──────────────────┼──────────────────┘             │
-│                             │                                │
-│                             ▼                                │
-│                        REASONING                             │
-│                             │                                │
-│                             ▼                                │
-│                         PLANNING                             │
-│                             │                                │
-│                             ▼                                │
-│                       VERIFICATION                           │
-│                             │                                │
-│                             ▼                                │
-│                    RESPONSE / ACTION                         │
-│                             │                                │
-│                             ▼                                │
-│                         LEARNING                             │
-│                             │                                │
-│             ┌───────────────┼───────────────┐                │
-│             ▼               ▼               ▼                │
-│          REPLAY       CONSOLIDATION     ATTRIBUTION          │
-│             │               │               │                │
-│             └───────────────┼───────────────┘                │
-│                             ▼                                │
-│                         PERSISTENCE                          │
-│                             │                                │
-│                             ▼                                │
-│                         cortex.cx                            │
-│                                                              │
-│  ┌────────────────────────────────────────────────────────┐  │
-│  │                  POLICY / RISK GATE                    │  │
-│  └────────────────────────────────────────────────────────┘  │
-│             ▲                              ▲                 │
-│             │                              │                 │
-│         INTERNET                         API                │
-│                                                              │
-└──────────────────────────────────────────────────────────────┘
-
-
----
-
-150. Final Deployment Architecture
-
-Linux x86_64
-                              │
-                              ▼
-                   ┌─────────────────────┐
-                   │       cortex        │
-                   │      single ELF     │
-                   └──────────┬──────────┘
-                              │
-              ┌───────────────┼────────────────┐
-              │               │                │
-              ▼               ▼                ▼
-        cortex.toml       cortex.cx        Embedded API
-        Configuration    Cognitive State       │
-                                              │
-                                              ▼
-                                           Clients
-
-The only persistent artifacts required for normal operation are:
-
-cortex
-cortex.toml
-cortex.cx
-
-
----
-
-151. Final Architectural Contract
-
-CORTEX SHALL therefore be defined as:
-
-A native Rust, single-binary, persistent,
-continually learning AI model whose cognitive
-state consists of a native Language Core,
-Neural Core, Memory System, World Model,
-Reasoning Engine, Planning Engine,
-Verification Engine, Learning System,
-Consolidation System, Self Model,
-Policy/Risk Gate, and persistent `.cx` state.
-
-Its fundamental architecture is:
-
+```
 LANGUAGE
     ↕
 NEURAL REPRESENTATION
@@ -3863,9 +2747,11 @@ LEARNING
 CONSOLIDATION
     ↕
 PERSISTENT COGNITIVE STATE
+```
 
-Its deployment model is:
+### 40.2. Deployment Model
 
+```
 ONE BINARY
 +
 ONE CONFIGURATION
@@ -3873,9 +2759,11 @@ ONE CONFIGURATION
 ONE COGNITIVE STATE
 =
 CORTEX
+```
 
-Its learning model is:
+### 40.3. Learning Model
 
+```
 NO REQUIRED STATIC RETRAINING LOOP
         ↓
 OBSERVATION
@@ -3898,10 +2786,12 @@ LANGUAGE / REASONING ADAPTATION
         ↓
 CONSOLIDATION
         ↓
-.cX
+.cx
+```
 
-Its security boundary is:
+### 40.4. Security Boundary
 
+```
 LEARNED COGNITIVE STATE
           ↓
      DECISION
@@ -3909,19 +2799,29 @@ LEARNED COGNITIVE STATE
    POLICY / RISK GATE
           ↓
    ALLOW / LIMIT / DENY
+```
 
-Its persistence boundary is:
+### 40.5. Persistence Boundary
 
-cortex.toml
-    =
-operational configuration
+| Artifact | Role |
+|---|---|
+| `cortex.toml` | Operational configuration |
+| `cortex.cx` | Persistent cognitive state |
+| `cortex` | Complete executable system |
 
-cortex.cx
-    =
-persistent cognitive state
+### 40.6. Ready-for-Use Definition
 
-cortex
-    =
-complete executable system
+After deployment, the `cortex` binary is ready for use when it can:
+
+1. Start and load configuration from `cortex.toml`
+2. Load or initialize cognitive state from `cortex.cx`
+3. Accept input through its CLI or embedded API
+4. Process information through the full cognitive pipeline (Language Core → Neural Core → Memory → World Model → Reasoning → Planning → Verification)
+5. Generate responses
+6. Learn from experience and feedback
+7. Persist learned state to `.cx`
+8. Continue operation across restarts without requiring another AI model or external cognitive service
+
+---
 
 This specification constitutes the final architectural baseline for CORTEX. It defines the complete target system and the contracts between its subsystems; it is not a roadmap, phased development plan, MVP definition, or proposal for a later architecture.
