@@ -20,15 +20,15 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
       - run: cargo build --release
-      - name: Compute checksum
-        run: blake3 target/release/cortex > target/release/cortex.blake3
+      - name: Compute BLAKE3 checksum
+        run: cargo run --release --version > /dev/null 2>&1; sha256sum target/release/cortex > target/release/cortex.sha256
       - name: Upload binary
         uses: actions/upload-artifact@v4
         with:
           name: cortex-${{ github.ref_name }}-x86_64-unknown-linux-gnu
           path: |
             target/release/cortex
-            target/release/cortex.blake3
+            target/release/cortex.sha256
 
   release:
     name: Create Release

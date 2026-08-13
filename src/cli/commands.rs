@@ -1,4 +1,5 @@
 use crate::error::CortexError;
+use crate::runtime::Runtime;
 
 #[derive(Debug, Clone)]
 pub enum CliCommand {
@@ -9,7 +10,6 @@ pub enum CliCommand {
     Status { config: String },
     Init { config: String },
     Checkpoint { config: String },
-    Migrate { config: String },
     Help,
     Version,
 }
@@ -31,7 +31,7 @@ impl CliCommand {
                 let bind = args.iter().position(|a| a == "--bind")
                     .and_then(|i| args.get(i + 1))
                     .cloned()
-                    .unwrap_or_else(|| "127.0.0.1:8080".to_string());
+                    .unwrap_or_else(|| "127.0.0.1:8080".into());
                 Ok(CliCommand::Serve { bind, config })
             }
             "observe" => {
@@ -45,7 +45,6 @@ impl CliCommand {
             "status" => Ok(CliCommand::Status { config }),
             "init" => Ok(CliCommand::Init { config }),
             "checkpoint" => Ok(CliCommand::Checkpoint { config }),
-            "migrate" => Ok(CliCommand::Migrate { config }),
             "help" | "--help" | "-h" => Ok(CliCommand::Help),
             "version" | "--version" | "-v" => Ok(CliCommand::Version),
             cmd => Err(CortexError::InputError(format!("Unknown command: {}", cmd))),
@@ -53,37 +52,83 @@ impl CliCommand {
     }
 }
 
-pub fn dispatch(args: &[String]) -> Result<(), CortexError> {
+pub fn dispatch(args: &[String]) -> Result<String, CortexError> {
     let cmd = CliCommand::parse(args)?;
     match cmd {
         CliCommand::Help => {
-            println!("CORTEX v{}", env!("CARGO_PKG_VERSION"));
-            println!("Usage: cortex <command> [options]");
-            println!();
-            println!("Commands:");
-            println!("  run          Start the runtime");
-            println!("  serve        Start the API server");
-            println!("  observe      Process an observation");
-            println!("  query        Query the system");
-            println!("  status       Show system status");
-            println!("  init         Initialize state");
-            println!("  checkpoint   Create a checkpoint");
-            println!("  migrate      Run migrations");
-            println!("  help         Show this help");
-            println!("  version      Show version");
-            println!();
-            println!("Options:");
-            println!("  --config <path>   Config file (default: cortex.toml)");
-            println!("  --bind <addr>     API bind address (serve only)");
-            Ok(())
+            Ok("CORTEX — A persistent, state-based, continually learning AI model\n\n\
+                Usage: cortex <command> [options]\n\n\
+                Commands:\n  \
+                  run          Start the interactive runtime\n  \
+                  serve        Start the API server\n  \
+                  observe      Process an observation\n  \
+                  query        Query the system\n  \
+                  status       Show system status\n  \
+                  init         Initialize state\n  \
+                  checkpoint   Create a checkpoint\n  \
+                  help         Show this help\n  \
+                  version      Show version\n\n\
+                Options:\n  \
+                  --config <path>   Config file (default: cortex.toml)\n  \
+                  --bind <addr>     API bind address (serve only)"
+                .to_string())
         }
         CliCommand::Version => {
-            println!("CORTEX v{}", env!("CARGO_PKG_VERSION"));
-            Ok(())
+            Ok(format!("CORTEX v{}", env!("CARGO_PKG_VERSION")))
         }
-        _ => {
+        CliCommand::Observe { text, config } => {
+            let cfg = crate::config::CortexConfig::load(&config)
+                .unwrap_or_else(|_| crate::config::CortexConfig::default());
+            let mut rt = crate::cortex::CortexRuntime::new(cfg)?;
+            rt.boot()?;
+            let response = rt.process(&text)?;
+            rt.shutdown()?;
+            Ok(response)
+        }
+        CliCommand::Query { text, config } => {
+            let cfg = crate::config::CortexConfig::load(&config)
+                .unwrap_or_else(|_| crate::config::CortexConfig::default());
+            let mut rt = crate::cortex::CortexRuntime::new(cfg)?;
+            rt.boot()?;
+            let response = rt.process(&text)?;
+            rt.shutdown()?;
+            Ok(response)
+        }
+        CliCommand::Status { config } => {
+            let cfg = crate::config::CortexConfig::load(&config)
+                .unwrap_or_else(|_| crate::config::CortexConfig::default());
+            let mut rt = crate::cortex::CortexRuntime::new(cfg)?;
+            rt.boot()?;
+            let status = format!(
+                "CORTEX v{}\nState: {:?}\nEpisodes: {}\nLearning events: {}\nVocabulary: {}",
+                env!("CARGO_PKG_VERSION"),
+                rt.runtime_state,
+                rt.state.metadata.episode_count,
+                rt.state.learning.total_learning_events,
+                rt.language_vocabulary.size(),
+            );
+            rt.shutdown()?;
+            Ok(status)
+        }
+        CliCommand::Init { .. } => {
+            let cfg = crate::config::CortexConfig::default();
+            let mut rt = crate::cortex::CortexRuntime::new(cfg)?;
+            rt.boot()?;
+            rt.shutdown()?;
+            Ok("State initialized".into())
+        }
+        CliCommand::Checkpoint { config } => {
+            let cfg = crate::config::CortexConfig::load(&config)
+                .unwrap_or_else(|_| crate::config::CortexConfig::default());
+            let mut rt = crate::cortex::CortexRuntime::new(cfg)?;
+            rt.boot()?;
+            let _ = rt.save_state();
+            rt.shutdown()?;
+            Ok("Checkpoint created".into())
+        }
+        CliCommand::Run { .. } | CliCommand::Serve { .. } => {
             Err(CortexError::RuntimeError(
-                "Programmatic dispatch not supported via lib; use cortex::cortex::CortexRuntime directly".into()
+                "Use the cortex binary for interactive run/serve modes".into(),
             ))
         }
     }

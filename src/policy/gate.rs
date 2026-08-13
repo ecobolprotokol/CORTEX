@@ -101,10 +101,45 @@ impl PolicyGate {
                 "Memory consolidation allowed".into(),
                 0.2,
             ),
-            _ => (
+            "neural_process" => (
                 PolicyDecision::Allow,
-                format!("Operation '{}' allowed by default", operation),
+                "Neural process allowed".into(),
                 0.1,
+            ),
+            "world_integrate" => (
+                PolicyDecision::Allow,
+                "World integration allowed".into(),
+                0.1,
+            ),
+            "reasoning_evaluate" => (
+                PolicyDecision::Allow,
+                "Reasoning evaluation allowed".into(),
+                0.1,
+            ),
+            "planning_evaluate" => (
+                PolicyDecision::Allow,
+                "Planning evaluation allowed".into(),
+                0.1,
+            ),
+            "verification_evaluate" => (
+                PolicyDecision::Allow,
+                "Verification evaluation allowed".into(),
+                0.1,
+            ),
+            "memory_store" => (
+                PolicyDecision::Allow,
+                "Memory store allowed".into(),
+                0.1,
+            ),
+            "memory_evict" => (
+                PolicyDecision::Allow,
+                "Memory eviction allowed".into(),
+                0.2,
+            ),
+            _ => (
+                PolicyDecision::Deny,
+                format!("Unknown operation '{}' is not allowed by default", operation),
+                1.0,
             ),
         };
 
@@ -118,19 +153,9 @@ impl PolicyGate {
     pub fn evaluate_with_context(
         &self,
         operation: &str,
-        context: &str,
+        _context: &str,
     ) -> GateResult {
-        let mut result = self.evaluate(operation);
-
-        if context.contains("emergency") && result.decision == PolicyDecision::Deny {
-            result = GateResult {
-                decision: PolicyDecision::Limit,
-                reason: format!("Emergency override for '{}'", operation),
-                risk_score: result.risk_score,
-            };
-        }
-
-        result
+        self.evaluate(operation)
     }
 
     pub fn is_allowed(&self, operation: &str) -> bool {

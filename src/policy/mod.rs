@@ -1,10 +1,13 @@
 pub mod risk;
 pub mod gate;
+pub mod resource_limits;
 
 pub use risk::{RiskEstimator, RiskEstimate};
 pub use gate::{PolicyGate, PolicyDecision, GateResult};
+pub use resource_limits::ResourceLimits;
 
 use crate::error::CortexError;
+use crate::types::scalars::Scalar;
 
 pub trait PolicyEngine {
     fn evaluate(&self, operation: &str) -> Result<GateResult, CortexError>;
@@ -17,7 +20,7 @@ pub struct PolicyManager {
     pub audit_log: Vec<AuditEntry>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct AuditEntry {
     pub operation: String,
     pub decision: PolicyDecision,
@@ -68,6 +71,32 @@ impl PolicyManager {
         }
 
         (allow_count, limit_count, deny_count)
+    }
+
+    pub fn query_by_operation(&self, operation: &str) -> Vec<&AuditEntry> {
+        self.audit_log
+            .iter()
+            .filter(|e| e.operation == operation)
+            .collect()
+    }
+
+    pub fn query_by_decision(&self, decision: &PolicyDecision) -> Vec<&AuditEntry> {
+        self.audit_log
+            .iter()
+            .filter(|e| e.decision == *decision)
+            .collect()
+    }
+
+    pub fn query_by_min_risk(&self, min_risk: Scalar) -> Vec<&AuditEntry> {
+        self.audit_log
+            .iter()
+            .filter(|e| e.risk_score >= min_risk)
+            .collect()
+    }
+
+    pub fn recent(&self, n: usize) -> &[AuditEntry] {
+        let start = self.audit_log.len().saturating_sub(n);
+        &self.audit_log[start..]
     }
 }
 

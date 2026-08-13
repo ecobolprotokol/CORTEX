@@ -72,19 +72,58 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             let cfg = load_config(&config);
             let mut runtime = CortexRuntime::new(cfg)?;
             runtime.boot()?;
-            println!("CORTEX v{} | Ready", env!("CARGO_PKG_VERSION"));
-            runtime.run()?;
+            println!("CORTEX v{} | Interactive mode (type 'exit' to quit)", env!("CARGO_PKG_VERSION"));
+
+            let stdin = std::io::stdin();
+            loop {
+                print!("> ");
+                std::io::Write::flush(&mut std::io::stdout())?;
+
+                let mut line = String::new();
+                match stdin.read_line(&mut line) {
+                    Ok(0) | Err(_) => break,
+                    Ok(_) => {
+                        let trimmed = line.trim();
+                        if trimmed.is_empty() {
+                            continue;
+                        }
+                        if trimmed == "exit" || trimmed == "quit" {
+                            break;
+                        }
+                        if trimmed == "status" {
+                            println!("Episodes: {}", runtime.state.metadata.episode_count);
+                            println!("Vocabulary: {}", runtime.language_vocabulary.size());
+                            println!("Learning: {}", runtime.state.learning.total_learning_events);
+                            println!("Entities: {}", runtime.state.world.entities.len());
+                            println!("Version: {}", runtime.state_version);
+                            println!("Mutations: {}", runtime.mutation_log.records.len());
+                            continue;
+                        }
+                        if trimmed == "checkpoint" {
+                            match runtime.save_state() {
+                                Ok(()) => println!("State saved"),
+                                Err(e) => println!("Save failed: {}", e),
+                            }
+                            continue;
+                        }
+                        match runtime.process(trimmed) {
+                            Ok(response) => println!("{}", response),
+                            Err(e) => eprintln!("Error: {}", e),
+                        }
+                    }
+                }
+            }
             println!("Shutting down...");
             runtime.shutdown()?;
         }
         Commands::Serve { bind, config } => {
             let cfg = load_config(&config);
-            let mut runtime = CortexRuntime::new(cfg)?;
-            runtime.boot()?;
+            let api_key = std::env::var(&cfg.api.api_key_env)
+                .unwrap_or_else(|_| "cortex-default-key".into());
+            let mut api_manager = cortex::api::ApiManager::new(&api_key);
             println!("CORTEX API server listening on {}", bind);
             println!("Press Ctrl+C to stop");
-            runtime.run()?;
-            runtime.shutdown()?;
+            api_manager.start_synchronous_server(&bind)?;
         }
         Commands::Observe { text, config } => {
             let cfg = load_config(&config);
@@ -124,12 +163,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             let cfg = load_config(&config);
             let mut runtime = CortexRuntime::new(cfg)?;
             runtime.boot()?;
-            runtime.persistence_checkpoint.create_checkpoint(
-                runtime.memory_episodic.episodes.len() as u64,
-                runtime.memory_episodic.next_id,
-            );
-            runtime.state.metadata.checkpoint_count += 1;
-            println!("Checkpoint created (#{})", runtime.state.metadata.checkpoint_count);
+            runtime.save_state()?;
+            println!("Checkpoint created");
             runtime.shutdown()?;
         }
         Commands::Migrate { .. } => {

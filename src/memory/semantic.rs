@@ -169,4 +169,31 @@ impl SemanticMemory {
     pub fn is_full(&self) -> bool {
         self.knowledge.len() >= self.capacity
     }
+
+    pub fn detect_contradictions(&self) -> Vec<(KnowledgeId, KnowledgeId, String)> {
+        let mut contradictions = Vec::new();
+        for i in 0..self.knowledge.len() {
+            for j in (i + 1)..self.knowledge.len() {
+                let a = &self.knowledge[i];
+                let b = &self.knowledge[j];
+                if a.concept == b.concept {
+                    for (a_key, a_val) in &a.properties {
+                        for (b_key, b_val) in &b.properties {
+                            if a_key == b_key && a_val != b_val {
+                                contradictions.push((
+                                    a.id,
+                                    b.id,
+                                    format!(
+                                        "Contradictory values for '{}': '{}' vs '{}'",
+                                        a_key, a_val, b_val
+                                    ),
+                                ));
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        contradictions
+    }
 }

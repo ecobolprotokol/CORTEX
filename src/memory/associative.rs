@@ -80,12 +80,31 @@ impl AssociativeMemory {
     }
 
     pub fn get_associations(&self, entity_id: u64) -> Vec<&Association> {
-        self.associations
-            .iter()
-            .filter(|a| a.source == entity_id || a.target == entity_id)
-            .collect()
+        let mut result = Vec::new();
+        if let Some(ids) = self.forward_index.get(&entity_id) {
+            for id in ids {
+                if let Some(a) = self.associations.iter().find(|a| a.id == *id) {
+                    result.push(a);
+                }
+            }
+        }
+        if let Some(ids) = self.backward_index.get(&entity_id) {
+            for id in ids {
+                if result.iter().any(|a| a.id == *id) {
+                    continue;
+                }
+                if let Some(a) = self.associations.iter().find(|a| a.id == *id) {
+                    result.push(a);
+                }
+            }
+        }
+        result
     }
 
+    // Note: get_associations_mut uses a linear scan because index-based lookup
+    // would require collecting IDs first then borrowing self.associations mutably,
+    // which conflicts with Rust's borrow checker. The mutable borrow prevents
+    // simultaneous index and data access.
     pub fn get_associations_mut(&mut self, entity_id: u64) -> Vec<&mut Association> {
         self.associations
             .iter_mut()
