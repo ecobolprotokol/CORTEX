@@ -16,3 +16,22 @@ pub fn estimate_capability(
         resource_availability: (1.0 - memory_pressure).max(0.0),
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_estimate_capability() {
+        let cap = estimate_capability(0.2, 0.1, 100);
+        assert!(cap.language_accuracy > 0.5);
+        assert!(cap.prediction_accuracy > 0.7);
+        assert!(cap.memory_retrieval_success > 0.8);
+    }
+
+    #[test]
+    fn test_estimate_capability_low_episodes() {
+        let cap = estimate_capability(0.5, 0.5, 0);
+        assert!(cap.language_accuracy <= 0.5);
+    }
+}

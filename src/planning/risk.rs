@@ -1,6 +1,6 @@
 use crate::types::*;
 
-pub fn evaluate_risk(plan: &Plan, _world: &WorldState) -> RiskAssessment {
+pub fn evaluate_risk(plan: &Plan, _world: &crate::types::WorldState) -> RiskAssessment {
     let mut factors = Vec::new();
     let reversibility = 0.8;
     factors.push(RiskFactor {
@@ -26,5 +26,37 @@ pub fn evaluate_risk(plan: &Plan, _world: &WorldState) -> RiskAssessment {
         level,
         factors,
         reversibility,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_evaluate_risk() {
+        let plan = Plan {
+            id: PlanId(1),
+            goal: GoalId(1),
+            steps: Vec::new(),
+            estimated_cost: 0.1,
+            estimated_risk: 0.1,
+            uncertainty: 0.3,
+            confidence: 0.7,
+            predicted_outcomes: Vec::new(),
+        };
+        let world = crate::types::WorldState {
+            entities: Vec::new(),
+            relations: Vec::new(),
+            active_events: Vec::new(),
+            temporal_context: crate::types::TemporalContext::default(),
+            uncertainty: crate::types::UncertaintyState::initial(),
+            next_entity_id: crate::types::EntityId(1),
+            next_relation_id: crate::types::RelationId(1),
+            next_event_id: crate::types::EventId(1),
+        };
+        let risk = evaluate_risk(&plan, &world);
+        assert!(risk.score > 0.0);
+        assert!(!risk.factors.is_empty());
     }
 }
