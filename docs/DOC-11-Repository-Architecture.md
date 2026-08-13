@@ -101,25 +101,50 @@ CORTEX/
 │
 ├── Cargo.toml                          # Package manifest — dependencies, profiles, metadata
 ├── Cargo.lock                          # Locked dependency graph — reproducible builds
+├── rust-toolchain.toml                 # Pinned Rust toolchain (stable, rustfmt, clippy)
 ├── .gitignore                          # Git ignore rules — build artifacts, state files, temp files
+├── .editorconfig                       # Editor configuration — indentation, charset
+├── README.md                           # Project overview, quickstart, links
+├── LICENSE                             # License file (Proprietary)
+├── CHANGELOG.md                        # Version changelog (conventional commits)
+├── VERSION                             # Single-source version string
 │
-├── CORTEX-DOC-01.md                    # Technical Specification (System Contract)
-├── CORTEX-DOC-02.md                    # Software Design Specification (Architecture Contract)
-├── CORTEX-DOC-03.md                    # Data & State Specification (Data Contract)
-├── CORTEX-DOC-04.md                    # Algorithm Specification (Computational Behavior Contract)
-├── CORTEX-DOC-05.md                    # API & CLI Specification (Interface Contract)
-├── CORTEX-DOC-06.md                    # Build & Release Specification (Build Contract)
-├── CORTEX-DOC-07.md                    # Testing & Validation Specification (Quality Contract)
-├── CORTEX-DOC-08.md                    # Deployment & Operations Specification (Operations Contract)
-├── CORTEX-DOC-09.md                    # Security & Privacy Specification (Security Contract)
-├── CORTEX-DOC-10.md                    # Configuration Reference (Configuration Contract)
-├── CORTEX-DOC-11.md                    # Repository Architecture & Structure (Repository Contract)
+├── docs/                               # Documentation — all DOC files and architecture
+│   ├── DOC-01-Requirements.md          # Technical Specification (System Contract)
+│   ├── DOC-02-Architecture.md          # Software Design Specification (Architecture Contract)
+│   ├── DOC-03-Data-Architecture.md     # Data & State Specification (Data Contract)
+│   ├── DOC-04-Algorithms.md            # Algorithm Specification (Computational Behavior Contract)
+│   ├── DOC-05-API-CLI.md               # API & CLI Specification (Interface Contract)
+│   ├── DOC-06-Build-Release.md         # Build & Release Specification (Build Contract)
+│   ├── DOC-07-Testing-Validation.md    # Testing & Validation Specification (Quality Contract)
+│   ├── DOC-08-Deployment-Operations.md # Deployment & Operations Specification (Operations Contract)
+│   ├── DOC-09-Security-Privacy.md      # Security & Privacy Specification (Security Contract)
+│   ├── DOC-10-Configuration-Reference.md # Configuration Reference (Configuration Contract)
+│   ├── DOC-11-Repository-Architecture.md # Repository Architecture & Structure (Repository Contract)
+│   │
+│   ├── architecture/                   # Architecture-specific documentation
+│   │   ├── final-architectural-baseline.md # Final Architectural Baseline
+│   │   ├── consistency-audit.md        # Consistency audit results
+│   │   ├── decision-records/           # Architecture Decision Records (ADRs)
+│   │   └── diagrams/                   # Architecture diagrams
+│   │
+│   ├── contracts/                      # Interface contracts
+│   │   ├── api/                        # API contract definitions
+│   │   ├── cli/                        # CLI contract definitions
+│   │   ├── persistence/                # Persistence format contracts
+│   │   └── configuration/              # Configuration contracts
+│   │
+│   └── traceability/                   # Traceability documentation
+│       ├── requirements-to-design.md   # Requirement → Design mapping
+│       ├── requirements-to-tests.md    # Requirement → Test mapping
+│       └── cross-document-matrix.md    # Cross-document traceability matrix
 │
 ├── src/                                # Source code — all production modules
 │   ├── main.rs                         # Entry point — CLI dispatch, boot orchestration
 │   ├── cortex.rs                       # Global orchestration — CortexRuntime construction
 │   ├── config.rs                       # Configuration parsing — TOML deserialization, validation
 │   ├── error.rs                        # Error taxonomy — CortexError enum, recovery codes
+│   ├── runtime.rs                      # Runtime lifecycle — state machine, boot, shutdown
 │   │
 │   ├── types/                          # Core Type System — all shared types, IDs, scalars
 │   │   ├── mod.rs                      # Module re-exports — public type surface
@@ -217,39 +242,65 @@ CORTEX/
 │   │   ├── mod.rs                      # CLI dispatch — argument parsing, subcommand routing
 │   │   └── commands.rs                # Command implementations — all CLI subcommands
 │   │
-│   ├── observability/                  # Observability — metrics, diagnostics
-│   │   ├── mod.rs                      # Metrics & diagnostics — public interface
-│   │   └── diagnostics.rs             # Diagnostic state — runtime health data
-│   │
-│   └── runtime.rs                      # Runtime lifecycle — state machine, boot, shutdown
+│   └── observability/                  # Observability — metrics, diagnostics
+│       ├── mod.rs                      # Metrics & diagnostics — public interface
+│       └── diagnostics.rs             # Diagnostic state — runtime health data
 │
 ├── tests/                              # Integration tests — cross-module validation
-│   ├── cognitive_pipeline.rs           # Full cognitive loop integration test
-│   ├── persistence_roundtrip.rs        # Save/load/state verification roundtrip
-│   ├── learning_stability.rs           # Learning stability guard validation
-│   ├── security_policy.rs              # Policy gate enforcement tests
-│   ├── api_endpoints.rs                # API endpoint contract tests
-│   └── corruption_recovery.rs          # State corruption detection and recovery
+│   └── cognitive_loop.rs               # Full cognitive loop integration test (stub)
 │
 ├── benches/                            # Performance benchmarks — latency, throughput
-│   ├── cognitive_loop.rs               # Cognitive loop latency benchmark
-│   ├── memory_retrieval.rs             # Memory retrieval throughput benchmark
-│   └── persistence.rs                  # Persistence I/O benchmark
+│   └── cognitive_loop.rs               # Cognitive loop latency benchmark (stub)
 │
-├── docs/                               # Extended documentation — supplementary materials
-│   └── (reserved for diagrams, architecture visualizations, migration guides)
+├── schemas/                            # Schema definitions
+│   ├── cx/                             # .cx file format schemas
+│   │   ├── format.md                   # Binary format specification
+│   │   ├── sections/                   # Per-section schema definitions
+│   │   └── schema.json                 # Machine-readable schema
+│   ├── api/                            # API schemas — request/response
+│   └── configuration/                  # Configuration schemas — validation rules
 │
-└── (target/)                           # Build artifacts — excluded by .gitignore
-    ├── debug/                          # Debug build output
-    │   ├── cortex                      # Debug binary
-    │   ├── deps/                       # Dependency artifacts
-    │   ├── examples/                   # Example binaries
-    │   ├── build/                      # Build script outputs
-    │   ├── incremental/                # Incremental compilation cache
-    │   └── .fingerprint/               # Build fingerprint cache
-    └── release/                        # Release build output
-        ├── cortex                      # Release binary (stripped, LTO)
-        └── ...
+├── config/                             # Configuration profiles
+│   ├── defaults/                       # Default configuration values
+│   ├── development/                    # Development environment config
+│   ├── testing/                        # Testing environment config
+│   └── production/                     # Production environment config
+│
+├── scripts/                            # Development and operations scripts
+│   ├── build/                          # Build scripts — compilation, packaging
+│   ├── test/                           # Test scripts — runner orchestration
+│   ├── audit/                          # Audit scripts — security, license, dependency
+│   ├── migration/                      # Migration scripts — schema/state evolution
+│   └── release/                        # Release scripts — tagging, packaging, publishing
+│
+├── deployment/                         # Deployment configurations
+│   ├── docker/                         # Docker — Dockerfile, docker-compose
+│   ├── kubernetes/                     # Kubernetes — manifests, Helm charts
+│   ├── systemd/                        # systemd — service files
+│   └── reverse-proxy/                  # Reverse proxy — nginx, caddy configs
+│
+├── examples/                           # Usage examples
+│   ├── basic/                          # Basic usage examples
+│   ├── api/                            # API usage examples
+│   ├── cli/                            # CLI usage examples
+│   └── persistence/                    # Persistence examples
+│
+├── migrations/                         # Schema/state migration artifacts
+│   └── v1/                             # Version 1 migrations
+│
+├── artifacts/                          # Generated artifacts (gitignored)
+│   ├── builds/                         # Build outputs
+│   ├── test-reports/                   # Test report outputs
+│   └── audit-reports/                  # Audit report outputs
+│
+└── .github/                            # GitHub configuration
+    ├── workflows/
+    │   ├── ci.yml                      # CI pipeline — lint, type-check, test
+    │   ├── test.yml                    # Test pipeline — full test suite
+    │   ├── security.yml                # Security scanning — audit, dependency check
+    │   └── release.yml                 # Release pipeline — build, package, publish
+    ├── ISSUE_TEMPLATE/                 # Issue templates
+    └── pull_request_template.md        # PR template
 ```
 
 ### 2.2 Repository Layout Status

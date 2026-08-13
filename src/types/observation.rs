@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::types::common::{Duration, Timestamp};
 use crate::types::ids::{
-    ActionId, EpisodeId, EvidenceId, FieldId, HypothesisId, MemoryId, SourceId,
+    ActionId, EpisodeId, EvidenceId, FieldId, MemoryId, SourceId,
 };
 use crate::types::scalars::Scalar;
 
