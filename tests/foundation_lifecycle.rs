@@ -10,8 +10,7 @@ fn test_full_lifecycle() {
     config.persistence.checkpoint_interval = 5;
     config.learning.consolidation_interval = 10;
 
-    let toml = format!(
-        r#"
+    let toml = r#"
 [model]
 cells = 256
 columns = 16
@@ -77,8 +76,7 @@ api_key_env = "CORTEX_API_KEY"
 [persistence]
 state = "/tmp/cortex_lifecycle_test.cx"
 checkpoint_interval = 5
-"#,
-    );
+"#;
     std::fs::write(config_path, toml).unwrap();
 
     // Phase 1: Boot and process observations
@@ -105,7 +103,6 @@ checkpoint_interval = 5
     assert!(rt1.state.metadata.episode_count >= 5);
     assert!(rt1.language_vocabulary.size() > 0);
 
-    let version_before = rt1.state_version;
     let episodes_before = rt1.state.metadata.episode_count;
     let vocab_before = rt1.language_vocabulary.size();
 

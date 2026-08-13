@@ -129,12 +129,11 @@ impl ApiManager {
 
                     let mut body = vec![0u8; content_length];
                     if content_length > 0 {
-                        use std::io::Read;
                         let _ = std::io::Read::read(&mut (&stream), &mut body);
                     }
 
                     let body_str = String::from_utf8_lossy(&body).to_string();
-                    let parts: Vec<&str> = request_line.split_whitespace().collect();
+                    let parts: Vec<&str> = _request_line.split_whitespace().collect();
                     let method = parts.first().unwrap_or(&"");
                     let path = parts.get(1).unwrap_or(&"/");
 
