@@ -385,7 +385,7 @@ cortex/
 
 ### 5.1 Repository Layout
 
-> **Current State Reference:** The current repository tree, directory responsibilities, naming conventions, and structural invariants are documented in **CORTEX-DOC-11 Current Repository Architecture & Structure**. The layout below is a summary reference; for the full current-state specification see DOC-11 §2.1. The target architecture is defined in **CORTEX-FINAL-BASELINE.md**.
+> The repository tree, directory responsibilities, naming conventions, and structural invariants are documented in **CORTEX-DOC-11 Repository Architecture & Structure**. The layout below is a summary reference; for the full specification see DOC-11 §2.1.
 
 ```
 cortex/

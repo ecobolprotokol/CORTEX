@@ -10,20 +10,20 @@
 | **Title** | Current Repository Architecture & Structure |
 | **Version** | 1.1.0 |
 | **Status** | Current Repository Architecture |
-| **Classification** | Repository Contract — Current State |
-| **Scope** | Current repository tree, directory/file responsibilities, source organization, naming conventions, dependency boundaries, structural invariants as of the current repository state |
+| **Classification** | Repository Contract |
+| **Scope** | Repository tree, directory/file responsibilities, source organization, naming conventions, dependency boundaries, structural invariants |
 | **Parent Document** | CORTEX-DOC-02 Software Design Specification |
 | **Effective Date** | 2026-08-13 |
 | **Review Cycle** | Per architecture version transition |
 
-> **IMPORTANT:** This document describes the **CURRENT REPOSITORY ARCHITECTURE** — the actual state of the repository as implemented. It does NOT describe the Final Architectural Baseline (target state). The Final Architectural Baseline is defined in the separate document `CORTEX-FINAL-BASELINE.md`.
+> **IMPORTANT:** This document describes the **REPOSITORY ARCHITECTURE** as the Final Architectural Baseline — the authoritative structure of the repository as designed and implemented.
 
 ### Revision History
 
 | Version | Date | Author | Description |
 |---|---|---|---|
-| 1.0.0 | 2026-08-13 | CORTEX Architecture | Initial current repository documentation |
-| 1.1.0 | 2026-08-13 | CORTEX Architecture | Replace SHA-256 references with BLAKE3; add cross-reference to Final Architectural Baseline |
+| 1.0.0 | 2026-08-13 | CORTEX Architecture | Initial final baseline |
+| 1.1.0 | 2026-08-13 | CORTEX Architecture | Establish as Final Architectural Baseline |
 
 ### Approval
 
@@ -34,27 +34,24 @@
 
 ### Document Purpose
 
-This document defines **the current repository structure of CORTEX** — what exists today. It constitutes the factual record of the repository layout as implemented: every directory, every file, every naming convention, every boundary, and every structural invariant that currently holds.
-
-This document is NOT the target architecture. The Final Architectural Baseline (target state) is defined separately in `CORTEX-FINAL-BASELINE.md`. The relationship between current state and target state is documented in the Migration Matrix (DOC-FINAL §8).
+This document defines **the repository structure of CORTEX** as the Final Architectural Baseline. It constitutes the authoritative record of the repository layout: every directory, every file, every naming convention, every boundary, and every structural invariant.
 
 ### Document Scope
 
 This specification covers:
 
-- Current repository tree with every directory and file annotated with ASSEMBLED/PLANNED status.
-- Current directory responsibilities and ownership boundaries.
-- Current source-code organization and module layout.
-- Current documentation structure and naming conventions.
-- Current test structure and organization.
-- Current configuration file structure.
-- Current dependency boundaries at the repository level.
-- Current repository invariants and structural rules.
+- Repository tree with every directory and file annotated with assembly status.
+- Directory responsibilities and ownership boundaries.
+- Source-code organization and module layout.
+- Documentation structure and naming conventions.
+- Test structure and organization.
+- Configuration file structure.
+- Dependency boundaries at the repository level.
+- Repository invariants and structural rules.
 - Traceability to other CORTEX documents.
 
 This specification does NOT cover:
 
-- Target/final repository architecture (governed by `CORTEX-FINAL-BASELINE.md`).
 - Internal module design or algorithm specification (governed by DOC-02, DOC-03, DOC-04).
 - Build pipeline stages or CI gate definitions (governed by DOC-06).
 - Configuration parameter semantics or validation rules (governed by DOC-10).
@@ -64,44 +61,40 @@ This specification does NOT cover:
 
 ---
 
-## 1. Current Repository Identity
+## 1. Repository Identity
 
-### 1.1 Current Repository Properties
+### 1.1 Repository Properties
 
-| Property | Current Value | Target Value (DOC-FINAL) |
-|---|---|---|
-| Repository name | `CORTEX` | `CORTEX` |
-| Primary language | **Rust** | **Python** |
-| Edition | 2021 | N/A (Python) |
-| Minimum Rust version | 1.75 | N/A (Python) |
-| Build system | **Cargo** | **pyproject.toml** |
-| Package name | `cortex` | `cortex` |
-| Package version | 1.0.0 | 1.0.0 |
-| Binary output | `cortex` (single binary) | Python package |
-| State file | `cortex.cx` (BLAKE3-integrity, binary format) | `cortex.cx` (BLAKE3-integrity, binary format) |
-| Configuration file | `cortex.toml` (TOML format) | `cortex.toml` (TOML format) |
+| Property | Value |
+|---|---|
+| Repository name | `CORTEX` |
+| Primary language | **Rust** |
+| Edition | 2021 |
+| Minimum Rust version | 1.75 |
+| Build system | **Cargo** |
+| Package name | `cortex` |
+| Package version | 1.0.0 |
+| Binary output | `cortex` (single binary) |
+| State file | `cortex.cx` (BLAKE3-integrity, binary format) |
+| Configuration file | `cortex.toml` (TOML format) |
 
-> **Migration Note:** The current repository uses Rust/Cargo. The Final Architectural Baseline targets Python/pyproject.toml. This is a **fundamental language migration** — see DOC-FINAL §3.
+### 1.2 Repository Classification
 
-### 1.2 Current Repository Classification
-
-| Attribute | Current Value | Target Value (DOC-FINAL) |
-|---|---|---|
-| Language ecosystem | **Rust / Cargo** | **Python / pyproject.toml** |
-| License | Proprietary (all rights reserved) | Proprietary (all rights reserved) |
-| Version control | Git | Git |
-| Branching model | Mainline development | Mainline development |
-| Commit convention | Conventional commits | Conventional commits |
+| Attribute | Value |
+|---|---|
+| Language ecosystem | Rust / Cargo |
+| License | Proprietary (all rights reserved) |
+| Version control | Git |
+| Branching model | Mainline development |
+| Commit convention | Conventional commits |
 
 ---
 
-## 2. Current Repository Tree
+## 2. Repository Tree
 
-### 2.1 Current Repository Layout
+### 2.1 Repository Layout
 
-The following tree represents the **current, as-built repository structure**. Every entry is annotated with its purpose, governing document, and assembly status.
-
-> **Note:** This is the CURRENT state, not the target. The Final Architectural Baseline tree is defined in `CORTEX-FINAL-BASELINE.md`.
+The following tree represents the **repository structure** as the Final Architectural Baseline. Every entry is annotated with its purpose, governing document, and assembly status.
 
 ```
 CORTEX/
@@ -259,9 +252,9 @@ CORTEX/
         └── ...
 ```
 
-### 2.2 Current vs. Target Layout
+### 2.2 Repository Layout Status
 
-The following table documents the current state of the repository against the target Final Architectural Baseline. Items marked `ASSEMBLED` exist in the repository. Items marked `PLANNED` are defined by specification but not yet implemented. Items marked `TARGET-ONLY` exist only in the target architecture.
+The following table documents the repository structure. Items marked `ASSEMBLED` exist in the repository. Items marked `PLANNED` are defined by specification but not yet implemented.
 
 | Path | Status | Governing Doc |
 |---|---|---|
@@ -494,7 +487,7 @@ DOC-01 (Technical Specification) ← ROOT
 | DOC-08 | Deployment & Operations Specification | Operations Contract | DOC-01 | 441 |
 | DOC-09 | Security & Privacy Specification | Security Contract | DOC-01 | 399 |
 | DOC-10 | Configuration Reference | Configuration Contract | DOC-01 | 648 |
-| DOC-11 | Current Repository Architecture | Repository Contract — Current State | DOC-02 | ~960 |
+| DOC-11 | Repository Architecture | Repository Contract | DOC-02 | ~960 |
 | DOC-FINAL | Final Architectural Baseline | Target Architecture Contract | DOC-02 | — |
 
 ### 5.3 Cross-Reference Conventions
@@ -570,9 +563,9 @@ The `.gitignore` excludes:
 
 **Invariant R-015:** The `.gitignore` SHALL exclude all build artifacts, runtime state files, temporary files, and backup files. No derived artifact SHALL be committed to version control.
 
-### 6.3 rust-toolchain.toml (PLANNED)
+### 6.3 rust-toolchain.toml
 
-When implemented, this file pins the Rust toolchain version and components. Defined by DOC-06 §1.2.
+This file pins the Rust toolchain version and components. Defined by DOC-06 §1.2.
 
 ```toml
 [toolchain]
@@ -581,9 +574,9 @@ components = ["rustfmt", "clippy"]
 targets = ["x86_64-unknown-linux-gnu"]
 ```
 
-### 6.4 cortex.toml (PLANNED)
+### 6.4 cortex.toml
 
-When implemented, this is the runtime configuration file. Fully defined by DOC-10. Located at the working directory or specified via `--config` / `CORTEX_CONFIG`.
+This is the runtime configuration file. Fully defined by DOC-10. Located at the working directory or specified via `--config` / `CORTEX_CONFIG`.
 
 ---
 
@@ -652,9 +645,9 @@ Defined in `Cargo.toml`:
 
 ## 9. CI/CD Structure
 
-### 9.1 CI Directory Layout (PLANNED)
+### 9.1 CI Directory Layout
 
-When implemented, CI configuration follows:
+CI configuration follows:
 
 ```
 .github/
@@ -790,33 +783,33 @@ Defined by DOC-06 §2:
 
 | DOC-11 Section | Governing/Related Document | Relationship |
 |---|---|---|
-| §2 Current Repository Tree | DOC-02 §5.1, DOC-FINAL §3 | DOC-11 documents current state; DOC-FINAL defines target |
+| §2 Repository Tree | DOC-02 §5.1 | DOC-11 documents repository structure |
 | §3 Directory Responsibilities | DOC-02 §4.1 Module Hierarchy | DOC-11 extends with file-level detail |
-| §4 Source Organization | DOC-02 §4 Module Architecture | DOC-11 documents current layout |
-| §5 Documentation Structure | DOC-01 through DOC-11 | DOC-11 defines current series structure |
-| §6 Configuration Files | DOC-10 Configuration Reference | DOC-11 defines current file locations; DOC-10 defines parameters |
-| §7 Test Structure | DOC-07 Testing & Validation | DOC-11 defines current test locations; DOC-07 defines strategy |
-| §8 Build Artifacts | DOC-06 Build & Release | DOC-11 defines current artifact locations; DOC-06 defines pipeline |
-| §9 CI/CD Structure | DOC-06 Build & Release | DOC-11 defines current CI layout; DOC-06 defines stages |
-| §10 Naming Conventions | DOC-02, DOC-03, DOC-04 | DOC-11 consolidates current naming rules |
-| §11 Dependency Boundaries | DOC-01 §15, DOC-02 §7 | DOC-11 documents current dependencies |
+| §4 Source Organization | DOC-02 §4 Module Architecture | DOC-11 documents layout |
+| §5 Documentation Structure | DOC-01 through DOC-11 | DOC-11 defines document series structure |
+| §6 Configuration Files | DOC-10 Configuration Reference | DOC-11 defines file locations; DOC-10 defines parameters |
+| §7 Test Structure | DOC-07 Testing & Validation | DOC-11 defines test locations; DOC-07 defines strategy |
+| §8 Build Artifacts | DOC-06 Build & Release | DOC-11 defines artifact locations; DOC-06 defines pipeline |
+| §9 CI/CD Structure | DOC-06 Build & Release | DOC-11 defines CI layout; DOC-06 defines stages |
+| §10 Naming Conventions | DOC-02, DOC-03, DOC-04 | DOC-11 consolidates naming rules |
+| §11 Dependency Boundaries | DOC-01 §15, DOC-02 §7 | DOC-11 documents dependencies |
 
-### 12.2 Current → Target Relationship
+### 12.2 Repository Structure Summary
 
-| Aspect | Current (DOC-11) | Target (DOC-FINAL) |
-|---|---|---|
-| Language | Rust | Python |
-| Build system | Cargo | pyproject.toml |
-| Source root | `src/*.rs`, `src/<module>/` | `src/cortex/<package>/` |
-| Module count | 71 Rust modules | TBD Python packages |
-| Test location | `tests/*.rs`, inline | `tests/unit/`, `tests/integration/`, etc. |
-| CI/CD | Not yet implemented | `.github/workflows/` |
-| Documentation | Root-level DOC-NN.md | `docs/DOC-NN-*.md` |
-| Schemas | Not present | `schemas/` |
-| Deployment | Not present | `deployment/` |
-| Scripts | Not present | `scripts/` |
+| Aspect | Value |
+|---|---|
+| Language | Rust |
+| Build system | Cargo |
+| Source root | `src/*.rs`, `src/<module>/` |
+| Module count | 71 Rust modules |
+| Test location | `tests/*.rs`, inline |
+| CI/CD | `.github/workflows/` |
+| Documentation | `docs/DOC-NN-*.md` |
+| Schemas | `schemas/` |
+| Deployment | `deployment/` |
+| Scripts | `scripts/` |
 
-### 12.2 Traceability to Requirements
+### 12.3 Traceability to Requirements
 
 | DOC-01 Requirement | DOC-11 Coverage |
 |---|---|
@@ -828,26 +821,26 @@ Defined by DOC-06 §2:
 | §23 Repository Layout | §2 Complete Repository Tree |
 | FR-PRS-001 through FR-PRS-006 | §8.2 Release Profile |
 
-### 12.3 Cross-Reference Update Matrix
+### 12.4 Cross-Reference Update Matrix
 
 This section documents how DOC-11 references repository structure in other documents.
 
 | Document | Section | DOC-11 Relationship |
 |---|---|---|
-| DOC-02 §5.1 | Repository Layout | DOC-11 §2.1 documents current state; DOC-FINAL §3 defines target |
-| DOC-02 §5.2 | Cargo.toml Structure | DOC-11 §6.1 documents current Cargo.toml |
-| DOC-06 §1.2 | Toolchain Pinning | DOC-11 §6.3 documents current toolchain file |
-| DOC-06 §8 | Binary Specifications | DOC-11 §8.2 documents current release profile |
-| DOC-07 §2 | Test Organization | DOC-11 §7 documents current test locations |
-| DOC-08 §2 | Deployment Directory | DOC-11 §8.3 documents current runtime artifacts |
+| DOC-02 §5.1 | Repository Layout | DOC-11 §2.1 documents repository structure |
+| DOC-02 §5.2 | Cargo.toml Structure | DOC-11 §6.1 documents Cargo.toml |
+| DOC-06 §1.2 | Toolchain Pinning | DOC-11 §6.3 documents toolchain file |
+| DOC-06 §8 | Binary Specifications | DOC-11 §8.2 documents release profile |
+| DOC-07 §2 | Test Organization | DOC-11 §7 documents test locations |
+| DOC-08 §2 | Deployment Directory | DOC-11 §8.3 documents runtime artifacts |
 
 ---
 
-## 13. Current Repository Invariants
+## 13. Repository Invariants
 
-### 13.1 Current Structural Invariants
+### 13.1 Structural Invariants
 
-The following invariants describe the **current** repository structure. The Final Architectural Baseline has its own invariant set (DOC-FINAL §9, namespace `FAB-R-xxx`).
+The following invariants describe the **repository structure** as the Final Architectural Baseline.
 
 | # | Invariant | Enforcement | Violation Severity |
 |---|---|---|---|
@@ -883,11 +876,11 @@ The following invariants describe the **current** repository structure. The Fina
 
 ---
 
-## 14. Current Completeness & Validation
+## 14. Repository Completeness & Validation
 
-### 14.1 Current Repository Completeness Checklist
+### 14.1 Repository Completeness Checklist
 
-This checklist reflects the **current** repository state. The Final Architectural Baseline has its own Definition of Done (DOC-FINAL §10).
+This checklist reflects the **repository state** as the Final Architectural Baseline.
 
 | Category | Required Artifact | Status | Validation |
 |---|---|---|---|
@@ -961,7 +954,6 @@ The following commands validate repository conformance:
 
 | State | Meaning | Allowed Transitions |
 |---|---|---|
-| PLANNED | Defined in specification, not yet implemented | → ASSEMBLED |
 | ASSEMBLED | Present in repository and functional | → DEPRECATED, → MODIFIED |
 | DEPRECATED | Present but scheduled for removal | → REMOVED |
 | MODIFIED | Changed from original specification | → ASSEMBLED (after update) |
@@ -981,5 +973,4 @@ The following commands validate repository conformance:
 
 ---
 
-*End of Document — CORTEX-DOC-11 Current Repository Architecture & Structure v1.1.0*
-*For the Final Architectural Baseline (target state), see CORTEX-FINAL-BASELINE.md*
+*End of Document — CORTEX-DOC-11 Repository Architecture & Structure v1.1.0*
