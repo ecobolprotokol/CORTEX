@@ -385,18 +385,25 @@ cortex/
 
 ### 5.1 Repository Layout
 
+> **Authoritative Source:** The complete repository tree, directory responsibilities, naming conventions, and structural invariants are defined in **CORTEX-DOC-11 Repository Architecture & Structure Specification**. The layout below is a summary reference; for the full specification see DOC-11 §2.1.
+
 ```
 cortex/
 ├── Cargo.toml              # Workspace root manifest
 ├── Cargo.lock              # Locked dependency versions
-├── rust-toolchain.toml     # Pinned Rust toolchain
-├── cortex.toml             # Default configuration template
+├── rust-toolchain.toml     # Pinned Rust toolchain (DOC-11 §6.3)
+├── cortex.toml             # Default configuration template (DOC-11 §6.4)
 ├── README.md               # Project documentation
 │
-├── src/                    # All source code (71 modules)
+├── CORTEX-DOC-01.md        # Technical Specification
+├── CORTEX-DOC-02.md        # Software Design Specification
+├── ...                     # (DOC-03 through DOC-10)
+├── CORTEX-DOC-11.md        # Repository Architecture & Structure
+│
+├── src/                    # All source code (71 modules) (DOC-11 §4)
 │   └── ...                 # (see Module Hierarchy above)
 │
-├── tests/                  # Integration tests
+├── tests/                  # Integration tests (DOC-11 §7)
 │   ├── cognitive_pipeline.rs
 │   ├── persistence_roundtrip.rs
 │   ├── learning_stability.rs
@@ -404,15 +411,12 @@ cortex/
 │   ├── api_endpoints.rs
 │   └── corruption_recovery.rs
 │
-├── benches/                # Performance benchmarks
+├── benches/                # Performance benchmarks (DOC-11 §7)
 │   ├── cognitive_loop.rs
 │   ├── memory_retrieval.rs
 │   └── persistence.rs
 │
-└── docs/                   # Architecture documents
-    ├── 01-technical-specification.md
-    ├── 02-software-design.md
-    └── ...
+└── docs/                   # Supplementary documentation (DOC-11 §3.5)
 ```
 
 ### 5.2 Cargo.toml Structure
@@ -3747,6 +3751,8 @@ pub fn combine_predictions(
 > - **Policy separation**: Security boundary is architecturally distinct from learned state.
 >
 > **CORTEX software architecture: 71 modules, 5 layers, 12 trait interfaces, 1 binary, 1 process, 1 state file.**
+>
+> **Repository structure:** The complete repository tree, directory responsibilities, naming conventions, dependency boundaries, and structural invariants are defined in **CORTEX-DOC-11 Repository Architecture & Structure Specification** (§2-§14). DOC-11 is the single source of truth for repository-level structure.
 
 ---
 
