@@ -1,0 +1,6 @@
+# CORTEX Development Configuration
+[persistence]
+checkpoint_interval = 100
+
+[api]
+bind = "127.0.0.1:8080"

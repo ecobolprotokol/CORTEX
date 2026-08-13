@@ -1,0 +1,19 @@
+# CORTEX Default Configuration
+# This file contains the default configuration values.
+
+[model]
+hidden_size = 4096
+num_layers = 12
+
+[memory]
+working_capacity = 100
+episodic_capacity = 10000
+semantic_capacity = 50000
+
+[learning]
+learning_rate = 0.001
+stability_guard = 0.1
+
+[persistence]
+state_file = "cortex.cx"
+checkpoint_interval = 1000

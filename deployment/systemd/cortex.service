@@ -1,0 +1,13 @@
+[Unit]
+Description=CORTEX AI Model
+After=network.target
+
+[Service]
+Type=simple
+User=cortex
+WorkingDirectory=/opt/cortex
+ExecStart=/opt/cortex/venv/bin/cortex serve
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target

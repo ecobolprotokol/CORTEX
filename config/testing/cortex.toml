@@ -1,0 +1,8 @@
+# CORTEX Testing Configuration
+[memory]
+working_capacity = 10
+episodic_capacity = 100
+
+[persistence]
+state_file = ":memory:"
+checkpoint_interval = 10

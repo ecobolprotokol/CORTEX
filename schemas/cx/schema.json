@@ -1,0 +1,6 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "CORTEX .cx Format Schema",
+  "description": "Machine-readable schema for the .cx binary format",
+  "type": "object"
+}

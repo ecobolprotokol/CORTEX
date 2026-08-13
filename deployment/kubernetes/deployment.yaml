@@ -1,0 +1,19 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cortex
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cortex
+  template:
+    metadata:
+      labels:
+        app: cortex
+    spec:
+      containers:
+      - name: cortex
+        image: cortex:latest
+        ports:
+        - containerPort: 8080

@@ -1,5 +1,44 @@
-/target
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.mypy_cache/
+
+# CORTEX runtime
 cortex.cx
 cortex.cx.tmp
 checkpoints/
 *.bak
+
+# CORTEX artifacts
+artifacts/builds/
+artifacts/test-reports/
+artifacts/audit-reports/
+
+# Archive (legacy Rust implementation)
+_archive/
+
+# OS
+.DS_Store
+Thumbs.db

@@ -1,0 +1,6 @@
+# CORTEX Production Configuration
+[api]
+bind = "0.0.0.0:8080"
+
+[persistence]
+checkpoint_interval = 5000
