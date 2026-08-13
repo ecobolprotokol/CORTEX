@@ -53,15 +53,15 @@ impl StateTransaction {
     }
 
     pub fn rollback(self, log: &mut MutationLog, reason: &str) -> MutationId {
-        log.record(
-            self.kind,
-            &format!("ROLLBACK: {} — {}", self.description, reason),
-            "cortex",
-            self.pre_version,
-            self.pre_version,
-            false,
-            Some(reason.to_string()),
-        )
+        log.record(RecordParams {
+            kind: self.kind,
+            description: &format!("ROLLBACK: {} — {}", self.description, reason),
+            subsystem: "cortex",
+            pre_version: self.pre_version,
+            post_version: self.pre_version,
+            success: false,
+            error: Some(reason.to_string()),
+        })
     }
 
     pub fn mutations(&self) -> &[String] {
