@@ -3,31 +3,46 @@ name: Release
 on:
   push:
     tags:
-      - "v*"
+      - 'v*'
+
+permissions:
+  contents: write
+
+env:
+  CARGO_TERM_COLOR: always
 
 jobs:
   build:
+    name: Build Release
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo build --release
+      - name: Compute checksum
+        run: blake3 target/release/cortex > target/release/cortex.blake3
+      - name: Upload binary
+        uses: actions/upload-artifact@v4
         with:
-          python-version: "3.11"
-      - run: pip install build
-      - run: python -m build
-      - uses: actions/upload-artifact@v4
-        with:
-          name: dist
-          path: dist/
+          name: cortex-${{ github.ref_name }}-x86_64-unknown-linux-gnu
+          path: |
+            target/release/cortex
+            target/release/cortex.blake3
 
-  publish:
-    runs-on: ubuntu-latest
+  release:
+    name: Create Release
     needs: build
+    runs-on: ubuntu-latest
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/checkout@v4
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
         with:
-          name: dist
-          path: dist/
-      - uses: pypa/gh-action-pypi-publish@release/v1
+          path: artifacts
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
         with:
-          password: ${{ secrets.PYPI_API_TOKEN }}
+          generate_release_notes: true
+          files: |
+            artifacts/**/*

@@ -6,25 +6,23 @@ on:
   pull_request:
     branches: [main]
   schedule:
-    - cron: "0 0 * * *"
+    - cron: '0 0 * * 0'
 
 jobs:
   audit:
+    name: Cargo Audit
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: rustsec/audit-check@v1.4.1
         with:
-          python-version: "3.11"
-      - run: pip install pip-audit
-      - run: pip-audit
+          token: ${{ secrets.GITHUB_TOKEN }}
 
-  dependencies:
+  deny:
+    name: Cargo Deny
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: EmbarkStudios/cargo-deny-action@v1
         with:
-          python-version: "3.11"
-      - run: pip install safety
-      - run: safety check
+          command: check all

@@ -9,9 +9,10 @@ Brief description of the changes.
 
 ## Testing
 
-- [ ] Unit tests pass
-- [ ] Integration tests pass
-- [ ] Security tests pass
+- [ ] `cargo check` passes
+- [ ] `cargo fmt --check` passes
+- [ ] `cargo clippy -- -D warnings` passes
+- [ ] `cargo test --all` passes
 
 ## Checklist
 
