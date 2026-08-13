@@ -48,3 +48,11 @@ strip = true
 [[bench]]
 name = "cognitive_loop"
 harness = false
+
+[[bench]]
+name = "memory_retrieval"
+harness = false
+
+[[bench]]
+name = "persistence"
+harness = false

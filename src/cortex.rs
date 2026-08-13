@@ -213,13 +213,17 @@ impl CortexRuntime {
         });
 
         // Stage 2: Encode language (tokenize)
-        let tokens = self.language_tokenizer.tokenize(input)?;
-        let mut symbol_ids = Vec::new();
-        for token in &tokens {
-            let id = self.language_vocabulary.lookup_or_create(token);
-            symbol_ids.push(id);
+        if self.config.language.enabled {
+            let tokens = self.language_tokenizer.tokenize(input)?;
+            let mut symbol_ids = Vec::new();
+            for token in &tokens {
+                let id = self.language_vocabulary.lookup_or_create(token);
+                symbol_ids.push(id);
+            }
+            self.state.language.symbols = symbol_ids;
+        } else {
+            self.state.language.symbols = input.bytes().map(|b| crate::types::ids::SymbolId::from(b as u64)).collect();
         }
-        self.state.language.symbols = symbol_ids;
         txn.commit(&mut self.mutation_log, self.state_version);
 
         // Stage 3: Process neural representation
@@ -290,75 +294,82 @@ impl CortexRuntime {
         });
 
         // Stage 5: Integrate world state
-        let gate_result = self.policy_gate.evaluate("world_integrate");
-        if gate_result.decision == PolicyDecision::Deny {
-            return Err(CortexError::PolicyError(
-                "World integration denied by policy".into(),
-            ));
-        }
-        let words: Vec<&str> = input.split_whitespace().collect();
-        for word in words.iter().take(3) {
-            if word.len() > 3 {
-                self.world_entity_manager
-                    .create(word, EntityKind::ConceptualObject);
+        if self.config.world.enabled {
+            let gate_result = self.policy_gate.evaluate("world_integrate");
+            if gate_result.decision == PolicyDecision::Deny {
+                return Err(CortexError::PolicyError(
+                    "World integration denied by policy".into(),
+                ));
             }
+            let words: Vec<&str> = input.split_whitespace().collect();
+            for word in words.iter().take(3) {
+                if word.len() > 3 {
+                    self.world_entity_manager
+                        .create(word, EntityKind::ConceptualObject);
+                }
+            }
+            self.state.world.entities = self
+                .world_entity_manager
+                .entities
+                .iter()
+                .map(|e| crate::types::state::Entity {
+                    id: e.id,
+                    name: e.name.clone(),
+                    confidence: e.confidence,
+                    created_at: e.created_at,
+                    updated_at: e.updated_at,
+                })
+                .collect();
+            self.mutation_log.record(RecordParams {
+                kind: MutationKind::WorldIntegrate,
+                description: "world integration",
+                subsystem: "world",
+                pre_version,
+                post_version: self.state_version,
+                success: true,
+                error: None,
+            });
         }
-        self.state.world.entities = self
-            .world_entity_manager
-            .entities
-            .iter()
-            .map(|e| crate::types::state::Entity {
-                id: e.id,
-                name: e.name.clone(),
-                confidence: e.confidence,
-                created_at: e.created_at,
-                updated_at: e.updated_at,
-            })
-            .collect();
-        self.mutation_log.record(RecordParams {
-            kind: MutationKind::WorldIntegrate,
-            description: "world integration",
-            subsystem: "world",
-            pre_version,
-            post_version: self.state_version,
-            success: true,
-            error: None,
-        });
 
         // Stage 6: Evaluate reasoning
-        let gate_result = self.policy_gate.evaluate("reasoning_evaluate");
-        if gate_result.decision == PolicyDecision::Deny {
-            return Err(CortexError::PolicyError(
-                "Reasoning denied by policy".into(),
-            ));
-        }
-        let hypotheses = self.reasoning_generator.generate(input, &context_strings);
-        self.state.reasoning.active_hypotheses = hypotheses
-            .iter()
-            .map(|h| crate::types::state::Hypothesis {
-                id: h.id,
-                proposition: crate::types::state::Proposition {
-                    subject: h.proposition.clone(),
-                    predicate: "suggests".into(),
-                    object: None,
-                    negated: false,
-                },
-                confidence: h.confidence,
-                evidence: crate::types::evidence::EvidenceSet::new(),
-                counter_evidence: crate::types::evidence::EvidenceSet::new(),
-                created_at: Timestamp::now(),
-            })
-            .collect();
-        self.state.reasoning.budget_remaining = self.config.reasoning.max_steps;
-        self.mutation_log.record(RecordParams {
-            kind: MutationKind::ReasoningEvaluate,
-            description: "reasoning evaluation",
-            subsystem: "reasoning",
-            pre_version,
-            post_version: self.state_version,
-            success: true,
-            error: None,
-        });
+        let hypotheses = if self.config.reasoning.enabled {
+            let gate_result = self.policy_gate.evaluate("reasoning_evaluate");
+            if gate_result.decision == PolicyDecision::Deny {
+                return Err(CortexError::PolicyError(
+                    "Reasoning denied by policy".into(),
+                ));
+            }
+            let hypotheses = self.reasoning_generator.generate(input, &context_strings);
+            self.state.reasoning.active_hypotheses = hypotheses
+                .iter()
+                .map(|h| crate::types::state::Hypothesis {
+                    id: h.id,
+                    proposition: crate::types::state::Proposition {
+                        subject: h.proposition.clone(),
+                        predicate: "suggests".into(),
+                        object: None,
+                        negated: false,
+                    },
+                    confidence: h.confidence,
+                    evidence: crate::types::evidence::EvidenceSet::new(),
+                    counter_evidence: crate::types::evidence::EvidenceSet::new(),
+                    created_at: Timestamp::now(),
+                })
+                .collect();
+            self.state.reasoning.budget_remaining = self.config.reasoning.max_steps;
+            self.mutation_log.record(RecordParams {
+                kind: MutationKind::ReasoningEvaluate,
+                description: "reasoning evaluation",
+                subsystem: "reasoning",
+                pre_version,
+                post_version: self.state_version,
+                success: true,
+                error: None,
+            });
+            hypotheses
+        } else {
+            Vec::new()
+        };
 
         // Stage 7: Evaluate planning (optional)
         if self.config.planning.enabled {
@@ -379,8 +390,12 @@ impl CortexRuntime {
         }
 
         // Stage 8: Verify claims
-        let top_confidence = hypotheses.first().map(|h| h.confidence).unwrap_or(0.0);
-        let verified = top_confidence >= self.config.verification.minimum_confidence;
+        let verified = if self.config.verification.enabled {
+            let top_confidence = hypotheses.first().map(|h| h.confidence).unwrap_or(0.0);
+            top_confidence >= self.config.verification.minimum_confidence
+        } else {
+            true
+        };
 
         // Stage 9: Generate response
         let response = if let Some(conclusion) = hypotheses.iter().find(|h| h.confidence > 0.3) {

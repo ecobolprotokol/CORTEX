@@ -49,6 +49,27 @@ enum Commands {
         #[arg(short, long, default_value = "cortex.toml")]
         config: String,
     },
+    Experience {
+        text: String,
+        #[arg(short, long, default_value = "cortex.toml")]
+        config: String,
+    },
+    Learn {
+        text: String,
+        #[arg(short, long, default_value = "cortex.toml")]
+        config: String,
+    },
+    Inspect {
+        #[arg(short, long, default_value = "cortex.toml")]
+        config: String,
+        #[arg(short, long)]
+        component: Option<String>,
+    },
+    Verify {
+        claim: String,
+        #[arg(short, long, default_value = "cortex.toml")]
+        config: String,
+    },
     Migrate {
         #[arg(short, long, default_value = "cortex.toml")]
         config: String,
@@ -175,6 +196,58 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
         Commands::Migrate { .. } => {
             println!("Migration check: no migrations required for current version");
+        }
+        Commands::Experience { text, config } => {
+            let cfg = load_config(&config);
+            let mut runtime = CortexRuntime::new(cfg)?;
+            runtime.boot()?;
+            let response = runtime.process(&text)?;
+            println!("{}", response);
+            runtime.shutdown()?;
+        }
+        Commands::Learn { text, config } => {
+            let cfg = load_config(&config);
+            let mut runtime = CortexRuntime::new(cfg)?;
+            runtime.boot()?;
+            let response = runtime.process(&text)?;
+            println!("{}", response);
+            runtime.shutdown()?;
+        }
+        Commands::Inspect { config, component } => {
+            let cfg = load_config(&config);
+            let mut runtime = CortexRuntime::new(cfg)?;
+            runtime.boot()?;
+            match component.as_deref() {
+                Some("episodes") => println!("Episodes: {}", runtime.state.metadata.episode_count),
+                Some("vocabulary") => println!("Vocabulary size: {}", runtime.language_vocabulary.size()),
+                Some("entities") => println!("Entities: {}", runtime.state.world.entities.len()),
+                Some("learning") => println!("Learning events: {}", runtime.state.learning.total_learning_events),
+                Some("state") => println!("State version: {}", runtime.state_version),
+                Some("mutations") => println!("Mutations: {}", runtime.mutation_log.records.len()),
+                Some("checkpoints") => println!("Checkpoints: {}", runtime.state.metadata.checkpoint_count),
+                Some(other) => {
+                    eprintln!("Unknown component: {}", other);
+                    eprintln!("Available: episodes, vocabulary, entities, learning, state, mutations, checkpoints");
+                }
+                None => {
+                    println!("Episodes: {}", runtime.state.metadata.episode_count);
+                    println!("Vocabulary size: {}", runtime.language_vocabulary.size());
+                    println!("Entities: {}", runtime.state.world.entities.len());
+                    println!("Learning events: {}", runtime.state.learning.total_learning_events);
+                    println!("State version: {}", runtime.state_version);
+                    println!("Mutations: {}", runtime.mutation_log.records.len());
+                    println!("Checkpoints: {}", runtime.state.metadata.checkpoint_count);
+                }
+            }
+            runtime.shutdown()?;
+        }
+        Commands::Verify { claim, config } => {
+            let cfg = load_config(&config);
+            let mut runtime = CortexRuntime::new(cfg)?;
+            runtime.boot()?;
+            let response = runtime.process(&claim)?;
+            println!("{}", response);
+            runtime.shutdown()?;
         }
     }
 

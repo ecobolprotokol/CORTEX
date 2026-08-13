@@ -1,3 +1,4 @@
+use crate::cortex::CortexRuntime;
 use crate::error::CortexError;
 use crate::types::scalars::Scalar;
 
@@ -137,6 +138,63 @@ impl RequestHandler {
         self.verify_count = 0;
         self.learn_count = 0;
     }
+}
+
+pub fn handle_inference_with_runtime(runtime: &mut CortexRuntime, input: &str) -> Result<String, CortexError> {
+    let response = runtime.process(input)?;
+    Ok(format!(
+        "{{\"status\":\"ok\",\"input\":\"{}\",\"response\":\"{}\",\"episodes\":{},\"version\":{}}}",
+        input.replace('"', "\\\""),
+        response.replace('"', "\\\""),
+        runtime.state.metadata.episode_count,
+        runtime.state_version
+    ))
+}
+
+pub fn handle_observe_with_runtime(runtime: &mut CortexRuntime, observation: &str) -> Result<String, CortexError> {
+    let response = runtime.process(observation)?;
+    Ok(format!(
+        "{{\"status\":\"ok\",\"observation\":\"{}\",\"response\":\"{}\",\"episodes\":{},\"version\":{}}}",
+        observation.replace('"', "\\\""),
+        response.replace('"', "\\\""),
+        runtime.state.metadata.episode_count,
+        runtime.state_version
+    ))
+}
+
+pub fn handle_query_with_runtime(runtime: &mut CortexRuntime, query: &str) -> Result<String, CortexError> {
+    let response = runtime.process(query)?;
+    Ok(format!(
+        "{{\"status\":\"ok\",\"query\":\"{}\",\"response\":\"{}\",\"episodes\":{},\"version\":{}}}",
+        query.replace('"', "\\\""),
+        response.replace('"', "\\\""),
+        runtime.state.metadata.episode_count,
+        runtime.state_version
+    ))
+}
+
+pub fn handle_status_with_runtime(runtime: &CortexRuntime) -> Result<String, CortexError> {
+    Ok(format!(
+        "{{\"status\":\"ok\",\"version\":\"{}\",\"state\":\"{:?}\",\"episodes\":{},\"learning_events\":{},\"vocabulary_size\":{},\"entities\":{},\"state_version\":{},\"mutations\":{}}}",
+        env!("CARGO_PKG_VERSION"),
+        runtime.runtime_state,
+        runtime.state.metadata.episode_count,
+        runtime.state.learning.total_learning_events,
+        runtime.language_vocabulary.size(),
+        runtime.state.world.entities.len(),
+        runtime.state_version,
+        runtime.mutation_log.records.len()
+    ))
+}
+
+pub fn handle_checkpoint_with_runtime(runtime: &mut CortexRuntime) -> Result<String, CortexError> {
+    runtime.save_state()?;
+    Ok(format!(
+        "{{\"status\":\"ok\",\"checkpoint_count\":{},\"episodes\":{},\"state_version\":{}}}",
+        runtime.state.metadata.checkpoint_count,
+        runtime.state.metadata.episode_count,
+        runtime.state_version
+    ))
 }
 
 impl Default for RequestHandler {

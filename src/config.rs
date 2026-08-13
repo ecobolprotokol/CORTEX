@@ -274,6 +274,26 @@ impl CortexConfig {
                 "persistence.checkpoint_interval must be > 0".into(),
             ));
         }
+        if self.model.cells % self.model.columns != 0 {
+            return Err(CortexError::ConfigError(
+                "model.cells must be evenly divisible by model.columns".into(),
+            ));
+        }
+        if self.language.context_window < self.language.generation_limit {
+            return Err(CortexError::ConfigError(
+                "language.context_window must be >= language.generation_limit".into(),
+            ));
+        }
+        if self.memory.procedural_mb < 16 {
+            return Err(CortexError::ConfigError(
+                "memory.procedural_mb must be >= 16".into(),
+            ));
+        }
+        if self.memory.associative_mb < 16 {
+            return Err(CortexError::ConfigError(
+                "memory.associative_mb must be >= 16".into(),
+            ));
+        }
         Ok(())
     }
 
