@@ -49,6 +49,7 @@ pub struct AlgorithmVersions {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Default)]
 pub struct LanguageState {
     pub symbols: Vec<SymbolId>,
     pub tokens: Vec<TokenId>,
@@ -62,39 +63,15 @@ pub struct LanguageState {
     pub confidence: ConfidenceState,
 }
 
-impl Default for LanguageState {
-    fn default() -> Self {
-        Self {
-            symbols: Vec::new(),
-            tokens: Vec::new(),
-            concepts: Vec::new(),
-            entities: Vec::new(),
-            relations: Vec::new(),
-            syntax: SyntaxState::default(),
-            semantics: SemanticState::default(),
-            context: ContextState::default(),
-            intent: Vec::new(),
-            confidence: ConfidenceState::default(),
-        }
-    }
-}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Default)]
 pub struct SyntaxState {
     pub rules_applied: u64,
     pub parse_depth: u32,
     pub active_patterns: Vec<String>,
 }
 
-impl Default for SyntaxState {
-    fn default() -> Self {
-        Self {
-            rules_applied: 0,
-            parse_depth: 0,
-            active_patterns: Vec::new(),
-        }
-    }
-}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SemanticState {
@@ -122,6 +99,7 @@ pub struct IntentHypothesis {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Default)]
 pub struct NeuralState {
     pub fields: Vec<FieldState>,
     pub active_cells: Vec<CellId>,
@@ -132,19 +110,6 @@ pub struct NeuralState {
     pub confidence: ConfidenceState,
 }
 
-impl Default for NeuralState {
-    fn default() -> Self {
-        Self {
-            fields: Vec::new(),
-            active_cells: Vec::new(),
-            active_columns: Vec::new(),
-            field_activations: HashMap::new(),
-            temporal_encoding: Vec::new(),
-            prediction: None,
-            confidence: ConfidenceState::default(),
-        }
-    }
-}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FieldState {
@@ -163,6 +128,7 @@ pub struct NeuralPredictionState {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Default)]
 pub struct MemoryState {
     pub working: WorkingMemory,
     pub episodic: EpisodicMemory,
@@ -171,19 +137,9 @@ pub struct MemoryState {
     pub associative: AssociativeMemory,
 }
 
-impl Default for MemoryState {
-    fn default() -> Self {
-        Self {
-            working: WorkingMemory::default(),
-            episodic: EpisodicMemory::default(),
-            semantic: SemanticMemory::default(),
-            procedural: ProceduralMemory::default(),
-            associative: AssociativeMemory::default(),
-        }
-    }
-}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Default)]
 pub struct WorkingMemory {
     pub input: Option<String>,
     pub active_concepts: Vec<ConceptId>,
@@ -195,20 +151,6 @@ pub struct WorkingMemory {
     pub recent_outputs: Vec<String>,
 }
 
-impl Default for WorkingMemory {
-    fn default() -> Self {
-        Self {
-            input: None,
-            active_concepts: Vec::new(),
-            active_hypotheses: Vec::new(),
-            goals: Vec::new(),
-            world_assumptions: Vec::new(),
-            turn_count: 0,
-            recent_inputs: Vec::new(),
-            recent_outputs: Vec::new(),
-        }
-    }
-}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EpisodicMemory {
@@ -327,6 +269,7 @@ pub struct AssociationRecord {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Default)]
 pub struct WorldState {
     pub entities: Vec<Entity>,
     pub relations: Vec<Relation>,
@@ -335,17 +278,6 @@ pub struct WorldState {
     pub uncertainty: UncertaintyState,
 }
 
-impl Default for WorldState {
-    fn default() -> Self {
-        Self {
-            entities: Vec::new(),
-            relations: Vec::new(),
-            active_events: Vec::new(),
-            temporal_context: TemporalContext::default(),
-            uncertainty: UncertaintyState::default(),
-        }
-    }
-}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Entity {
@@ -374,6 +306,7 @@ pub struct Event {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Default)]
 pub struct ReasoningState {
     pub active_hypotheses: Vec<Hypothesis>,
     pub conclusion: Option<Conclusion>,
@@ -383,18 +316,6 @@ pub struct ReasoningState {
     pub budget_remaining: u32,
 }
 
-impl Default for ReasoningState {
-    fn default() -> Self {
-        Self {
-            active_hypotheses: Vec::new(),
-            conclusion: None,
-            premises: Vec::new(),
-            evidence_index: HashMap::new(),
-            contradiction_log: Vec::new(),
-            budget_remaining: 0,
-        }
-    }
-}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Hypothesis {
@@ -434,6 +355,7 @@ pub struct Contradiction {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Default)]
 pub struct PlanningState {
     pub active_goals: Vec<Goal>,
     pub candidate_plans: Vec<Plan>,
@@ -442,17 +364,6 @@ pub struct PlanningState {
     pub simulation_count: u32,
 }
 
-impl Default for PlanningState {
-    fn default() -> Self {
-        Self {
-            active_goals: Vec::new(),
-            candidate_plans: Vec::new(),
-            selected_plan: None,
-            budget_remaining: 0,
-            simulation_count: 0,
-        }
-    }
-}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Goal {
@@ -595,19 +506,12 @@ impl Default for CapabilitySet {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Default)]
 pub struct LimitationSet {
     pub known_limitations: Vec<String>,
     pub resource_constraints: Vec<String>,
 }
 
-impl Default for LimitationSet {
-    fn default() -> Self {
-        Self {
-            known_limitations: Vec::new(),
-            resource_constraints: Vec::new(),
-        }
-    }
-}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MemoryHealth {

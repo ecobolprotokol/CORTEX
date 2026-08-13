@@ -1,0 +1,67 @@
+# CORTEX Configuration
+
+[model]
+cells = 4096
+columns = 64
+dimension = 256
+precision = "f32"
+sparsity_ratio = 0.05
+
+[language]
+enabled = true
+vocabulary_capacity = 65536
+context_window = 4096
+generation_limit = 1024
+learning = true
+
+[memory]
+working_mb = 128
+episodic_mb = 512
+semantic_mb = 512
+procedural_mb = 256
+associative_mb = 256
+
+[learning]
+enabled = true
+learning_rate = 0.001
+plasticity = 0.01
+replay = true
+consolidation_interval = 1000
+
+[world]
+enabled = true
+prediction_horizon = 8
+
+[reasoning]
+enabled = true
+max_steps = 32
+
+[planning]
+enabled = true
+max_depth = 8
+max_branches = 16
+
+[verification]
+enabled = true
+minimum_confidence = 0.80
+
+[internet]
+enabled = true
+timeout_seconds = 15
+max_response_mb = 4
+
+[policy]
+learning = true
+internet_learning = true
+self_modification = false
+policy_modification = false
+runtime_modification = false
+
+[api]
+enabled = true
+bind = "127.0.0.1:8080"
+api_key_env = "CORTEX_API_KEY"
+
+[persistence]
+state = "cortex.cx"
+checkpoint_interval = 1000

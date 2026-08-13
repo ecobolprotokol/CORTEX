@@ -78,7 +78,7 @@ impl ConfidenceModel {
             + weighted_consistency
             - uncertainty_penalty;
 
-        raw.max(0.0).min(1.0)
+        raw.clamp(0.0, 1.0)
     }
 
     pub fn compute_with_prediction_reliability(

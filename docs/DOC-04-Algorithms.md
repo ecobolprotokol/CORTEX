@@ -1899,12 +1899,12 @@ PROCEDURE DetermineStatus(
     claim, evidence, source_quality, consistency,
     independent_count, contradictions, confidence
 ) -> VerificationStatus:
-    // Rule 1: Contradicted
+    // Rule 1: Contradicted (DOC-00 §5.2)
     IF NOT contradictions.is_empty() THEN
         RETURN VerificationStatus::Contradicted
     END IF
 
-    // Rule 2: Verified (highest bar)
+    // Rule 2: Verified (DOC-00 §5.2: independent_sources ≥ 2, strength ≥ threshold, quality ≥ 0.7, consistency ≥ 0.8)
     IF independent_count >= 2
        AND evidence.total_strength() >= config.verification.minimum_confidence
        AND source_quality >= 0.7
@@ -1913,15 +1913,12 @@ PROCEDURE DetermineStatus(
         RETURN VerificationStatus::Verified
     END IF
 
-    // Rule 3: Supported
-    IF evidence.total_strength() >= 0.5
-       AND source_quality >= 0.5
-       AND consistency >= 0.6
-    THEN
+    // Rule 3: Supported (DOC-00 §5.2: evidence_count ≥ 1 AND strength ≥ 0.5)
+    IF evidence.total_strength() >= 0.5 THEN
         RETURN VerificationStatus::Supported
     END IF
 
-    // Rule 4: Provisional
+    // Rule 4: Provisional (DOC-00 §5.2: confidence ≥ 0.3 AND no contradictions)
     IF evidence.total_strength() >= 0.3 THEN
         RETURN VerificationStatus::Provisional
     END IF
@@ -2803,8 +2800,8 @@ PROCEDURE ProcessInternetContent(net_obs: &NetworkObservation) -> Observation:
         importance: 0.3,  // Lower default importance for internet content
     }
 
-    // 4. Mark as requiring verification
-    observation.source.verification_status ← VerificationStatus::Unknown
+    // 4. Mark as requiring verification (tracked on KnowledgeClaim, not Provenance)
+    // INV-PV-002: Provenance SHALL NOT be modified after creation
 
     RETURN observation
 END PROCEDURE

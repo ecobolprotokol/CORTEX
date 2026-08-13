@@ -7,7 +7,7 @@ use cortex::types::evidence::{Evidence, EvidencePolarity, EvidenceContent};
 #[test]
 fn test_hypothesis_generator() {
     let mut generator = HypothesisGenerator::new(10);
-    let hypotheses = generator.generate("What is gravity?", &vec!["physics".into()]);
+    let hypotheses = generator.generate("What is gravity?", &["physics".into()]);
     assert!(!hypotheses.is_empty());
 }
 

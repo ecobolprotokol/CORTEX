@@ -882,17 +882,19 @@ pub enum ErrorAttribution {
 // types/evidence.rs
 #[derive(Serialize, Deserialize)]
 pub struct Evidence {
-    pub id: u64,
+    pub id: EvidenceId,
     pub source: Provenance,
     pub content: EvidenceContent,
     pub strength: Scalar,
+    pub polarity: EvidencePolarity,
     pub timestamp: Timestamp,
+    pub related: Vec<EvidenceId>,
 }
 
 #[derive(Serialize, Deserialize)]
 pub struct EvidenceSet {
     pub items: Vec<Evidence>,
-    pub total_strength: Scalar,
+    // total_strength is computed via method, not stored
 }
 
 #[derive(Serialize, Deserialize)]
@@ -903,9 +905,7 @@ pub struct Provenance {
     pub timestamp: Timestamp,
     pub retrieval_context: Option<RetrievalContext>,
     pub content_hash: [u8; 32],
-    pub evidence: EvidenceSet,
-    pub verification_status: VerificationStatus,
-    pub confidence: ConfidenceState,
+    // NOTE: evidence, verification_status, and confidence belong on KnowledgeClaim, not Provenance
 }
 
 #[derive(Serialize, Deserialize)]
@@ -921,13 +921,13 @@ pub enum ProvenanceCategory {
 
 #[derive(Serialize, Deserialize)]
 pub enum VerificationStatus {
-    Observed,
-    Inferred,
-    Supported,
-    Provisional,
-    Verified,
-    Unknown,
-    Contradicted,
+    Unknown,      // Ordinal 0
+    Observed,     // Ordinal 1
+    Inferred,     // Ordinal 2
+    Supported,    // Ordinal 3
+    Provisional,  // Ordinal 4
+    Verified,     // Ordinal 5
+    Contradicted, // Ordinal -1 (serialized specially)
 }
 
 #[derive(Serialize, Deserialize)]
@@ -938,7 +938,7 @@ pub struct ConfidenceState {
     pub consistency: Scalar,
     pub uncertainty: Scalar,
     pub prediction_reliability: Scalar,
-    pub verification_status: VerificationStatus,
+    // NOTE: verification_status is NOT here — it is a separate dimension on KnowledgeClaim
 }
 ```
 
@@ -2606,12 +2606,11 @@ impl ProvenanceTracker {
     
     pub fn merge_provenance(&self, existing: &Provenance, new: &Provenance) -> Provenance {
         // When knowledge is updated, merge provenance
+        // NOTE: evidence, verification_status, and confidence belong on KnowledgeClaim, not Provenance
         Provenance {
             category: new.category,
             source: new.source.clone(),
             timestamp: new.timestamp,
-            evidence: existing.evidence.merge(&new.evidence),
-            confidence: new.confidence,
             ..existing.clone()
         }
     }

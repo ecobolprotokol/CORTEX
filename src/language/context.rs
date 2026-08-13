@@ -4,6 +4,7 @@ use crate::types::common::ContextState;
 use crate::types::ids::{ConceptId, EpisodeId, SymbolId};
 
 #[derive(Debug, Clone)]
+#[derive(Default)]
 pub struct HierarchicalContext {
     pub symbol_context: Vec<SymbolId>,
     pub sentence_context: Vec<String>,
@@ -14,19 +15,6 @@ pub struct HierarchicalContext {
     pub long_term_context: Vec<String>,
 }
 
-impl Default for HierarchicalContext {
-    fn default() -> Self {
-        Self {
-            symbol_context: Vec::new(),
-            sentence_context: Vec::new(),
-            conversation_context: Vec::new(),
-            episode_context: Vec::new(),
-            semantic_context: Vec::new(),
-            world_context: Vec::new(),
-            long_term_context: Vec::new(),
-        }
-    }
-}
 
 pub struct ContextModel {
     pub window_sizes: WindowSizes,

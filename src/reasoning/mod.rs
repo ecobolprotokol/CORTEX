@@ -16,7 +16,7 @@ pub trait ReasoningEngine {
 }
 
 pub fn rank_hypotheses(
-    hypotheses: &mut Vec<Hypothesis>,
+    hypotheses: &mut [Hypothesis],
 ) {
     hypotheses.sort_by(|a, b| {
         let score_a = compute_hypothesis_score(a);

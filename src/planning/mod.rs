@@ -7,6 +7,8 @@ pub use risk::{RiskEvaluator, RiskAssessment};
 use crate::error::CortexError;
 use crate::types::scalars::Scalar;
 
+type TransitionFn<'a> = Option<&'a dyn Fn(&str, &str) -> (String, Scalar)>;
+
 pub trait PlanningEngine {
     fn evaluate(&self, goal: &str) -> Result<plan::Plan, CortexError>;
     fn max_depth(&self) -> u32;
@@ -15,7 +17,7 @@ pub trait PlanningEngine {
 
 pub fn simulate_plan(
     plan: &Plan,
-    transition_fn: Option<&dyn Fn(&str, &str) -> (String, Scalar)>,
+    transition_fn: TransitionFn<'_>,
 ) -> PlanSimulationResult {
     let mut cumulative_cost = 0.0f32;
     let mut cumulative_risk = 0.0f32;

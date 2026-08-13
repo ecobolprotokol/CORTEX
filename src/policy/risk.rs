@@ -90,7 +90,7 @@ impl RiskEstimator {
             RiskFactor {
                 name: "Reversibility".into(),
                 weight: 0.25,
-                value: (1.0 - reversibility).max(0.0).min(1.0),
+                value: (1.0 - reversibility).clamp(0.0, 1.0),
             },
             RiskFactor {
                 name: "Scope".into(),
@@ -152,7 +152,7 @@ impl RiskEstimator {
             RiskFactor {
                 name: "Reversibility".into(),
                 weight: 0.25,
-                value: (1.0 - reversibility).max(0.0).min(1.0),
+                value: (1.0 - reversibility).clamp(0.0, 1.0),
             },
             RiskFactor {
                 name: "Scope".into(),

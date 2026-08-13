@@ -20,7 +20,7 @@ pub struct Evidence {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum EvidenceContent {
     Text(String),
-    Observation(Observation),
+    Observation(Box<Observation>),
     KnowledgeRef(KnowledgeId),
     EpisodeRef(EpisodeId),
     Numeric(Scalar),

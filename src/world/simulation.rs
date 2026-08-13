@@ -2,6 +2,8 @@ use serde::{Deserialize, Serialize};
 
 use crate::types::scalars::Scalar;
 
+pub type TransitionFn<'a> = Option<&'a dyn Fn(&str, &str) -> (String, Scalar)>;
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SimulationResult {
     pub steps: Vec<SimulationStep>,
@@ -61,7 +63,7 @@ impl WorldSimulator {
         &self,
         initial_state: &str,
         actions: &[String],
-        transition_fn: Option<&dyn Fn(&str, &str) -> (String, Scalar)>,
+        transition_fn: TransitionFn<'_>,
     ) -> SimulationResult {
         let mut steps = Vec::new();
         let mut current_state = initial_state.to_string();
@@ -119,7 +121,7 @@ impl WorldSimulator {
         original: &SimulationResult,
         modified_action: &str,
         at_step: u32,
-        transition_fn: Option<&dyn Fn(&str, &str) -> (String, Scalar)>,
+        transition_fn: TransitionFn<'_>,
     ) -> SimulationResult {
         if at_step as usize >= original.steps.len() {
             return SimulationResult {
@@ -187,7 +189,7 @@ impl WorldSimulator {
         initial_state: &str,
         action: &str,
         samples: u32,
-        transition_fn: Option<&dyn Fn(&str, &str) -> (String, Scalar)>,
+        transition_fn: TransitionFn<'_>,
     ) -> (String, Scalar, Scalar) {
         let mut results = Vec::new();
         let mut confidences = Vec::new();

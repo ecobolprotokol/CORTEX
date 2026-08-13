@@ -3,17 +3,14 @@ use serde::{Deserialize, Serialize};
 pub type Scalar = f32;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Default)]
 pub enum Precision {
+    #[default]
     F32,
     F16,
     BF16,
 }
 
-impl Default for Precision {
-    fn default() -> Self {
-        Precision::F32
-    }
-}
 
 pub const SCALAR_EPSILON: Scalar = 1e-6;
 
@@ -45,12 +42,12 @@ impl std::fmt::Display for DataValidationError {
 impl std::error::Error for DataValidationError {}
 
 pub trait ScalarOps {
-    fn is_valid_cognitive_value(self) -> bool;
+    fn is_valid_cognitive_value(&self) -> bool;
     fn validate_range(self, min: Scalar, max: Scalar) -> Result<(), DataValidationError>;
 }
 
 impl ScalarOps for Scalar {
-    fn is_valid_cognitive_value(self) -> bool {
+    fn is_valid_cognitive_value(&self) -> bool {
         self.is_finite()
     }
 

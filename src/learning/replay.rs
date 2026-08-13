@@ -130,11 +130,7 @@ impl ReplayBuffer {
         }
 
         let sample_size = n.min(self.entries.len());
-        let step = if sample_size == 0 {
-            1
-        } else {
-            self.entries.len() / sample_size
-        };
+        let step = self.entries.len().checked_div(sample_size).unwrap_or(1);
 
         self.entries
             .iter()

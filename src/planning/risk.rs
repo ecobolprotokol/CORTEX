@@ -101,8 +101,8 @@ impl RiskEvaluator {
             RiskFactor {
                 name: "Irreversibility".into(),
                 weight: self.weights.reversibility_weight,
-                value: (1.0 - reversibility).max(0.0).min(1.0),
-                contribution: (1.0 - reversibility).max(0.0).min(1.0) * self.weights.reversibility_weight,
+                value: (1.0 - reversibility).clamp(0.0, 1.0),
+                contribution: (1.0 - reversibility).clamp(0.0, 1.0) * self.weights.reversibility_weight,
             },
             RiskFactor {
                 name: "Cascading".into(),

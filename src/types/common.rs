@@ -12,7 +12,7 @@ impl Timestamp {
     pub fn now() -> Self {
         let d = SystemTime::now()
             .duration_since(UNIX_EPOCH)
-            .expect("system clock before UNIX epoch");
+            .unwrap_or_else(|_| std::time::Duration::from_secs(0));
         Self(d.as_millis() as u64)
     }
 
@@ -117,6 +117,7 @@ impl Default for ComputeBudget {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Default)]
 pub struct ContextState {
     pub conversation_id: Option<u64>,
     pub episode_context: Vec<EpisodeId>,
@@ -125,17 +126,6 @@ pub struct ContextState {
     pub temporal_context: TemporalContext,
 }
 
-impl Default for ContextState {
-    fn default() -> Self {
-        Self {
-            conversation_id: None,
-            episode_context: Vec::new(),
-            active_concepts: Vec::new(),
-            world_assumptions: Vec::new(),
-            temporal_context: TemporalContext::default(),
-        }
-    }
-}
 
 impl ContextState {
     pub fn initial() -> Self {

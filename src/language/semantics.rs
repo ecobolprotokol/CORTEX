@@ -46,6 +46,12 @@ pub struct SemanticAnalyzer {
     pub entity_count: u64,
 }
 
+impl Default for SemanticAnalyzer {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl SemanticAnalyzer {
     pub fn new() -> Self {
         Self {

@@ -32,6 +32,12 @@ pub struct SyntaxAnalyzer {
     pub patterns: HashMap<String, String>,
 }
 
+impl Default for SyntaxAnalyzer {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl SyntaxAnalyzer {
     pub fn new() -> Self {
         let mut patterns = HashMap::new();
@@ -138,7 +144,7 @@ impl SyntaxAnalyzer {
                 } else if is_adjective(token) {
                     SyntacticRole::Modifier
                 } else if is_noun(token) {
-                    if position == 0 || all_tokens.get(position.saturating_sub(1)).map_or(false, |t| is_punctuation(t)) {
+                    if position == 0 || all_tokens.get(position.saturating_sub(1)).is_some_and(|t| is_punctuation(t)) {
                         SyntacticRole::Subject
                     } else {
                         SyntacticRole::Object
@@ -165,23 +171,23 @@ impl SyntaxAnalyzer {
         let mut deps = Vec::new();
         match role {
             SyntacticRole::Subject => {
-                for i in 0..index {
-                    if matches!(self.quick_classify(&tokens[i]), SyntacticRole::Determiner) {
+                for (i, token) in tokens.iter().enumerate().take(index) {
+                    if matches!(self.quick_classify(token), SyntacticRole::Determiner) {
                         deps.push(i);
                     }
                 }
             }
             SyntacticRole::Predicate => {
-                for i in 0..index {
-                    if matches!(self.quick_classify(&tokens[i]), SyntacticRole::Adverbial) {
+                for (i, token) in tokens.iter().enumerate().take(index) {
+                    if matches!(self.quick_classify(token), SyntacticRole::Adverbial) {
                         deps.push(i);
                     }
                 }
             }
             SyntacticRole::Object => {
-                for i in 0..index {
+                for (i, token) in tokens.iter().enumerate().take(index) {
                     if matches!(
-                        self.quick_classify(&tokens[i]),
+                        self.quick_classify(token),
                         SyntacticRole::Preposition | SyntacticRole::Determiner
                     ) {
                         deps.push(i);

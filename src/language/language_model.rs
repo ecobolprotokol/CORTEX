@@ -46,6 +46,12 @@ impl Default for ScoreWeights {
     }
 }
 
+impl Default for LanguageModel {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl LanguageModel {
     pub fn new() -> Self {
         Self {
@@ -83,7 +89,7 @@ impl LanguageModel {
 
         let mut candidates: HashMap<String, ScoreFactors> = HashMap::new();
 
-        for (token, _freq) in &self.vocab_frequencies {
+        for token in self.vocab_frequencies.keys() {
             let lang_score = self.language_score(token);
             let ctx_score = self.context_score(token, last_token);
             let sem_score = self.semantic_score(token);

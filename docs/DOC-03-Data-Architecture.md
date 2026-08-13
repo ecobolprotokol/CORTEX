@@ -730,11 +730,14 @@ pub struct PredictionError {
 
 impl PredictionError {
     pub fn compute(predicted: &[Scalar], actual: &[Scalar]) -> Self {
-        let magnitude = predicted.iter()
+        let raw_magnitude = predicted.iter()
             .zip(actual.iter())
             .map(|(p, a)| (p - a).powi(2))
             .sum::<Scalar>()
             .sqrt();
+        
+        // INV-PE-001: Normalize to [0.0, 1.0] using tanh
+        let magnitude = raw_magnitude.tanh();
         
         Self {
             magnitude,
@@ -839,9 +842,13 @@ impl EvidenceSet {
 
 ### 8.6 Provenance
 
+> **Canonical definition:** See DOC-00 §2.1. Provenance tracks origin only. It does NOT contain verification_status or confidence — those are separate dimensions tracked on the KnowledgeClaim.
+
 ```rust
 /// Complete provenance information for any knowledge item.
 /// Provenance is NEVER optional.
+/// INV-PV-001: Every knowledge mutation SHALL preserve provenance.
+/// INV-PV-002: Provenance SHALL NOT be modified after creation.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Provenance {
     /// Category of origin
@@ -859,17 +866,9 @@ pub struct Provenance {
     /// Context at time of acquisition
     pub retrieval_context: Option<RetrievalContext>,
     
-    /// Content hash for integrity
+    /// Content hash for integrity (BLAKE3-256)
+    /// INV-PV-003: Provenance SHALL record source, timestamp, and content hash
     pub content_hash: [u8; 32],
-    
-    /// Evidence supporting this provenance
-    pub evidence: EvidenceSet,
-    
-    /// Current verification status
-    pub verification_status: VerificationStatus,
-    
-    /// Confidence in this provenance
-    pub confidence: ConfidenceState,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -960,8 +959,11 @@ impl Provenance {
 
 ### 8.7 Confidence & Uncertainty
 
+> **Canonical definition:** See DOC-00 §2.1. Confidence and verification status are separate dimensions. ConfidenceState does NOT contain verification_status.
+
 ```rust
 /// Multi-dimensional confidence state.
+/// Does NOT contain verification_status — that is a separate dimension.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ConfidenceState {
     /// Overall belief strength (0.0 to 1.0)
@@ -977,13 +979,11 @@ pub struct ConfidenceState {
     pub consistency: Scalar,
     
     /// Uncertainty level (0.0 to 1.0, higher = more uncertain)
+    /// INV-CF-003: belief + uncertainty = 1.0
     pub uncertainty: Scalar,
     
     /// Historical prediction reliability (0.0 to 1.0)
     pub prediction_reliability: Scalar,
-    
-    /// Current verification status
-    pub verification_status: VerificationStatus,
 }
 
 impl ConfidenceState {
@@ -995,7 +995,6 @@ impl ConfidenceState {
             consistency: 0.5,
             uncertainty: 0.5,
             prediction_reliability: 0.0,
-            verification_status: VerificationStatus::Unknown,
         }
     }
     
@@ -1988,13 +1987,13 @@ pub struct KnowledgeClaim {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum VerificationStatus {
-    Observed,
-    Inferred,
-    Supported,
-    Provisional,
-    Verified,
-    Unknown,
-    Contradicted,
+    Unknown,      // Ordinal 0
+    Observed,     // Ordinal 1
+    Inferred,     // Ordinal 2
+    Supported,    // Ordinal 3
+    Provisional,  // Ordinal 4
+    Verified,     // Ordinal 5
+    Contradicted, // Ordinal -1 (serialized specially)
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -3200,7 +3199,7 @@ CORRUPTION RECOVERY (on failure)
 | TC-006 | Architecture version only increases |
 | TC-007 | Algorithm versions only increase |
 | TC-008 | Timestamps are monotonically increasing within session |
-| TC-009 | Verification status can only progress: Unknown → Observed → Inferred → Supported → Provisional → Verified |
+| TC-009 | Verification status transitions follow the matrix defined in DOC-00 §5.2 and DOC-03 §40.1 |
 | TC-010 | Verification status can regress to Contradicted with evidence |
 | TC-011 | PolicyState changes require Level 3 authorization |
 | TC-012 | Config hash changes require restart |
@@ -3668,62 +3667,76 @@ pub enum DataValidationError {
 
 ### 40.1 Verification Status Lifecycle
 
+> **Canonical definition:** See DOC-00 §5. Verification status is a separate dimension from confidence. The transition matrix below defines all valid state transitions.
+
 Verification status transitions are governed by a strict state machine:
 
 ```
                 ┌──────────────┐
                 │   Unknown    │
                 └──────┬───────┘
-                       │ evidence gathered
+                       │ evidence gathered / inference
                        ↓
                 ┌──────────────┐
                 │   Observed   │ (direct observation)
                 └──────┬───────┘
-                       │ inferred from evidence
+                       │ inference applied / evidence accumulated
                        ↓
                 ┌──────────────┐
-                │   Inferred   │ (no direct evidence)
+                │   Inferred   │ (derived from other claims)
                 └──────┬───────┘
-                       │ evidence strengthens
+                       │ evidence_count ≥ 1 AND strength ≥ 0.5
                        ↓
                 ┌──────────────┐
-                │  Supported   │ (evidence total_strength >= 0.5)
+                │  Supported   │ (evidence total_strength ≥ 0.5)
                 └──────┬───────┘
-                       │ evidence strengthens further
+                       │ confidence ≥ 0.3 AND no contradictions
                        ↓
                 ┌──────────────┐
-                │  Provisional │ (evidence total_strength >= 0.3)
+                │ Provisional  │ (evidence total_strength ≥ 0.3)
                 └──────┬───────┘
-                       │ evidence meets all verification criteria
+                       │ independent_sources ≥ 2, strength ≥ threshold,
+                       │ quality ≥ 0.7, consistency ≥ 0.8
                        ↓
                 ┌──────────────┐
-                │   Verified   │ (independent >= 2, strength >= threshold,
-                │              │  source_quality >= 0.7, consistency >= 0.8)
+                │   Verified   │ (all verification criteria met)
                 └──────────────┘
                        
     Any status ──contradiction found──→ Contradicted
+    Provisional ──confidence downgrade──→ Supported
 ```
 
-**Transition Rules:**
+**Transition Rules (DOC-00 §5.2 canonical):**
 
 | From | To | Condition |
 |---|---|---|
-| Unknown | Observed | Direct observation recorded |
-| Unknown | Inferred | Inferred from other knowledge |
-| Unknown | Provisional | Evidence with total_strength >= 0.3 |
-| Unknown | Verified | NEVER directly (must pass through intermediates) |
-| Observed | Supported | Additional evidence gathered |
-| Observed | Provisional | Evidence with total_strength >= 0.3 |
-| Inferred | Supported | Supporting evidence gathered |
-| Inferred | Provisional | Evidence with total_strength >= 0.3 |
-| Supported | Provisional | Confidence downgraded |
-| Supported | Verified | All verification criteria met |
-| Provisional | Supported | Evidence strengthened |
-| Provisional | Verified | All verification criteria met |
-| Verified | Contradicted | Contradicting evidence found |
-| Any | Contradicted | Contradicting evidence found |
+| Unknown | Observed | observation_count ≥ 1 |
+| Unknown | Inferred | inference_source != None |
+| Unknown | Contradicted | contradiction_count ≥ 1 |
+| Observed | Inferred | inference_source != None |
+| Observed | Supported | evidence_count ≥ 1 AND strength ≥ 0.5 |
+| Observed | Contradicted | contradiction_count ≥ 1 |
+| Inferred | Supported | evidence_count ≥ 1 AND strength ≥ 0.5 |
+| Inferred | Contradicted | contradiction_count ≥ 1 |
+| Supported | Provisional | confidence ≥ 0.3 AND no contradictions |
+| Supported | Contradicted | contradiction_count ≥ 1 |
+| Provisional | Verified | independent_sources ≥ 2 AND strength ≥ threshold AND quality ≥ 0.7 AND consistency ≥ 0.8 |
+| Provisional | Supported | confidence < 0.3 OR contradiction detected |
+| Provisional | Contradicted | contradiction_count ≥ 1 |
+| Verified | Contradicted | contradiction_count ≥ 1 AND severity > threshold |
 
-**Invariant:** Verification SHALL never silently upgrade UNKNOWN to VERIFIED without satisfying configured evidence conditions (minimum_confidence threshold).
+**Forbidden Transitions (DOC-00 §5.3):**
+
+| Transition | Reason |
+|---|---|
+| Verified → Observed | Cannot downgrade from verified without new contradiction |
+| Verified → Inferred | Cannot downgrade from verified without new contradiction |
+| Verified → Supported | Cannot downgrade from verified without new contradiction |
+| Verified → Provisional | Cannot downgrade from verified without new contradiction |
+| Contradicted → Any except Unknown | Contradicted is terminal until contradiction resolved |
+| Any → Unknown | Cannot reset to unknown (state is permanent) |
+
+**Invariant INV-DOC-004:** Verification SHALL never silently upgrade UNKNOWN to VERIFIED without satisfying configured evidence conditions (minimum_confidence threshold).
 
 ### 40.2 Memory Capacity & Eviction State Transitions
 
@@ -3837,7 +3850,25 @@ Items with forget_score > 0.7 are candidates for eviction. Eviction is processed
 | ERR-* | §38 Data Validation Rules |
 | CMP-* | §32 State Versioning, §33 Migration Rules |
 
-### 40.3 Final Data Contract Statement
+### 40.3 Traceability to Requirements
+
+| DOC-01 Requirement | DOC-03 Section | Data Type |
+|---|---|---|
+| FR-LANG-001 through FR-LANG-015 | §8 Language State | `LanguageState` |
+| FR-NEUR-001 through FR-NEUR-009 | §8 Neural State | `NeuralState`, `CellState` |
+| FR-MEM-001 through FR-MEM-011 | §9 Memory Data Model | `MemoryState`, `WorkingMemory`, `EpisodicMemory`, `SemanticMemory`, `ProceduralMemory`, `AssociativeMemory` |
+| FR-WRLD-001 through FR-WRLD-007 | §10 World Data | `WorldState`, `Entity`, `Transition` |
+| FR-RSN-001 through FR-RSN-006 | §11 Reasoning State | `ReasoningState`, `KnowledgeClaim` |
+| FR-PLN-001 through FR-PLN-004 | §12 Planning State | `PlanningState`, `Goal`, `Plan` |
+| FR-VER-001 through FR-VER-006 | §13 Verification State | `VerificationState`, `KnowledgeClaim`, `VerificationStatus` |
+| FR-LRN-001 through FR-LRN-009 | §14 Learning State | `LearningState`, `LearningEvent` |
+| FR-SLF-001 through FR-SLF-004 | §15 Self Model State | `SelfModel`, `CapabilitySet` |
+| FR-POL-001 through FR-POL-006 | §16 Policy State | `PolicyState`, `RiskThresholds` |
+| FR-INT-001 through FR-INT-005 | §17 Internet State | `InternetState` |
+| FR-PRS-001 through FR-PRS-006 | §23 .cx Format | `.cx` binary format |
+| FR-API-001 through FR-API-004 | §8.2 Observation, §8.3 Action | `Observation`, `Action` |
+
+### 40.4 Final Data Contract Statement
 
 > **This document constitutes the data-level contract for CORTEX.** It defines every data structure, every state type, every ownership boundary, every mutability rule, every lifecycle transition, every invariant, and every persistence byte.
 >

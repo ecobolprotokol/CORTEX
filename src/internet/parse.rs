@@ -53,8 +53,8 @@ impl ContentParser {
                         }
                     }
 
-                    if !in_script && !in_style {
-                        if tag.starts_with("p")
+                    if !in_script && !in_style
+                        && (tag.starts_with("p")
                             || tag.starts_with("br")
                             || tag.starts_with("div")
                             || tag.starts_with("h1")
@@ -64,13 +64,10 @@ impl ContentParser {
                             || tag.starts_with("h5")
                             || tag.starts_with("h6")
                             || tag.starts_with("li")
-                            || tag.starts_with("tr")
-                        {
-                            if !result.ends_with('\n') && !result.is_empty() {
+                            || tag.starts_with("tr"))
+                            && !result.ends_with('\n') && !result.is_empty() {
                                 result.push('\n');
                             }
-                        }
-                    }
 
                     i = tag_end + 1;
                 } else {
@@ -146,7 +143,7 @@ impl ContentParser {
 
     pub fn summarize(&self, text: &str, max_sentences: usize) -> String {
         let sentences: Vec<&str> = text
-            .split(|c| c == '.' || c == '!' || c == '?')
+            .split(['.', '!', '?'])
             .map(|s| s.trim())
             .filter(|s| !s.is_empty())
             .collect();

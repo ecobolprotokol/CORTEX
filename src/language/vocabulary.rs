@@ -56,11 +56,11 @@ impl Vocabulary {
     pub fn add_association(&mut self, source: SymbolId, target: SymbolId) {
         self.associations
             .entry(source)
-            .or_insert_with(Vec::new)
+            .or_default()
             .push(target);
         self.associations
             .entry(target)
-            .or_insert_with(Vec::new)
+            .or_default()
             .push(source);
     }
 

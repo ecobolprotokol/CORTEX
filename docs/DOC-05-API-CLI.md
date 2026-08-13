@@ -74,7 +74,7 @@ This specification does NOT cover:
 | IP-011 | Provenance in responses | Knowledge responses include provenance and verification status |
 | IP-012 | Graceful degradation | Disabled subsystems return defined empty/default responses |
 | IP-013 | No secret exposure | API keys, internal paths, and sensitive config never in responses |
-| IP-014 | CLI mirrors API | Every API capability has a CLI equivalent |
+| IP-014 | CLI mirrors API for primary operations | Core API operations have CLI equivalents |
 | IP-015 | Deterministic error codes | Same error condition always produces same error code |
 
 ---
@@ -293,33 +293,35 @@ All error responses:
 
 ### 6.3 Error Code Registry
 
-| Code | Kind | HTTP Status | Description |
-|---|---|---|---|
-| `CORTEX_ERR_001` | InputError | 400 | Invalid input format |
-| `CORTEX_ERR_002` | InputError | 400 | Input exceeds maximum length |
-| `CORTEX_ERR_003` | EncodingError | 400 | Invalid UTF-8 encoding |
-| `CORTEX_ERR_004` | AuthenticationError | 401 | Missing or invalid API key |
-| `CORTEX_ERR_005` | AuthorizationError | 403 | Operation denied by policy |
-| `CORTEX_ERR_006` | NotFoundError | 404 | Endpoint not found |
-| `CORTEX_ERR_007` | ValidationError | 422 | Request validation failed |
-| `CORTEX_ERR_008` | LanguageError | 500 | Language processing error |
-| `CORTEX_ERR_009` | MemoryError | 500 | Memory operation error |
-| `CORTEX_ERR_010` | WorldModelError | 500 | World model error |
-| `CORTEX_ERR_011` | ReasoningError | 500 | Reasoning error |
-| `CORTEX_ERR_012` | PlanningError | 500 | Planning error |
-| `CORTEX_ERR_013` | VerificationError | 500 | Verification error |
-| `CORTEX_ERR_014` | LearningError | 500 | Learning error |
-| `CORTEX_ERR_015` | PersistenceError | 500 | Persistence error |
-| `CORTEX_ERR_016` | PolicyError | 403 | Policy denial |
-| `CORTEX_ERR_017` | ResourceError | 503 | Resource exhaustion |
-| `CORTEX_ERR_018` | NetworkError | 502 | Network operation failed |
-| `CORTEX_ERR_019` | RuntimeError | 500 | Internal runtime error |
-| `CORTEX_ERR_020` | ConfigError | 500 | Configuration error |
-| `CORTEX_ERR_021` | RateLimitError | 429 | Rate limit exceeded |
-| `CORTEX_ERR_022` | TimeoutError | 504 | Operation timed out |
-| `CORTEX_ERR_023` | StateError | 500 | Invalid state transition |
-| `CORTEX_ERR_024` | SerializationError | 500 | Serialization/deserialization error |
-| `CORTEX_ERR_025` | SubsystemDisabled | 501 | Requested subsystem is disabled |
+> **Canonical definition:** See DOC-00 §7. Error kinds and severity levels are defined normatively in DOC-00.
+
+| Code | Kind | HTTP Status | Severity | Description |
+|---|---|---|---|---|
+| `CORTEX_ERR_001` | InputError | 400 | Recoverable | Invalid input format |
+| `CORTEX_ERR_002` | InputError | 400 | Recoverable | Input exceeds maximum length |
+| `CORTEX_ERR_003` | EncodingError | 400 | Recoverable | Invalid UTF-8 encoding |
+| `CORTEX_ERR_004` | AuthenticationError | 401 | Recoverable | Missing or invalid API key |
+| `CORTEX_ERR_005` | AuthorizationError | 403 | Recoverable | Operation denied by policy |
+| `CORTEX_ERR_006` | NotFoundError | 404 | Recoverable | Endpoint not found |
+| `CORTEX_ERR_007` | ValidationError | 422 | Recoverable | Request validation failed |
+| `CORTEX_ERR_008` | LanguageError | 500 | Recoverable | Language processing error |
+| `CORTEX_ERR_009` | MemoryError | 500 | Recoverable/StateCorruption | Memory operation error |
+| `CORTEX_ERR_010` | WorldModelError | 500 | Recoverable | World model error |
+| `CORTEX_ERR_011` | ReasoningError | 500 | Recoverable | Reasoning error |
+| `CORTEX_ERR_012` | PlanningError | 500 | Recoverable | Planning error |
+| `CORTEX_ERR_013` | VerificationError | 500 | Recoverable | Verification error |
+| `CORTEX_ERR_014` | LearningError | 500 | Recoverable | Learning error |
+| `CORTEX_ERR_015` | PersistenceError | 500 | StateCorruption/Fatal | Persistence error |
+| `CORTEX_ERR_016` | PolicyError | 403 | Recoverable | Policy denial |
+| `CORTEX_ERR_017` | ResourceError | 503 | Recoverable | Resource exhaustion |
+| `CORTEX_ERR_018` | NetworkError | 502 | Recoverable | Network operation failed |
+| `CORTEX_ERR_019` | RuntimeError | 500 | Fatal | Internal runtime error |
+| `CORTEX_ERR_020` | ConfigError | 500 | Configuration | Configuration error |
+| `CORTEX_ERR_021` | RateLimitError | 429 | Recoverable | Rate limit exceeded |
+| `CORTEX_ERR_022` | TimeoutError | 504 | Recoverable | Operation timed out |
+| `CORTEX_ERR_023` | StateError | 409 | Recoverable | Invalid state transition |
+| `CORTEX_ERR_024` | SerializationError | 500 | Recoverable | Serialization/deserialization error |
+| `CORTEX_ERR_025` | SubsystemDisabled | 503 | Recoverable | Requested subsystem is disabled |
 
 ### 6.4 HTTP Status Code Mapping
 
@@ -1166,7 +1168,8 @@ POST /v1/verify
       "evidence_strength": 0.88,
       "source_quality": 0.9,
       "consistency": 0.95,
-      "uncertainty": 0.05
+      "uncertainty": 0.05,
+      "prediction_reliability": 0.0
     },
     "evidence": [
       {
@@ -2937,7 +2940,22 @@ When configuration validation is triggered (e.g., via `cortex status` or startup
 | FR-API-004 | §2.2 (`api.enabled = false`) |
 | FR-CLI-001 | §28 (all CLI commands) |
 
-### 42.3 Final Interface Contract Statement
+### 42.3 Traceability to Requirements
+
+| DOC-01 Requirement | DOC-05 Section | API Endpoint | CLI Command |
+|---|---|---|---|
+| FR-API-001 | §2 API Endpoints | All `/v1/*` | — |
+| FR-API-002 | §4 Authentication | `Authorization: Bearer` | `--api-key` |
+| FR-API-003 | §5 Policy Gates | All mutation endpoints | All mutation commands |
+| FR-API-004 | §2.1 Disabled API | — | CLI-only mode |
+| FR-CLI-001 | §3 CLI Commands | — | All `cortex <command>` |
+| FR-LANG-001 | §2.1.1 POST /v1/inference | `/v1/inference` | `cortex observe` |
+| FR-MEM-007 | §2.1.5 POST /v1/memory/query | `/v1/memory/query` | `cortex query` |
+| FR-VER-001 | §2.1.10 POST /v1/verify | `/v1/verify` | `cortex verify` |
+| FR-PRS-001 | §2.1.14 POST /v1/checkpoint | `/v1/checkpoint` | `cortex checkpoint` |
+| FR-INT-001 | §2.1.12 POST /v1/internet/fetch | `/v1/internet/fetch` | `cortex fetch` |
+
+### 42.4 Final Interface Contract Statement
 
 > **This document constitutes the interface contract for CORTEX.** It defines every external communication pathway: 39 HTTP API endpoints, 14 CLI commands, 5 environment variables, 14 exit codes, 25 error codes, and complete request/response schemas.
 >
@@ -2948,7 +2966,7 @@ When configuration validation is triggered (e.g., via `cortex status` or startup
 > - **Consistent error model**: Structured errors with codes, kinds, and recovery guidance.
 > - **Versioned API**: URL-based versioning with compatibility guarantees.
 > - **Machine-readable**: JSON output for scripting and automation.
-> - **CLI parity**: Every API capability has a CLI equivalent.
+> - **CLI parity**: Core API operations have CLI equivalents.
 > - **Bounded operations**: All operations have explicit limits.
 > - **Secret isolation**: API keys never in state, logs, or responses.
 >

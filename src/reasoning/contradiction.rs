@@ -91,10 +91,10 @@ impl ContradictionDetector {
             if (a.contains(&negated_b)) || (b.contains(&negated_a)) {
                 return true;
             }
-            if a.starts_with(pattern) && b.contains(&a[pattern.len()..].trim()) {
+            if a.starts_with(pattern) && b.contains(a[pattern.len()..].trim()) {
                 return true;
             }
-            if b.starts_with(pattern) && a.contains(&b[pattern.len()..].trim()) {
+            if b.starts_with(pattern) && a.contains(b[pattern.len()..].trim()) {
                 return true;
             }
         }

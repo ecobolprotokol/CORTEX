@@ -10,6 +10,12 @@ pub struct Decoder {
     pub lexical_cache: HashMap<String, Vec<String>>,
 }
 
+impl Default for Decoder {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Decoder {
     pub fn new() -> Self {
         let mut lexical_cache = HashMap::new();

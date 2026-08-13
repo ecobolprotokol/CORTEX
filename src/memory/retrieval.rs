@@ -21,6 +21,12 @@ pub struct RetrievalResult {
 
 pub struct RetrievalEngine;
 
+impl Default for RetrievalEngine {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl RetrievalEngine {
     pub fn new() -> Self {
         Self
@@ -149,9 +155,9 @@ impl RetrievalEngine {
         (total / associations.len() as Scalar).min(1.0)
     }
 
-    pub fn detect_contradictions<'a>(
-        episodes: &'a [Episode],
-    ) -> Vec<(&'a Episode, &'a Episode, String)> {
+    pub fn detect_contradictions(
+        episodes: &[Episode],
+    ) -> Vec<(&Episode, &Episode, String)> {
         let mut contradictions = Vec::new();
 
         for i in 0..episodes.len() {
@@ -191,10 +197,10 @@ impl RetrievalEngine {
         contradictions
     }
 
-    pub fn filter_by_confidence<'a>(
-        episodes: &'a [Episode],
+    pub fn filter_by_confidence(
+        episodes: &[Episode],
         min_confidence: Scalar,
-    ) -> Vec<&'a Episode> {
+    ) -> Vec<&Episode> {
         episodes
             .iter()
             .filter(|e| e.confidence >= min_confidence)

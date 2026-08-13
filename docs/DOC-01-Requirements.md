@@ -208,7 +208,7 @@ CORTEX is a **persistent, state-based, continually learning AI model** implement
 
 | ID | Requirement | Priority |
 |---|---|---|
-| FR-VER-001 | CORTEX SHALL classify claims into: Observed, Inferred, Supported, Provisional, Verified, Unknown, Contradicted. | MUST |
+| FR-VER-001 | CORTEX SHALL classify claims into: Unknown, Observed, Inferred, Supported, Provisional, Verified, Contradicted. Transitions follow the matrix in DOC-00 §5. | MUST |
 | FR-VER-002 | Verification SHALL evaluate: evidence retrieval, source evaluation, consistency analysis, independent evidence, contradiction analysis, and confidence update. | MUST |
 | FR-VER-003 | Verification SHALL NOT silently upgrade UNKNOWN to VERIFIED without satisfying configured evidence conditions. | MUST |
 | FR-VER-004 | Confidence and verification status SHALL be tracked as separate dimensions. | MUST |
@@ -907,7 +907,9 @@ Forgetting is controlled, not arbitrary. Factors: low importance, low retrieval 
 
 ### 17.1 Error Taxonomy
 
-CORTEX SHALL implement the following error kinds:
+> **Canonical definition:** See DOC-00 §7. Error kinds and severity levels are defined normatively in DOC-00.
+
+CORTEX SHALL implement the following error kinds (DOC-00 §7.1):
 
 ```
 InputError, EncodingError, LanguageError, MemoryError, WorldModelError,
@@ -915,11 +917,21 @@ ReasoningError, PlanningError, VerificationError, LearningError,
 PersistenceError, PolicyError, ResourceError, NetworkError, RuntimeError
 ```
 
+Additionally, the API layer SHALL implement extended error kinds (DOC-00 §7.2):
+
+```
+AuthenticationError, AuthorizationError, NotFoundError, ValidationError,
+ConfigError, RateLimitError, TimeoutError, StateError, SerializationError,
+SubsystemDisabled
+```
+
+Error severity levels (DOC-00 §7.3): Recoverable, StateCorruption, Fatal, Configuration.
+
 ### 17.2 Error Handling Contract
 
 | ID | Requirement |
 |---|---|
-| ERR-001 | Every error SHALL be classified by kind. |
+| ERR-001 | Every error SHALL be classified by kind and severity. |
 | ERR-002 | Error taxonomy feeds diagnostics and learning attribution. |
 | ERR-003 | Recoverable errors SHALL be logged and processing continued. |
 | ERR-004 | Fatal errors SHALL trigger safe stop with state preservation attempt. |
