@@ -204,7 +204,7 @@ pub struct RetrievalContext {
     pub session_id: SessionId,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ConfidenceState {
     pub belief: Scalar,
     pub evidence_strength: Scalar,
@@ -255,11 +255,12 @@ impl ConfidenceState {
     }
 
     pub fn overall(&self) -> Scalar {
-        (self.belief * 0.3)
+        let raw = (self.belief * 0.3)
             + (self.evidence_strength * 0.25)
             + (self.source_quality * 0.15)
             + (self.consistency * 0.2)
-            + ((1.0 - self.uncertainty) * 0.1)
+            + ((1.0 - self.uncertainty) * 0.1);
+        raw.clamp(0.0, 1.0)
     }
 
     pub fn is_verified(&self) -> bool {

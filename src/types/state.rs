@@ -7,6 +7,11 @@ use crate::types::ids::*;
 use crate::types::observation::Observation;
 use crate::types::scalars::Scalar;
 
+pub const ARCHITECTURE_VERSION: u32 = 1;
+pub const SCHEMA_VERSION: u32 = 1;
+pub const API_VERSION: &str = "v1";
+pub const DOCUMENT_VERSION: &str = "1.0.0";
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CortexState {
     pub metadata: StateMetadata,
@@ -28,6 +33,7 @@ pub struct StateMetadata {
     pub created_at: Timestamp,
     pub last_updated: Timestamp,
     pub architecture_version: u32,
+    pub schema_version: u32,
     pub algorithm_versions: AlgorithmVersions,
     pub config_hash: [u8; 32],
     pub episode_count: u64,

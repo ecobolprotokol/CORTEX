@@ -32,7 +32,7 @@
 
 ### Document Purpose
 
-This document defines **every configuration parameter available in `cortex.toml`**. It constitutes the configuration reference: parameter names, types, defaults, valid ranges, validation rules, interactions, and examples.
+This document defines **every configuration parameter available in `cortex.toml`**. It constitutes the configuration reference: parameter names, types, defaults, valid ranges, validation rules, interactions, and examples. Canonical parameter names and defaults are defined in DOC-00.
 
 ---
 

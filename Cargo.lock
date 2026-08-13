@@ -245,6 +245,7 @@ dependencies = [
  "criterion",
  "hyper",
  "serde",
+ "serde_json",
  "tempfile",
  "tokio",
  "toml",

@@ -5,6 +5,7 @@ pub mod error;
 pub mod types;
 pub mod cortex;
 pub mod runtime;
+pub mod transaction;
 pub mod language;
 pub mod neural;
 pub mod memory;

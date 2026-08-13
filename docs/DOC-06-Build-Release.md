@@ -32,7 +32,7 @@
 
 ### Document Purpose
 
-This document defines **how CORTEX is built, tested, and released**. It constitutes the build contract: toolchain requirements, build pipeline stages, CI gates, release artifact specification, and versioning policy.
+This document defines **how CORTEX is built, tested, and released**. It constitutes the build contract: toolchain requirements, build pipeline stages, CI gates, release artifact specification, and versioning policy. Canonical terminology and versioning are defined in DOC-00.
 
 ---
 

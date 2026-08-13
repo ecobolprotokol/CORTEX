@@ -3,10 +3,13 @@
 use crate::config::CortexConfig;
 use crate::error::CortexError;
 use crate::runtime::{Runtime, RuntimeState};
+use crate::transaction::mutation::{MutationKind, MutationLog, RecordParams};
+use crate::transaction::state_tx::StateTransaction;
+use crate::transaction::invariant::StateInvariant;
 use crate::types::state::{
     AlgorithmVersions, CortexState, LanguageState, LearningState, MemoryState, NeuralState,
     PlanningState, ProvenanceState, ReasoningState, SelfModel, StateMetadata, VerificationState,
-    WorldState,
+    WorldState, ARCHITECTURE_VERSION, SCHEMA_VERSION,
 };
 use crate::types::common::Timestamp;
 use crate::language::tokenizer::Tokenizer;
@@ -27,6 +30,8 @@ pub struct CortexRuntime {
     pub state: CortexState,
     pub config: CortexConfig,
     pub runtime_state: RuntimeState,
+    pub state_version: u64,
+    pub mutation_log: MutationLog,
     pub language_tokenizer: Tokenizer,
     pub language_vocabulary: Vocabulary,
     pub neural_field: Field,
@@ -50,7 +55,8 @@ impl Default for CortexState {
                 state_id: [0u8; 16],
                 created_at: Timestamp::now(),
                 last_updated: Timestamp::now(),
-                architecture_version: 1,
+                architecture_version: ARCHITECTURE_VERSION,
+                schema_version: SCHEMA_VERSION,
                 algorithm_versions: AlgorithmVersions {
                     cell_algorithm: "1.0.0".into(),
                     column_algorithm: "1.0.0".into(),
@@ -102,11 +108,14 @@ impl CortexRuntime {
         let persistence_checkpoint = CheckpointManager::new(10);
         let self_model = CapabilitySelfModel::new();
         let diagnostics = Diagnostics::new();
+        let mutation_log = MutationLog::new(10_000);
 
         Ok(Self {
             state: CortexState::default(),
             config,
             runtime_state: RuntimeState::Booting,
+            state_version: 0,
+            mutation_log,
             language_tokenizer,
             language_vocabulary,
             neural_field,
@@ -131,7 +140,7 @@ impl CortexRuntime {
                 self.runtime_state, target
             )));
         }
-        tracing::info!("State: {:?} -> {:?}", self.runtime_state, target);
+        tracing::info!(from = ?self.runtime_state, to = ?target, "Runtime state transition");
         self.runtime_state = target;
         Ok(())
     }
@@ -155,8 +164,27 @@ impl CortexRuntime {
     }
 
     fn execute_pipeline(&mut self, input: &str) -> Result<String, CortexError> {
+        let pre_version = self.state_version;
+
+        StateInvariant::pre_mutation_check(&self.state, pre_version)?;
+
         // Stage 1: Parse observation
+        let mut txn = StateTransaction::begin(
+            MutationKind::LanguageEncode,
+            "parse_observation",
+            pre_version,
+        );
+        txn.apply("set_input")?;
         self.memory_working.set_input(input.to_string());
+        self.mutation_log.record(RecordParams {
+            kind: MutationKind::LanguageEncode,
+            description: "parse observation",
+            subsystem: "working_memory",
+            pre_version,
+            post_version: self.state_version,
+            success: true,
+            error: None,
+        });
 
         // Stage 2: Encode language (tokenize)
         let tokens = self.language_tokenizer.tokenize(input)?;
@@ -166,8 +194,15 @@ impl CortexRuntime {
             symbol_ids.push(id);
         }
         self.state.language.symbols = symbol_ids;
+        txn.commit(&mut self.mutation_log, self.state_version);
 
         // Stage 3: Process neural representation
+        let gate_result = self.policy_gate.evaluate("neural_process");
+        if gate_result.decision == PolicyDecision::Deny {
+            return Err(CortexError::PolicyError(
+                "Neural processing denied by policy".into(),
+            ));
+        }
         let max_active =
             (self.neural_field.columns.len() as f32 * self.config.model.sparsity_ratio) as usize;
         self.neural_field.enforce_sparsity(max_active);
@@ -185,6 +220,15 @@ impl CortexRuntime {
             .filter(|(_, c)| !c.active_cells.is_empty())
             .map(|(i, _)| crate::types::ids::ColumnId::from(i as u64))
             .collect();
+        self.mutation_log.record(RecordParams {
+            kind: MutationKind::NeuralProcess,
+            description: "neural processing",
+            subsystem: "neural",
+            pre_version,
+            post_version: self.state_version,
+            success: true,
+            error: None,
+        });
 
         // Stage 4: Retrieve memories
         let recent_episodes = self.memory_episodic.recent(5);
@@ -207,8 +251,23 @@ impl CortexRuntime {
         }
         self.state.memory.episodic.next_id =
             crate::types::ids::EpisodeId::from(self.memory_episodic.next_id);
+        self.mutation_log.record(RecordParams {
+            kind: MutationKind::MemoryStore,
+            description: "memory retrieval and sync",
+            subsystem: "memory",
+            pre_version,
+            post_version: self.state_version,
+            success: true,
+            error: None,
+        });
 
         // Stage 5: Integrate world state
+        let gate_result = self.policy_gate.evaluate("world_integrate");
+        if gate_result.decision == PolicyDecision::Deny {
+            return Err(CortexError::PolicyError(
+                "World integration denied by policy".into(),
+            ));
+        }
         let words: Vec<&str> = input.split_whitespace().collect();
         for word in words.iter().take(3) {
             if word.len() > 3 {
@@ -228,8 +287,23 @@ impl CortexRuntime {
                 updated_at: e.updated_at,
             })
             .collect();
+        self.mutation_log.record(RecordParams {
+            kind: MutationKind::WorldIntegrate,
+            description: "world integration",
+            subsystem: "world",
+            pre_version,
+            post_version: self.state_version,
+            success: true,
+            error: None,
+        });
 
         // Stage 6: Evaluate reasoning
+        let gate_result = self.policy_gate.evaluate("reasoning_evaluate");
+        if gate_result.decision == PolicyDecision::Deny {
+            return Err(CortexError::PolicyError(
+                "Reasoning denied by policy".into(),
+            ));
+        }
         let hypotheses = self.reasoning_generator.generate(input, &context_strings);
         self.state.reasoning.active_hypotheses = hypotheses
             .iter()
@@ -248,11 +322,32 @@ impl CortexRuntime {
             })
             .collect();
         self.state.reasoning.budget_remaining = self.config.reasoning.max_steps;
+        self.mutation_log.record(RecordParams {
+            kind: MutationKind::ReasoningEvaluate,
+            description: "reasoning evaluation",
+            subsystem: "reasoning",
+            pre_version,
+            post_version: self.state_version,
+            success: true,
+            error: None,
+        });
 
         // Stage 7: Evaluate planning (optional)
         if self.config.planning.enabled {
-            let _plan = crate::planning::plan::PlanBuilder::new().build(input);
-            self.state.planning.simulation_count += 1;
+            let gate_result = self.policy_gate.evaluate("planning_evaluate");
+            if gate_result.decision != PolicyDecision::Deny {
+                let _plan = crate::planning::plan::PlanBuilder::new().build(input);
+                self.state.planning.simulation_count += 1;
+                self.mutation_log.record(RecordParams {
+                    kind: MutationKind::PlanningEvaluate,
+                    description: "planning evaluation",
+                    subsystem: "planning",
+                    pre_version,
+                    post_version: self.state_version,
+                    success: true,
+                    error: None,
+                });
+            }
         }
 
         // Stage 8: Verify claims
@@ -280,16 +375,34 @@ impl CortexRuntime {
         };
         self.memory_episodic.store(crate::types::observation::Observation::user_provided(input));
         self.state.metadata.episode_count += 1;
+        self.mutation_log.record(RecordParams {
+            kind: MutationKind::MemoryStore,
+            description: "experience recorded",
+            subsystem: "episodic_memory",
+            pre_version,
+            post_version: self.state_version,
+            success: true,
+            error: None,
+        });
 
         // Stage 11: Apply learning
         if self.config.learning.enabled {
-            let gate = self.policy_gate.evaluate("learning");
-            if gate.decision == PolicyDecision::Allow {
+            let gate_result = self.policy_gate.evaluate("learning");
+            if gate_result.decision == PolicyDecision::Allow {
                 let change = (importance * self.config.learning.learning_rate).abs();
                 if self.learning_stability.check_stability(change) {
                     self.state.learning.total_learning_events += 1;
                     self.state.learning.learning_rate = self.config.learning.learning_rate;
                     self.state.learning.plasticity_rate = self.config.learning.plasticity;
+                    self.mutation_log.record(RecordParams {
+                        kind: MutationKind::LearningApply,
+                        description: "learning applied",
+                        subsystem: "learning",
+                        pre_version,
+                        post_version: self.state_version,
+                        success: true,
+                        error: None,
+                    });
                 }
             }
         }
@@ -304,6 +417,15 @@ impl CortexRuntime {
                 self.memory_episodic.next_id,
             );
             self.state.metadata.checkpoint_count += 1;
+            self.mutation_log.record(RecordParams {
+                kind: MutationKind::CheckpointCreate,
+                description: "periodic checkpoint",
+                subsystem: "persistence",
+                pre_version,
+                post_version: self.state_version,
+                success: true,
+                error: None,
+            });
         }
 
         // Consolidation check
@@ -312,10 +434,13 @@ impl CortexRuntime {
             && self.observation_count % self.config.learning.consolidation_interval == 0
         {
             self.state.learning.total_consolidation_events += 1;
-            tracing::info!("Memory consolidation triggered");
+            tracing::info!(count = self.observation_count, "Memory consolidation triggered");
         }
 
+        self.state_version += 1;
         self.state.metadata.last_updated = Timestamp::now();
+
+        StateInvariant::post_mutation_check(&self.state, self.state_version)?;
 
         Ok(response)
     }
@@ -359,17 +484,33 @@ impl Runtime for CortexRuntime {
         tracing::info!("Configuration validated");
 
         self.transition_to(RuntimeState::LoadingState)?;
-        tracing::info!("State loaded (fresh start)");
+        tracing::info!(version = self.state_version, "State loaded");
 
         self.transition_to(RuntimeState::Validating)?;
+        StateInvariant::validate_state(&self.state)?;
         self.state.metadata.last_updated = Timestamp::now();
         tracing::info!("State validated");
 
         self.transition_to(RuntimeState::Initializing)?;
-        self.state.metadata.architecture_version = 1;
+        self.state.metadata.architecture_version = ARCHITECTURE_VERSION;
+        self.state.metadata.schema_version = SCHEMA_VERSION;
         self.state.learning.learning_rate = self.config.learning.learning_rate;
         self.state.learning.plasticity_rate = self.config.learning.plasticity;
-        tracing::info!("Subsystems initialized");
+        self.state_version = 1;
+        self.mutation_log.record(RecordParams {
+            kind: MutationKind::StateInitialize,
+            description: "runtime initialized",
+            subsystem: "runtime",
+            pre_version: 0,
+            post_version: self.state_version,
+            success: true,
+            error: None,
+        });
+        tracing::info!(
+            architecture_version = ARCHITECTURE_VERSION,
+            schema_version = SCHEMA_VERSION,
+            "Subsystems initialized"
+        );
 
         self.transition_to(RuntimeState::Ready)?;
         tracing::info!("Boot complete - Ready");
@@ -394,18 +535,33 @@ impl Runtime for CortexRuntime {
 
         self.transition_to(RuntimeState::ShuttingDown)?;
 
+        StateInvariant::validate_state(&self.state)?;
+
         self.state.metadata.last_updated = Timestamp::now();
-        tracing::info!("State saved");
+        tracing::info!("State validated for shutdown");
 
         self.persistence_checkpoint.create_checkpoint(
             self.memory_episodic.episodes.len() as u64,
             self.memory_episodic.next_id,
         );
         self.state.metadata.checkpoint_count += 1;
-        tracing::info!("Final checkpoint created");
+        self.mutation_log.record(RecordParams {
+            kind: MutationKind::CheckpointCreate,
+            description: "shutdown checkpoint",
+            subsystem: "persistence",
+            pre_version: self.state_version,
+            post_version: self.state_version,
+            success: true,
+            error: None,
+        });
+        tracing::info!(checkpoint_count = self.state.metadata.checkpoint_count, "Final checkpoint created");
 
         self.transition_to(RuntimeState::Stopped)?;
-        tracing::info!("Shutdown complete");
+        tracing::info!(
+            version = self.state_version,
+            mutations = self.mutation_log.records.len(),
+            "Shutdown complete"
+        );
 
         Ok(())
     }

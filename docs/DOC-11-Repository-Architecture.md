@@ -32,7 +32,7 @@
 
 ### Document Purpose
 
-This document defines **the repository structure of CORTEX** as the Final Architectural Baseline. It constitutes the authoritative record of the repository layout: every directory, every file, every naming convention, every boundary, and every structural invariant.
+This document defines **the repository structure of CORTEX** as the Final Architectural Baseline. It constitutes the authoritative record of the repository layout: every directory, every file, every naming convention, every boundary, and every structural invariant. Document hierarchy and naming conventions are defined in DOC-00.
 
 ### Document Scope
 

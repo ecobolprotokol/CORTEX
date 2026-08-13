@@ -32,7 +32,7 @@
 
 ### Document Purpose
 
-This document defines **how CORTEX is tested and validated**. It constitutes the quality contract: every test category, every test requirement, every acceptance criterion, and every validation procedure.
+This document defines **how CORTEX is tested and validated**. It constitutes the quality contract: every test category, every test requirement, every acceptance criterion, and every validation procedure. Canonical invariants and transition matrices are defined in DOC-00.
 
 ---
 

@@ -32,7 +32,7 @@
 
 ### Document Purpose
 
-This document defines **CORTEX's security architecture, threat model, privacy controls, and compliance requirements**. It constitutes the security contract: security boundaries, authentication, authorization, data protection, and privacy guarantees.
+This document defines **CORTEX's security architecture, threat model, privacy controls, and compliance requirements**. It constitutes the security contract: security boundaries, authentication, authorization, data protection, and privacy guarantees. Policy enforcement invariants are defined in DOC-00.
 
 ---
 

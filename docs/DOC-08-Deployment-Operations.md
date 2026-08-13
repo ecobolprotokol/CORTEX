@@ -32,7 +32,7 @@
 
 ### Document Purpose
 
-This document defines **how CORTEX is deployed, operated, monitored, upgraded, and recovered**. It constitutes the operations contract: deployment procedures, operational runbook, monitoring requirements, upgrade procedures, and disaster recovery.
+This document defines **how CORTEX is deployed, operated, monitored, upgraded, and recovered**. It constitutes the operations contract: deployment procedures, operational runbook, monitoring requirements, upgrade procedures, and disaster recovery. Concurrency model and durability semantics are defined in DOC-00.
 
 ---
 

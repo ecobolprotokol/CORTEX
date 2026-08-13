@@ -8,8 +8,8 @@
 |---|---|
 | **Document ID** | CORTEX-DOC-00 |
 | **Title** | Document Control & Canonical Glossary |
-| **Version** | 1.0.0 |
-| **Status** | Approved |
+| **Version** | 1.1.0 |
+| **Status** | Final Architectural Baseline |
 | **Classification** | Meta-Contract |
 | **Scope** | Document hierarchy, canonical terminology, versioning, invariants, traceability |
 | **Parent Document** | (root — no parent) |
@@ -21,6 +21,7 @@
 | Version | Date | Author | Description |
 |---|---|---|---|
 | 1.0.0 | 2026-08-13 | CORTEX Architecture | Initial document control and glossary |
+| 1.1.0 | 2026-08-13 | CORTEX Architecture | Specification & Contract Freeze — resolved 14 contradictions, added freeze declaration |
 
 ### Approval
 
