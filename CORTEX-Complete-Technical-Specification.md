@@ -211,10 +211,11 @@ The canonical configuration file is `cortex.toml`. It defines how CORTEX operate
 
 ```toml
 [model]
-cells = 4096          # uint, minimum 256
-columns = 64          # uint, minimum 16
-dimension = 256       # uint, minimum 64
-precision = "f32"     # "f32" | "f16" | "bf16"
+cells = 4096            # uint, minimum 256
+columns = 64            # uint, minimum 16
+dimension = 256         # uint, minimum 64
+precision = "f32"       # "f32" | "f16" | "bf16"
+sparsity_ratio = 0.05   # float, (0, 1], fraction of cells active per field
 
 [language]
 enabled = true                    # bool
@@ -283,6 +284,23 @@ At startup: parse → schema validation → range validation → dependency vali
 ### 5.3. Configuration Immutability Boundary
 
 Configuration controls architecture limits, resource limits, policy defaults, runtime behavior, persistence, API, and learning parameters. Learning SHALL NOT silently rewrite `cortex.toml`. Runtime state belongs in `.cx`. Administrative configuration belongs in `cortex.toml`. Secrets belong in environment variables or an equivalent external secret mechanism.
+
+### 5.4. Disabled Subsystem Behavior
+
+When a subsystem is disabled via configuration (`enabled = false`), the following behavior applies:
+
+| Subsystem | Disabled Behavior |
+|---|---|
+| `language.enabled = false` | Input treated as raw observation; no language encoding or generation; output limited to structured responses |
+| `world.enabled = false` | World model returns empty state; no transition prediction; reasoning operates without world context |
+| `reasoning.enabled = false` | Hypothesis generation skipped; conclusions based on direct memory retrieval and world state |
+| `planning.enabled = false` | No goal-directed planning; responses based on immediate reasoning only |
+| `verification.enabled = false` | All claims remain in provisional state; no automatic verification; `minimum_confidence` not applied |
+| `internet.enabled = false` | No network access; internet observation pipeline disabled |
+| `learning.enabled = false` | No state mutation from experience; all learning signals discarded |
+| `api.enabled = false` | No embedded API server started; only CLI operational |
+
+A disabled subsystem SHALL return a defined default (empty set, no-op, or passthrough) rather than causing undefined behavior. The cognitive pipeline adapts to skip disabled subsystems while maintaining valid data flow between remaining subsystems.
 
 ---
 
@@ -668,7 +686,7 @@ Fields represent different learned structures (e.g., language, concepts, tempora
 
 CORTEX uses sparse activation as its baseline representation strategy. For a field of 4096 cells, only a bounded subset may be active simultaneously. Sparsity controls memory efficiency, computational efficiency, representation separation, and interference reduction.
 
-Sparsity bound: `active_cells = min(configured_max_active, field_size * sparsity_ratio)` where `sparsity_ratio` is derived from configuration and defaults to approximately 0.05.
+Sparsity bound: `active_cells = min(configured_max_active, field_size * model.sparsity_ratio)` where `model.sparsity_ratio` is configured in `cortex.toml` (default: 0.05).
 
 ### 8.6. Temporal Representation
 
@@ -830,7 +848,7 @@ enum AssociationKind {
 }
 ```
 
-Retrieval score considers: semantic relevance, context relevance, temporal relevance, association strength, importance, prediction relevance, confidence, and recency.
+Retrieval score considers: semantic relevance, context relevance, temporal relevance, association strength, importance, prediction relevance, confidence, and recency. Bounded by `memory.associative_mb`.
 
 ### 9.6. Memory Retrieval
 
@@ -876,12 +894,42 @@ Consolidation may: merge, compress, strengthen, generalize, decay, forget.
 
 Forgetting is controlled rather than arbitrary. Candidate forgetting factors: low importance, low retrieval frequency, low confidence, redundancy, age, memory pressure, contradiction. High-value knowledge receives stronger retention.
 
-### 9.9. Memory Interface Contract
+### 9.9. Memory Query and Retrieval Types
+
+```rust
+struct MemoryQuery {
+    query_type: MemoryQueryType,
+    text: Option<String>,
+    concept_ids: Vec<ConceptId>,
+    time_range: Option<(Timestamp, Timestamp)>,
+    max_results: usize,
+    min_confidence: Scalar,
+}
+
+enum MemoryQueryType {
+    Semantic,
+    Episodic,
+    Procedural,
+    Associative,
+    All,
+}
+
+struct MemoryRetrieval {
+    episodic: Vec<Episode>,
+    semantic: Vec<Knowledge>,
+    procedural: Vec<Procedure>,
+    associative: Vec<Association>,
+    relevance_scores: HashMap<MemoryId, Scalar>,
+    confidence_filter_applied: bool,
+}
+```
+
+### 9.10. Memory Interface Contract
 
 ```rust
 trait MemorySystem {
     fn store(&mut self, episode: Episode) -> Result<()>;
-    fn retrieve(&self, query: &MemoryQuery, context: &ContextState) -> Result<RankedMemorySet>;
+    fn retrieve(&self, query: &MemoryQuery, context: &ContextState) -> Result<MemoryRetrieval>;
     fn consolidate(&mut self) -> Result<ConsolidationResult>;
     fn forget(&mut self, policy: &ForgettingPolicy) -> Result<ForgettingResult>;
     fn working_memory(&self) -> &WorkingMemory;
@@ -954,7 +1002,7 @@ struct WorldState {
 }
 ```
 
-World state changes over time.
+World state changes over time. `WorldState` is the persistent snapshot stored in `.cx`. `WorldModel` (section 10.1) is the full runtime representation including transition models, causal hypotheses, and temporal patterns used for simulation and prediction. `WorldModel` is reconstructed from `WorldState` at startup and is not directly serialized.
 
 ### 10.4. Transition Model
 
@@ -1169,7 +1217,7 @@ enum VerificationStatus {
 
 ### 13.3. Verification Is Not Confidence
 
-Confidence and verification are separate. A claim may have high confidence without `verified = true` because verification requires defined evidence conditions.
+Confidence and verification are separate. A claim may have high confidence without `verified = true` because verification requires defined evidence conditions. The `verification.minimum_confidence` configuration parameter (default: 0.80) sets the confidence threshold that evidence must meet for a claim to transition from `Supported` or `Provisional` to `Verified`.
 
 ### 13.4. Confidence Model
 
@@ -1294,6 +1342,18 @@ Consolidation
 ```
 
 Consolidation avoids allowing a single anomalous event to dominate long-term state.
+
+### 14.6.1. Consolidation Interface Contract
+
+```rust
+trait ConsolidationEngine {
+    fn consolidate(&mut self, candidates: &[ConsolidationCandidate], policy: &PolicyState) -> Result<ConsolidationResult>;
+    fn evaluate_candidate(&self, candidate: &ConsolidationCandidate) -> Result<EvaluationResult>;
+    fn merge_knowledge(&self, existing: &Knowledge, candidate: &Knowledge) -> Result<Knowledge>;
+    fn should_consolidate(&self, candidate: &ConsolidationCandidate, budget: &ComputeBudget) -> bool;
+    fn consolidation_stats(&self) -> ConsolidationStats;
+}
+```
 
 ### 14.7. Language Continual Learning
 
@@ -1778,21 +1838,24 @@ cortex status        # status display
 ```rust
 fn process(input: Input) -> Result<Response> {
     let observation = observe(input)?;
-    let language_state = language.encode(observation)?;
-    let representation = neural.process(language_state)?;
-    let memories = memory.retrieve(&representation)?;
+    let context = working_memory.context();
+    let language_state = language.encode(&observation.text, &context)?;
+    let representation = neural.process(&language_state, &context)?;
+    let query = MemoryQuery::from_representation(&representation);
+    let memories = memory.retrieve(&query, &context)?;
     let world_state = world.integrate(&representation, &memories)?;
     let reasoning_state = reasoning.evaluate(&representation, &memories, &world_state)?;
     let plan = planning.evaluate(&reasoning_state, &world_state)?;
     let verified = verification.evaluate(&reasoning_state)?;
     let response = language.generate(&verified)?;
-    learning.record(observation, response, world_state, reasoning_state)?;
+    let experience = Experience::new(observation, &response, world_state, reasoning_state);
+    learning.record(&experience)?;
     persistence.maybe_checkpoint()?;
     Ok(response)
 }
 ```
 
-This is an architectural contract rather than a requirement that the implementation use exactly this function structure.
+This is an architectural contract rather than a requirement that the implementation use exactly this function structure. The types and method signatures align with the interface contracts defined in each subsystem's section.
 
 ### 21.5. Cognitive Feedback Loop
 
@@ -1926,10 +1989,10 @@ struct ComputeBudget {
     max_reasoning_steps: u32,      // from reasoning.max_steps
     max_planning_depth: u32,       // from planning.max_depth
     max_planning_branches: u32,    // from planning.max_branches
-    max_simulation_steps: u32,     // derived from world.prediction_horizon
+    max_simulation_steps: u32,     // from world.prediction_horizon
     max_generation_length: u32,    // from language.generation_limit
-    max_memory_retrieval: u32,     // derived from memory config
-    max_replay_count: u32,         // derived from learning config
+    max_memory_retrieval: u32,     // min(episodic_count, semantic_count, procedural_count, associative_count) / 4
+    max_replay_count: u32,         // max(1, learning.consolidation_interval / 10)
 }
 ```
 
@@ -2655,6 +2718,83 @@ struct AssociativeMemory {
 }
 ```
 
+### 39.2.1. Neural Representation
+
+```rust
+struct NeuralRepresentation {
+    active_cells: HashSet<CellId>,
+    active_columns: HashSet<ColumnId>,
+    field_activations: HashMap<FieldId, FieldActivation>,
+    temporal_encoding: TemporalEncoding,
+    prediction: Prediction,
+    confidence: ConfidenceState,
+}
+```
+
+### 39.2.2. Reasoning State
+
+```rust
+struct ReasoningState {
+    active_hypotheses: Vec<Hypothesis>,
+    conclusion: Option<Conclusion>,
+    premises: Vec<Proposition>,
+    evidence_index: EvidenceIndex,
+    contradiction_log: Vec<Contradiction>,
+    budget_remaining: u32,
+}
+```
+
+### 39.2.3. Planning State
+
+```rust
+struct PlanningState {
+    active_goals: Vec<Goal>,
+    candidate_plans: Vec<Plan>,
+    selected_plan: Option<Plan>,
+    budget_remaining: u32,
+    simulation_count: u32,
+}
+```
+
+### 39.2.4. Verification State
+
+```rust
+struct VerificationState {
+    pending_claims: Vec<KnowledgeClaim>,
+    verified_claims: Vec<KnowledgeClaim>,
+    contradicted_claims: Vec<KnowledgeClaim>,
+    confidence_threshold: Scalar,
+    evidence_requirements: EvidenceRequirements,
+}
+```
+
+### 39.2.5. Provenance State
+
+```rust
+struct ProvenanceState {
+    provenance_records: Vec<Provenance>,
+    source_registry: HashMap<SourceId, SourceInfo>,
+    total_observations: u64,
+    total_inferences: u64,
+}
+```
+
+### 39.2.6. State Metadata
+
+```rust
+struct StateMetadata {
+    state_id: Uuid,
+    created_at: Timestamp,
+    last_updated: Timestamp,
+    architecture_version: u32,
+    algorithm_versions: AlgorithmVersions,
+    config_hash: [u8; 32],
+    episode_count: u64,
+    total_learning_events: u64,
+    checkpoint_count: u32,
+}
+```
+
 ### 39.3. Neural State
 
 ```rust
@@ -2680,20 +2820,22 @@ struct Field {
 struct Column {
     id: ColumnId,
     cells: Vec<Cell>,
-    activation: Scalar,
+    context: ContextState,
     prediction: Prediction,
+    activation: Scalar,
     competition: CompetitionState,
+    routing: RoutingState,
 }
 
 struct Cell {
     id: CellId,
     state: CellState,
     activation: Scalar,
-    weight: WeightVector,
     context: ContextVector,
     prediction: PredictionVector,
     confidence: Scalar,
     plasticity: Scalar,
+    connections: Connections,
 }
 ```
 
